@@ -78,7 +78,7 @@ a.kaynak-kart:hover{background:var(--yuzey)}
 .eylem{display:flex;align-items:center;gap:6px;min-width:44px;height:40px;padding:0 8px;border-radius:20px;color:var(--yazi2);font-size:14px}
 .eylem:hover{color:var(--vurgu);background:color-mix(in srgb,var(--vurgu) 10%,transparent)}
 .eylem.aktif{color:var(--vurgu)}
-.paylas-izgara{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px 2px;padding:10px 0 6px}
+.paylas-izgara{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px 2px;padding:10px 0 6px}
 .p-oge{display:flex;flex-direction:column;align-items:center;gap:7px;padding:0;font-size:12px;line-height:1.2;color:var(--yazi);text-decoration:none;text-align:center;overflow-wrap:anywhere}
 .p-daire{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;color:#fff}
 .p-notr{background:var(--yuzey);color:var(--yazi);border:1px solid var(--cizgi)}
@@ -86,6 +86,7 @@ a.kaynak-kart:hover{background:var(--yuzey)}
 .p-ig{background:linear-gradient(45deg,#F9CE34 5%,#EE2A7B 50%,#6228D7 95%)}
 .p-x{background:#000;border:1px solid var(--cizgi)}
 .p-tg{background:#26A5E4}
+.p-fb{background:#0866FF}
 .p-gmail{background:#fff;color:#EA4335;border:1px solid var(--cizgi)}
 .p-mail{background:#1E88E5}
 .p-sms{background:#34C759}

@@ -125,7 +125,7 @@
     const sure = (k && k.sure) || b.sure, en = b.en || (k ? k.en : 0), boy = b.boy || (k ? k.boy : 0);
     if (!(sure > 0) || !en || !boy) throw hata("acilamaz", { asama: (k ? "k1" : "k0") + "-" + b.asama });   // ne dosyadan ne tarayıcıdan okunabildi
     if (sure > SINIR.sureSn + 0.5) throw hata("uzun");
-    let cv = b.cv;
+    let cv = b.cv; const kapakYedek = !cv;
     if (!cv) {                                                             // kare alınamadı (iPhone düşük güç modu vb.): düz koyu kapak; video yine yüklenir
       const o = Math.min(1, 720 / Math.max(en, boy));
       cv = document.createElement("canvas");
@@ -138,7 +138,7 @@
     let poster = null;
     for (const q of [0.82, 0.7, 0.55, 0.4]) { poster = await jpegBlob(cv, q); if (poster && poster.size <= SINIR.posterBayt) break; }
     if (!poster || poster.size > SINIR.posterBayt) throw hata("acilamaz", { asama: "kapak" });
-    return { tur, sure_sn: Math.max(1, Math.round(sure * 10) / 10), en, boy, boyut: dosya.size, poster };
+    return { tur, sure_sn: Math.max(1, Math.round(sure * 10) / 10), en, boy, boyut: dosya.size, poster, kapakYedek };
   }
 
   function xhrGonder(yontem, url, basliklar, govde, ilerleme, sinyal) {
