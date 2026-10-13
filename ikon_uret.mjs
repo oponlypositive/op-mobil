@@ -30,7 +30,7 @@ const W = 226, vb = `${105.5 - W / 2} ${98.5 - W / 2} ${W} ${W}`;
 await yaz("icon-foreground.png", kare(halka + arti, vb), 1024);
 await yaz("icon-background.png", kare("", "0 0 200 200", '<rect width="200" height="200" fill="url(#p)"/>'), 1024, (s) => s.flatten({ background: "#1D4753" }));
 // 3) açılış ekranı: açık (krem-beyaz) ve koyu; ortada daire logo, kenarlar geniş (2732 px kare; cihaza göre kırpılır)
-for (const [ad, zemin] of [["splash.png", "#FFFFFF"], ["splash-dark.png", "#07090A"]]) {
+for (const [ad, zemin] of [["splash.png", "#EEF5FB"], ["splash-dark.png", "#0B1D24"]]) {
   const bos = 2732, logoBoy = 760;
   const d = await sharp(Buffer.from(kare(daire + halka + arti)), { density: 600 }).resize(logoBoy, logoBoy).png().toBuffer();
   await sharp({ create: { width: bos, height: bos, channels: 3, background: zemin } }).composite([{ input: d, gravity: "center" }]).removeAlpha().png().toFile(path.join(CIKTI, ad));

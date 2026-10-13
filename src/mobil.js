@@ -58,11 +58,11 @@ if (platform) {
 
   // ---- sistem çubukları: uygulama temasına uy (koyu temada açık simgeler)
   const temaUy = () => {
-    const t = kok.dataset.tema, koyu = t === "koyu" || (t === undefined && matchMedia("(prefers-color-scheme: dark)").matches);
+    const t = kok.dataset.tema, koyu = kok.dataset.mod ? kok.dataset.mod === "koyu" : t === "koyu" || (t === undefined && matchMedia("(prefers-color-scheme: dark)").matches);   // data-mod = temalar.js'in çözümlediği açık/koyu; çubuk simgeleri seçilen zemine uyar (zemin rengi CSS ile çubuğun arkasına çizilir)
     SystemBars.setStyle({ style: koyu ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(yok);
   };
   temaUy();
-  new MutationObserver(temaUy).observe(kok, { attributes: true, attributeFilter: ["data-tema"] });
+  new MutationObserver(temaUy).observe(kok, { attributes: true, attributeFilter: ["data-tema", "data-mod", "data-zemin"] });
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", temaUy);
 
   // ---- klavye: açıkken alt menü gizlenir (style.css html.klavye)

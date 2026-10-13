@@ -47,12 +47,14 @@ const M = {
   eposta_gonderilemedi: ["E-posta şu an gönderilemiyor (e-posta servisi henüz hazır olmayabilir). Biraz sonra tekrar dene ya da op.onlypositive@gmail.com adresine yaz.",
     "We can't send emails right now (the email service may not be ready yet). Try again later or write to op.onlypositive@gmail.com."],
   eposta_gecersiz: ["E-postanı kontrol eder misin? 🙂", "Please check your email 🙂"],
+  anket_bitti: ["Bu anket sona erdi.", "This poll has ended."],
+  zaten_oy: ["Bu ankete zaten oy verdin.", "You already voted in this poll."],
   oturum_yok: ["Oturum süresi doldu, yeniden giriş yapar mısın?", "Your session has expired, please sign in again."],
 };
 // Sunucunun (Edge Function) Türkçe iletileri → EN karşılık (tam eşleşme); eşleşmeyen sunucu iletisi olduğu gibi gösterilir.
 const SUNUCU_EN = {
   "Adını yazar mısın?": "Please enter your name.", "Bir neden seçer misin?": "Please pick a reason.", "Bir şey yaz.": "Write something.",
-  "Boş paylaşım olmaz.": "A post can't be empty.", "Alıntıya bir şey yaz ya da medya ekle.": "Add a comment or media to your quote.", "Alıntılanan gönderi geçersiz.": "The post you're quoting isn't available.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
+  "Anket geçersiz.": "The poll isn't valid.", "Anket için bir soru yaz.": "Write a question for your poll.", "Anket 2-5 seçenek içerir; her biri en çok 40 karakter olabilir.": "A poll has 2-5 options, each up to 40 characters.", "Seçenekler birbirinden farklı olmalı.": "Options must be different from each other.", "Anket süresi 1, 3 ya da 7 gün olabilir.": "A poll can last 1, 3 or 7 days.", "Anketli gönderide fotoğraf, video ya da alıntı olmaz.": "A poll post can't have a photo, video or quote.", "Oy gelen anketin sorusu değiştirilemez.": "A poll with votes can't be edited.", "Boş paylaşım olmaz.": "A post can't be empty.", "Alıntıya bir şey yaz ya da medya ekle.": "Add a comment or media to your quote.", "Alıntılanan gönderi geçersiz.": "The post you're quoting isn't available.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
   "Fotoğraf geçersiz.": "The photo isn't valid.", "Video geçersiz.": "The video isn't valid.", "Video bulunamadı, tekrar yükler misin?": "We couldn't find the video, please upload it again.",
   "Video çok büyük (en çok 40 MB).": "The video is too large (40 MB max).", "Video çok büyük (en çok 95 MB).": "The video is too large (95 MB max).", "Video en çok 60 sn olabilir.": "A video can be 60 seconds at most.", "Bir gönderide fotoğraf ya da video olur.": "A post can have a photo or a video, not both.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
   "Kullanıcı adı 3-20 harf/rakam/_ olmalı.": "Your username must be 3-20 letters, numbers or _.",
@@ -74,7 +76,7 @@ const SUNUCU_EN = {
 };
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
 function hataYap(mesaj, durum = 400, filtre = false, bekleSn = 0) { const e = new Error(mesaj || ileti("genel")); e.durum = durum; e.filtre = filtre; e.bekleSn = bekleSn; return e; }
-const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429 };
+const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, anket_bitti: 409, zaten_oy: 409 };
 function rpcHatasi(error) {
   const kod = String(error?.message || "").trim();
   if (M[kod] && DURUM[kod]) return hataYap(ileti(kod), DURUM[kod]);
@@ -151,8 +153,12 @@ export async function api(yol, govde, yontem) {
 
   if (m === "POST" && p === "/api/kullanici") {   // profil oluştur / güncelle (kimlik = oturum)
     const b = govde || {};
-    return fonksiyon("profil-kaydet", { handle: b.handle, ad: b.ad, bio: b.bio, avatar: b.avatar, renk: b.renk, sehir: b.sehir, dil: b.dil || d,
-      yasOnay: b.yasOnay === true, kosulOnay: b.kosulOnay === true, kosulSurumu: b.kosulSurumu });
+    let fotoYol = null;   // gecis-016: profil fotoğrafı (istemcide 512x512 JPEG) → Storage `foto/<uid>/<uuid>.jpg`; yol profil-kaydet'e gider
+    if (b.fotoVeri) fotoYol = await fotoYukle(b.fotoVeri);
+    try {
+      return await fonksiyon("profil-kaydet", { handle: b.handle, ad: b.ad, bio: b.bio, avatar: b.avatar, renk: b.renk, sehir: b.sehir, dil: b.dil || d,
+        yasOnay: b.yasOnay === true, kosulOnay: b.kosulOnay === true, kosulSurumu: b.kosulSurumu, ...(fotoYol ? { fotoYol } : {}), ...(!fotoYol && b.fotoKaldir === true ? { fotoKaldir: true } : {}) });
+    } catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }
   }
   if (m === "GET" && (r = p.match(/^\/api\/kullanici\/([a-z0-9_]+)$/))) {
     const v = await rpc("profil", { p_handle: r[1], p_dil: d });
@@ -179,9 +185,12 @@ export async function api(yol, govde, yontem) {
     let fotoYol = null;
     if (b.foto) fotoYol = await fotoYukle(b.foto);
     const video = b.video ? { yol: b.video.yol, posterYol: b.video.posterYol, sure_sn: b.video.sure_sn, en: b.video.en, boy: b.video.boy } : undefined;   // video + poster app.js'te medya adaptörüyle ZATEN yüklendi
-    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol, video, ...(b.alintiId ? { alintiId: b.alintiId } : {}) })); }
+    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol, video, ...(b.alintiId ? { alintiId: b.alintiId } : {}), ...(b.baglantiYok === true ? { baglantiYok: true } : {}), ...(b.anket ? { anket: b.anket } : {}) })); }
     catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }   // yarım kalan yüklemeyi temizle
   }
+  if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/anket-oy$/))) return rpc("anket_oy", { p_post: r[1], p_secenek: Number((govde || {}).secenek) });   // gecis-014: tek oy → { anket }
+  if (m === "POST" && p === "/api/baglanti-onizle") return fonksiyon("baglanti-onizle", { url: (govde || {}).url });   // gecis-012: composer canlı kart önizlemesi → { baglanti }
+  if (m === "POST" && p === "/api/gorunum") return rpc("gorunum_kaydet", { p_gorunum: { acik: (govde || {}).acik, koyu: (govde || {}).koyu } });   // gecis-012: arka plan teması tercihi
   if (m === "GET" && p === "/api/videolar") return ogeleriDuzelt(await rpc("videolar", { p_dil: d }));   // gecis-007-video.sql
   if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/(begen|yay|kaydet)$/))) {
     return ogeleriDuzelt(await rpc("etkilesim_degistir", { p_id: r[1], p_tur: r[2], p_dil: d }));

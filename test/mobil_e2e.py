@@ -5,6 +5,7 @@ NEYİ SINAMAZ: gerçek Capacitor yerel eklentileri, iOS/Android WebView'ları, �
 Çalıştır (kök: kuki-holding): PYTHONUTF8=1 .venv/Scripts/python.exe op/app/mobil/test/mobil_e2e.py   (önce: node op/app/mobil/hazirla.mjs)  -> görüntüler mobil/test/ekran/"""
 import json
 import re
+import uuid
 import subprocess
 import sys
 import time
@@ -36,6 +37,13 @@ def senaryo(tarayici, cihaz, ad, platform):
     b.add_init_script("localStorage.setItem('op-ilgi-sordu', '[\"*\"]');" f"window.__OP_PLATFORM_TEST = '{platform}';"
                       "Object.defineProperty(navigator, 'share', {value: (d) => { window.__paylasilan = d; return Promise.resolve(); }, configurable: true});")
     bulut = eb.Bulut()
+    # gecis-012/014: bağlantılı (YouTube kartlı) gönderi + düz bağlantılı gönderi + anket
+    yt_id = "5LLrL9EHwg0"
+    bulut.postlar.append({"id": str(uuid.uuid4()), "yazar": bulut.mehmet, "metin": "Bak bu videoya https://youtu.be/" + yt_id, "foto": None, "z": eb.simdi(0), "haber": False,
+                          "baglanti": {"url": "https://youtu.be/" + yt_id, "site": "YouTube", "baslik": "Sakin bir sahil videosu", "aciklama": "Güzel Kanal", "gorsel": f"https://i.ytimg.com/vi/{yt_id}/hqdefault.jpg", "tur": "youtube", "yt_id": yt_id}})
+    bulut.postlar.append({"id": str(uuid.uuid4()), "yazar": bulut.mehmet, "metin": "Güzel yazı: https://ornek-site.com/yazi?utm_source=x", "foto": None, "z": eb.simdi(0), "haber": False})
+    bulut.postlar.append({"id": str(uuid.uuid4()), "yazar": bulut.mehmet, "metin": "Hangisi daha güzel?", "foto": None, "z": eb.simdi(0), "haber": False,
+                          "anket": {"secenekler": [{"id": 1, "metin": "Deniz"}, {"id": 2, "metin": "Dağ"}], "bitis": eb.simdi(-1440), "oylar": {}}})
     b.route(re.compile(r"^https://yixyvsspetwjatixfaki\.supabase\.co/.*"), bulut.yonlendir)
     sayfa_istekleri = []
     s = b.new_page()
@@ -130,6 +138,26 @@ def senaryo(tarayici, cihaz, ad, platform):
     adim(f"{ad}: klavye açık (html.klavye) → alt menü + yüzen düğme gizli", not alt.is_visible() and not s.locator(".fab").is_visible())
     s.evaluate("() => document.documentElement.classList.remove('klavye')")
     adim(f"{ad}: klavye kapanınca alt menü geri gelir", alt.is_visible())
+
+    # ===== 5b. bağlantı kartı + anket (gecis-012/014) =====
+    s.evaluate("() => { OP_MOBIL.sonDisBaglanti = ''; }")
+    yk = s.locator(".bag-kart[data-e='yt-oynat']").first
+    adim(f"{ad}: YouTube kartı akışta (kapak i.ytimg.com, oynat düğmesi)", yk.count() == 1 and yk.locator("img").get_attribute("src").startswith("https://i.ytimg.com/vi/"))
+    yk.click(); s.wait_for_timeout(300)
+    son = s.evaluate("() => OP_MOBIL.sonDisBaglanti || ''")
+    adim(f"{ad}: NATİF'te YouTube kartına dokununca gömme DENENMEZ (iframe yok), YouTube bağlantısı sistem/uygulama içi tarayıcıda açılır",
+         s.locator(".bag-kart iframe").count() == 0 and "youtube.com/watch?v=" + "5LLrL9EHwg0" in son, son)
+    s.evaluate("() => { OP_MOBIL.sonDisBaglanti = ''; }")
+    bag = s.locator("a.bag[href^='https://ornek-site.com']").first
+    adim(f"{ad}: gönderideki bağlantı tıklanabilir, izleme parametresi atılmış, rel noopener noreferrer nofollow", bag.count() == 1 and "utm_" not in bag.get_attribute("href") and bag.get_attribute("rel") == "noopener noreferrer nofollow")
+    bag.click(); s.wait_for_timeout(300)
+    adim(f"{ad}: bağlantı uygulama içi tarayıcıya yönlendirilir (sayfa değişmez)", s.evaluate("() => OP_MOBIL.sonDisBaglanti || ''").startswith("https://ornek-site.com/yazi"))
+    ank = s.locator(".satir", has_text="Hangisi daha güzel?").locator(".anket")
+    adim(f"{ad}: anket — oy vermeden yüzde yok, yuvarlak seçenekler", ank.locator("button.anket-sec").count() == 2 and "%" not in ank.inner_text())
+    ank.locator("button.anket-sec").first.click(); s.wait_for_timeout(600)
+    ank = s.locator(".satir", has_text="Hangisi daha güzel?").locator(".anket")
+    adim(f"{ad}: oy → yüzde çubukları (%100) ve '1 oy'", ank.locator(".anket-bar").count() == 2 and "%100" in ank.inner_text() and "1 oy" in ank.inner_text(), ank.inner_text().replace(chr(10), " | "))
+    foto("05b-baglanti-anket")
 
     # ===== 6. paylaş menüsü: yerel paylaşım + site adresi + dış bağlantı =====
     s.locator(".satir").filter(has_text="komşuma").locator("[data-e='paylas']").click(); s.wait_for_selector(".paylas-izgara")

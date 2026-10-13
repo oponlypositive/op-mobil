@@ -1,7 +1,7 @@
 /* OP yasal sayfalar: sade, açık/koyu (uygulamayla aynı tema anahtarı) */
-:root{--zemin:#FFFFFF;--yuzey:#F3F6F7;--yazi:#0E1C22;--yazi2:#5B6B72;--cizgi:#E4EAEC;--vurgu:#1D4753;--isaret:#FFF3C4;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-tema="acik"]){--zemin:#07090A;--yuzey:#12181B;--yazi:#E8EEF0;--yazi2:#8A9AA1;--cizgi:#1E282C;--vurgu:#6FC1D1;--isaret:#4A4310;color-scheme:dark}}
-:root[data-tema="koyu"]{--zemin:#07090A;--yuzey:#12181B;--yazi:#E8EEF0;--yazi2:#8A9AA1;--cizgi:#1E282C;--vurgu:#6FC1D1;--isaret:#4A4310;color-scheme:dark}
+:root{--zemin:#EEF5FB;--yuzey:#E6EEF4;--yazi:#1B2630;--yazi2:#5A6C7B;--cizgi:#DAE6F0;--vurgu:#1E6DAE;--isaret:#FFF3C4;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-tema="acik"]){--zemin:#0B1D24;--yuzey:#14262D;--yazi:#E6F2F5;--yazi2:#86A3AC;--cizgi:#16323B;--vurgu:#5FD0E0;--isaret:#4A4310;color-scheme:dark}}
+:root[data-tema="koyu"]{--zemin:#0B1D24;--yuzey:#14262D;--yazi:#E6F2F5;--yazi2:#86A3AC;--cizgi:#16323B;--vurgu:#5FD0E0;--isaret:#4A4310;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--zemin);color:var(--yazi);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.55}
 .ust{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(var(--ust,env(safe-area-inset-top,0px)) + 6px) calc(env(safe-area-inset-right,0px) + 12px) 6px calc(env(safe-area-inset-left,0px) + 12px);background:var(--zemin);border-bottom:1px solid var(--cizgi)}

@@ -2,7 +2,7 @@
   "appId": "org.onlypositive.app",
   "appName": "OP",
   "webDir": "www",
-  "backgroundColor": "#FFFFFF",
+  "backgroundColor": "#EEF5FB",
   "server": {
     "androidScheme": "https",
     "iosScheme": "capacitor"
@@ -20,7 +20,7 @@
     "SplashScreen": {
       "launchAutoHide": false,
       "launchShowDuration": 0,
-      "backgroundColor": "#FFFFFF",
+      "backgroundColor": "#EEF5FB",
       "showSpinner": false
     },
     "SystemBars": {
