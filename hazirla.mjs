@@ -49,10 +49,10 @@ Object.assign(yapi, { platform: "mobil", site: SITE, beta: { acik: BETA } });   
 fs.writeFileSync(ypath, `// OP mobil yapılandırması — mobil/hazirla.mjs üretti (elle düzenleme). URL ve yayınlanabilir anahtar gizli değildir.\nwindow.OP_YAPI = ${JSON.stringify(yapi, null, 2)};\n`);
 
 // 5) yasal sayfalar: paket içinde .html ile açılır
-for (const d of ["kosullar", "gizlilik", "cerezler", "kurallar"]) {
+for (const d of ["kosullar", "gizlilik", "cerezler", "kurallar", "destek", "hesap-sil"]) {
   const f = path.join(WWW, "yasal", d + ".html");
   let h = fs.readFileSync(f, "utf8");
-  h = h.replace(/href="\/yasal\/(kosullar|gizlilik|cerezler|kurallar)"/g, 'href="/yasal/$1.html"').replace('class="geri" href="/"', 'class="geri" href="/index.html"');
+  h = h.replace(/href="\/yasal\/(kosullar|gizlilik|cerezler|kurallar|destek|hesap-sil)"/g, 'href="/yasal/$1.html"').replace('class="geri" href="/"', 'class="geri" href="/index.html"');
   fs.writeFileSync(f, h);
 }
 
@@ -71,7 +71,7 @@ if (!/"platform": "mobil"/.test(yz) || !/"arkaUc": "supabase"/.test(yz)) sorun.p
 if (BETA !== /"acik": true/.test(yz)) sorun.push("beta ayarı beklenenden farklı");
 if (!/mobil\.js/.test(fs.readFileSync(path.join(WWW, "index.html"), "utf8")) || !fs.existsSync(path.join(WWW, "mobil.js"))) sorun.push("mobil.js yok");
 for (const mm of fs.readFileSync(path.join(WWW, "index.html"), "utf8").matchAll(/(?:src|href)="([^"#:]+)"/g)) if (!fs.existsSync(path.join(WWW, mm[1]))) sorun.push("index.html eksik kaynak: " + mm[1]);
-for (const d of ["kosullar", "gizlilik", "cerezler", "kurallar"]) if (/href="\/yasal\/[a-z]+"/.test(fs.readFileSync(path.join(WWW, "yasal", d + ".html"), "utf8"))) sorun.push(`yasal/${d}.html .html'siz bağlantı kalmış`);
+for (const d of ["kosullar", "gizlilik", "cerezler", "kurallar", "destek", "hesap-sil"]) if (/href="\/yasal\/[a-z-]+"/.test(fs.readFileSync(path.join(WWW, "yasal", d + ".html"), "utf8"))) sorun.push(`yasal/${d}.html .html'siz bağlantı kalmış`);
 let toplam = 0; for (const p of tum) toplam += fs.statSync(p).size;
 console.log(`mobil/www: ${tum.length} dosya, ${(toplam / 1024).toFixed(0)} KB; site=${SITE} beta=${BETA ? "açık" : "kapalı"}`);
 if (sorun.length) dur(sorun.join("\n"));

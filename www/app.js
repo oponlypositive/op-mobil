@@ -27,7 +27,7 @@ const T = {
     paylasildi: "Paylaşıldı", kopyalandi: "Bağlantı kopyalandı", yok: "Bulunamadı", hata: "Bağlantı sorunu",
     katildi: (a) => `${a} tarihinde katıldı`, say: (n, k) => `${n} ${k}`, silOnay: "Profilin bu cihazdan silinsin mi?",
     gonderiYayinla: "Gönderi yayınla", emoji: "Emoji", gundem: "İyi gündem", dahaFazla: "Daha fazla göster", takipOner: "Kimi takip etmeli", bosOner: "Önerilecek hesap kalmadı.",
-    hesapMenu: "Hesap menüsü", menu: "Menü", kosul: "Koşullar", gizlilik: "Gizlilik", cerez: "Çerezler", kurallar: "Kurallar", iletisim: "İletişim", cikisYapYerel: "Profili düzenle", acikTema: "Açık tema", koyuTema: "Koyu tema", yanMenu: "Ana menü",
+    hesapMenu: "Hesap menüsü", menu: "Menü", kosul: "Koşullar", gizlilik: "Gizlilik", cerez: "Çerezler", kurallar: "Kurallar", destek: "Destek", iletisim: "İletişim", cikisYapYerel: "Profili düzenle", acikTema: "Açık tema", koyuTema: "Koyu tema", yanMenu: "Ana menü",
     duzenlendi: "düzenlendi", gonDuzenle: "Düzenle", gonSil: "Sil", silGonSor: "Bu gönderi silinsin mi? Geri alınamaz.", silYanSor: "Bu yanıt silinsin mi? Geri alınamaz.", silindi: "Silindi",
     vazgec: "Vazgeç", duzKalan: "Kalan süre", duzBitti: "Düzenleme süresi doldu", duzKaydedildi: "Gönderi güncellendi" },
   en: { senin: "For You", takip: "Following", yakin: "Nearby", ana: "Home", kesfet: "Explore", bildirim: "Notifications", profil: "Profile",
@@ -43,7 +43,7 @@ const T = {
     paylasildi: "Posted", kopyalandi: "Link copied", yok: "Not found", hata: "Connection problem",
     katildi: (a) => `Joined ${a}`, say: (n, k) => `${n} ${k}`, silOnay: "Remove your profile from this device?",
     gonderiYayinla: "Post", emoji: "Emoji", gundem: "Good news today", dahaFazla: "Show more", takipOner: "Who to follow", bosOner: "No more accounts to suggest.",
-    hesapMenu: "Account menu", menu: "Menu", kosul: "Terms", gizlilik: "Privacy", cerez: "Cookies", kurallar: "Rules", iletisim: "Contact", cikisYapYerel: "Edit profile", acikTema: "Light theme", koyuTema: "Dark theme", yanMenu: "Main menu",
+    hesapMenu: "Account menu", menu: "Menu", kosul: "Terms", gizlilik: "Privacy", cerez: "Cookies", kurallar: "Rules", destek: "Support", iletisim: "Contact", cikisYapYerel: "Edit profile", acikTema: "Light theme", koyuTema: "Dark theme", yanMenu: "Main menu",
     duzenlendi: "edited", gonDuzenle: "Edit", gonSil: "Delete", silGonSor: "Delete this post? This can't be undone.", silYanSor: "Delete this reply? This can't be undone.", silindi: "Deleted",
     vazgec: "Cancel", duzKalan: "Time left", duzBitti: "Editing time is over", duzKaydedildi: "Post updated" },
 };
@@ -103,7 +103,7 @@ const B = {
     engellendi: "Kullanıcı engellendi", engelKalkti: "Engel kaldırıldı", engellenenler: "Engellenenler", bosEngel: "Kimseyi engellemedin.", kaldir: "Kaldır",
     hesabiSil: "Hesabımı sil", silUyari: "Hesabın ve tüm verilerin (gönderilerin, yanıtların, fotoğrafların) kalıcı olarak silinir. Bu geri alınamaz.", devam: "Devam", vazgec: "Vazgeç",
     silYaz: "SİL", silOnayYaz: (k) => `Onaylamak için aşağıya <b>${k}</b> yaz.`, silKalici: "Hesabı kalıcı olarak sil", hesapSilindi: "Hesabın silindi. Hoşça kal 🌱",
-    yasalKosul: "Kullanım Koşulları", yasalGizlilik: "Gizlilik Politikası", yasalCerez: "Çerez Politikası", yasalKurallar: "OP Kuralları", iletisim: "İletişim", ayarNot: "Sadece iyi haber: siyaset, din, etnik kimlik ve şiddet yok.", betaSurum: "Beta sürümü", yenidenDene: "Yeniden dene" },
+    yasalKosul: "Kullanım Koşulları", yasalGizlilik: "Gizlilik Politikası", yasalCerez: "Çerez Politikası", yasalKurallar: "OP Kuralları", yasalDestek: "Destek", silAyrinti: "Ayrıntı", iletisim: "İletişim", ayarNot: "Sadece iyi haber: siyaset, din, etnik kimlik ve şiddet yok.", betaSurum: "Beta sürümü", yenidenDene: "Yeniden dene" },
   en: { girisYap: "Sign in", kayitOl: "Sign up", gozAt: "Just browse", cikisYap: "Sign out", epostaAlan: "Email", sifre: "Password", sifreIpucu: "At least 8 characters",
     girisBaslik: "Welcome back", kayitBaslik: "Create your account", profilTamamla: "Complete your profile", hesapYokMu: "No account? Sign up", hesapVarMi: "Have an account? Sign in",
     yas18: "I am over 18 years old", kosulKutu: () => `I have read and accept the <a href="/yasal/kosullar" target="_blank" rel="noopener">Terms of Use</a>, the <a href="/yasal/gizlilik" target="_blank" rel="noopener">Privacy Policy</a> and the <a href="/yasal/cerezler" target="_blank" rel="noopener">Cookie Policy</a>`,
@@ -119,7 +119,7 @@ const B = {
     engellendi: "User blocked", engelKalkti: "User unblocked", engellenenler: "Blocked accounts", bosEngel: "You haven't blocked anyone.", kaldir: "Unblock",
     hesabiSil: "Delete my account", silUyari: "Your account and all your data (posts, replies, photos) will be permanently deleted. This can't be undone.", devam: "Continue", vazgec: "Cancel",
     silYaz: "DELETE", silOnayYaz: (k) => `Type <b>${k}</b> below to confirm.`, silKalici: "Delete account permanently", hesapSilindi: "Your account was deleted. Goodbye 🌱",
-    yasalKosul: "Terms of Use", yasalGizlilik: "Privacy Policy", yasalCerez: "Cookie Policy", yasalKurallar: "OP Rules", iletisim: "Contact", ayarNot: "Only good news: no politics, religion, ethnicity or violence.", betaSurum: "Beta version", yenidenDene: "Try again" },
+    yasalKosul: "Terms of Use", yasalGizlilik: "Privacy Policy", yasalCerez: "Cookie Policy", yasalKurallar: "OP Rules", yasalDestek: "Support", silAyrinti: "Details", iletisim: "Contact", ayarNot: "Only good news: no politics, religion, ethnicity or violence.", betaSurum: "Beta version", yenidenDene: "Try again" },
 };
 const bt = (k, ...a) => { const v = B[D.dil]?.[k] ?? B.tr[k] ?? k; return typeof v === "function" ? v(...a) : v; };
 
@@ -1252,7 +1252,7 @@ function ayarlarAcBulut() {
       <button class="dug ikincil tam" data-e="profil-duzenle">${t("duzenle")}</button>
       <button class="dug ikincil tam" data-e="engellenenler">${bt("engellenenler")}</button>`
       : `<button class="dug tam" data-e="giris-ac">${bt("girisYap")}</button><button class="dug ikincil tam" data-e="kayit-ac">${bt("kayitOl")}</button>`}
-    <p class="yasal-satir"><a href="/yasal/kosullar" target="_blank" rel="noopener">${bt("yasalKosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${bt("yasalGizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${bt("yasalCerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${bt("yasalKurallar")}</a> · <a href="mailto:${IL_EPOSTA}">${bt("iletisim")}</a></p>
+    <p class="yasal-satir"><a href="/yasal/kosullar" target="_blank" rel="noopener">${bt("yasalKosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${bt("yasalGizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${bt("yasalCerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${bt("yasalKurallar")}</a> · <a href="/yasal/destek" target="_blank" rel="noopener">${bt("yasalDestek")}</a></p>
     <p class="gri not">OP – Only Positive · ${BETA ? bt("betaSurum") + ". " : ""}${bt("ayarNot")}</p>
     ${giris ? `<button class="dug ikincil tam" data-e="cikis-yap">${bt("cikisYap")}</button><button class="dug ikincil tam tehlike" data-e="hesap-sil-1">${bt("hesabiSil")}</button>` : ""}`);
 }
@@ -1400,7 +1400,7 @@ async function engelKaldir(h, dugme) {
 }
 // ---- hesabı sil: iki adımlı onay (App Store 5.1.1(v))
 function hesapSil1() {
-  sheet(sheetUst(bt("hesabiSil")) + `<p>${esc(bt("silUyari"))}</p>
+  sheet(sheetUst(bt("hesabiSil")) + `<p>${esc(bt("silUyari"))} <a href="/yasal/hesap-sil" target="_blank" rel="noopener">${bt("silAyrinti")}</a></p>
     <button class="dug tam tehlike" data-e="hesap-sil-2">${bt("devam")}</button><button class="dug ikincil tam" data-e="sheet-kapat">${bt("vazgec")}</button>`);
 }
 function hesapSil2() {
@@ -1429,7 +1429,7 @@ const menuDugme = (s, sinif) => {
   const [ik, ad] = MENU_TANIM[s], sec = solSecili() === s, e = s === "ayarlar" ? 'data-e="ayarlar"' : `data-e="git" data-s="${s}"`;
   return `<button class="${sinif} ${sec ? "secili" : ""}" ${e} aria-label="${t(ad)}" ${sec ? 'aria-current="page"' : ""}>${ikon(ik, 26)}<span class="sol-ad">${t(ad)}</span>${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}</button>`;
 };
-const yasalSatir = () => `<a href="/yasal/kosullar" target="_blank" rel="noopener">${t("kosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${t("gizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${t("cerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${t("kurallar")}</a> · <a href="mailto:${IL_EPOSTA}">${t("iletisim")}</a>`;
+const yasalSatir = () => `<a href="/yasal/kosullar" target="_blank" rel="noopener">${t("kosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${t("gizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${t("cerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${t("kurallar")}</a> · <a href="/yasal/destek" target="_blank" rel="noopener">${t("destek")}</a>`;
 function hesapKartHtml() {
   if (!D.ben) return `<div class="sol-misafir"><button class="dug tam" data-e="giris-ac">${bt("girisYap")}</button><button class="dug ikincil tam" data-e="kayit-ac">${bt("kayitOl")}</button></div>`;
   return `<div class="hesap-alan"><button class="hesap-kart" data-e="hesap-menu" aria-haspopup="menu" aria-expanded="false" aria-label="${t("hesapMenu")}">${avatarHtml(D.ben, "kucuk")}
