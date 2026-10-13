@@ -13,6 +13,7 @@ const KATEGORI = { bilim: ["Bilim", "Science"], saglik: ["Sağlık", "Health"], 
   sanat: ["Sanat", "Arts"], spor: ["Spor", "Sports"], teknoloji: ["Teknoloji", "Tech"], mahalle: ["Mahalle", "Neighborhood"],
   felsefe: ["Felsefe", "Philosophy"], edebiyat: ["Edebiyat", "Literature"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji", "Mythology"], gokbilim: ["Gökbilim", "Astronomy"] };
 const SEHIRLER = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Kocaeli", "Mersin", "Eskişehir", "Trabzon", "Samsun", "Muğla", "Diğer"];
+const videoMb = () => (window.OP_MEDYA && window.OP_MEDYA.SINIR && window.OP_MEDYA.SINIR.mb) || 40;   // video boyut sınırı (MB): medya arka ucuna göre (medya.js SINIR)
 const T = {
   tr: { senin: "Senin İçin", takip: "Takip", yakin: "Yakınımda", ana: "Ana Sayfa", kesfet: "Keşfet", bildirim: "Bildirimler", profil: "Profil",
     yeniGonderi: "Yeni gönderi", ne: "Bugün iyi olan ne?", paylas: "Paylaş", yanitYaz: "Yanıtını yaz", yanitla: "Yanıtla", yeniden: "Yeniden paylaş", begen: "Beğen",
@@ -49,8 +50,8 @@ const T = {
 };
 Object.assign(T.tr, {   // video (gecis-007): yükleme, oynatıcı, Videolar akışı, otomatik oynatma tercihi
   videolar: "Videolar", bosVideo: "Henüz video yok. İlk videoyu sen paylaşabilirsin.", videoEkle: "Video ekle",
-  videoHatirlat: "Yalnız kendi çektiğin, pozitif videolar. En çok 60 sn ve 40 MB; mp4 (H.264) en uyumlusu.",
-  videoBuyuk: "Video çok büyük (en çok 40 MB).", videoUzun: "Video çok uzun (en çok 60 sn).", videoTur: "Bu video biçimi desteklenmiyor. mp4, mov ya da webm seç.",
+  videoHatirlat: () => `Yalnız kendi çektiğin, pozitif videolar. En çok 60 sn ve ${videoMb()} MB; mp4 (H.264) en uyumlusu.`,
+  videoBuyuk: () => `Video çok büyük (en çok ${videoMb()} MB).`, videoUzun: "Video çok uzun (en çok 60 sn).", videoTur: "Bu video biçimi desteklenmiyor. mp4, mov ya da webm seç.",
   videoAcilamaz: "Bu video bu cihazda açılamıyor. iPhone'da kamerayı Ayarlar > Kamera > Biçimler > En Uyumlu (H.264) yap ya da mp4 bir video seç.",
   videoHazirlaniyor: "Hazırlanıyor…", videoYukleniyor: "Yükleniyor", videoYuklenemedi: "Video yüklenemedi, tekrar dener misin?",
   videoYetki: "Çok sık video yükledin ya da oturumun süresi doldu. Biraz sonra tekrar dene.", iptal: "İptal", tekrarDene: "Tekrar dene",
@@ -59,8 +60,8 @@ Object.assign(T.tr, {   // video (gecis-007): yükleme, oynatıcı, Videolar ak�
 });
 Object.assign(T.en, {
   videolar: "Videos", bosVideo: "No videos yet. Be the first to share one.", videoEkle: "Add video",
-  videoHatirlat: "Only videos you filmed yourself, and positive ones. Up to 60 s and 40 MB; mp4 (H.264) works best.",
-  videoBuyuk: "The video is too large (40 MB max).", videoUzun: "The video is too long (60 seconds max).", videoTur: "This video format isn't supported. Pick an mp4, mov or webm file.",
+  videoHatirlat: () => `Only videos you filmed yourself, and positive ones. Up to 60 s and ${videoMb()} MB; mp4 (H.264) works best.`,
+  videoBuyuk: () => `The video is too large (${videoMb()} MB max).`, videoUzun: "The video is too long (60 seconds max).", videoTur: "This video format isn't supported. Pick an mp4, mov or webm file.",
   videoAcilamaz: "This video can't be opened on this device. On iPhone set Settings > Camera > Formats > Most Compatible (H.264) or pick an mp4 video.",
   videoHazirlaniyor: "Preparing…", videoYukleniyor: "Uploading", videoYuklenemedi: "The video couldn't be uploaded, please try again.",
   videoYetki: "You uploaded videos too often, or your session has expired. Please try again in a bit.", iptal: "Cancel", tekrarDene: "Try again",

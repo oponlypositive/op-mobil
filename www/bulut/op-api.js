@@ -54,7 +54,7 @@ const SUNUCU_EN = {
   "Adını yazar mısın?": "Please enter your name.", "Bir neden seçer misin?": "Please pick a reason.", "Bir şey yaz.": "Write something.",
   "Boş paylaşım olmaz.": "A post can't be empty.", "Alıntıya bir şey yaz ya da medya ekle.": "Add a comment or media to your quote.", "Alıntılanan gönderi geçersiz.": "The post you're quoting isn't available.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
   "Fotoğraf geçersiz.": "The photo isn't valid.", "Video geçersiz.": "The video isn't valid.", "Video bulunamadı, tekrar yükler misin?": "We couldn't find the video, please upload it again.",
-  "Video çok büyük (en çok 40 MB).": "The video is too large (40 MB max).", "Video en çok 60 sn olabilir.": "A video can be 60 seconds at most.", "Bir gönderide fotoğraf ya da video olur.": "A post can have a photo or a video, not both.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
+  "Video çok büyük (en çok 40 MB).": "The video is too large (40 MB max).", "Video çok büyük (en çok 95 MB).": "The video is too large (95 MB max).", "Video en çok 60 sn olabilir.": "A video can be 60 seconds at most.", "Bir gönderide fotoğraf ya da video olur.": "A post can have a photo or a video, not both.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
   "Kullanıcı adı 3-20 harf/rakam/_ olmalı.": "Your username must be 3-20 letters, numbers or _.",
   "Bu kullanıcı adı alınmış, başka bir tane dener misin?": "That username is taken, would you try another one?",
   "Silmeyi onaylaman gerekiyor.": "Please confirm the deletion.", "Bulunamadı": "Not found",

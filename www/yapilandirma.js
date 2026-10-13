@@ -8,5 +8,7 @@ window.OP_YAPI = {
   "beta": {
     "acik": false
   },
+  "medya": "r2",
+  "medyaGenelUrl": "https://medya.onlypositive.org",
   "platform": "mobil"
 };

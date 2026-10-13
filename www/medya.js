@@ -1,16 +1,18 @@
 // OP medya adaptörü (istemci): video + poster seçme/denetleme/yükleme/silme TEK yerden. Depolama katmanını soyutlar:
 //   OP_YAPI.medya = "yerel"    → server.js  POST /api/medya (yerel deneme; arkaUc "yerel" iken varsayılan)
 //   OP_YAPI.medya = "supabase" → Supabase Storage `video` kovası, XHR ile (yükleme yüzdesi + iptal). arkaUc "supabase" iken VARSAYILAN, CANLI
-//   OP_YAPI.medya = "r2"       → Cloudflare R2, imzalı PUT (TASLAK, KAPALI: sunucuda `medya-imza` fonksiyonu yok; canlı varsayılmaz — bulut/MIMARI.md "Video / R2 geçişi")
+//   OP_YAPI.medya = "r2"       → Cloudflare R2: Pages Function PUT {site}/api/medya/yukle (bulut/yayin/functions/api/medya/[[yol]].js; Supabase jetonuyla, anahtarsız); okuma OP_YAPI.medyaGenelUrl (bulut/MIMARI.md "Video / R2")
+//   Yol sözleşmesi: R2 yolları "r2/<uid>/<uuid>.<uzantı>" önekiyle saklanır (posts.video.yol); öneksiz yollar Supabase `video` kovasındadır → iki depo yan yana çalışır, taşıma gerekmez.
 // Seçim yapilandirma.js'ten gelir (yayın derlemesi OP_MEDYA ortam değişkeniyle yazar). Sunucu karşılığı: bulut/functions/_shared/medya.ts (aynı adaptör fikri).
-// Hata sözleşmesi: Error + e.kod ∈ tur | buyuk | uzun | acilamaz | ag | iptal | yetki | yukleme | r2_kapali; iletiyi arayüz (app.js) kodundan üretir.
+// Hata sözleşmesi: Error + e.kod ∈ tur | buyuk | uzun | acilamaz | ag | iptal | yetki | yukleme; iletiyi arayüz (app.js) kodundan üretir.
 (() => {
   "use strict";
   const YAPI = window.OP_YAPI || {};
-  const SINIR = { bayt: 40 * 1024 * 1024, sureSn: 60, posterBayt: 400 * 1024, turler: ["video/mp4", "video/quicktime", "video/webm"] };
+  const ARKA = YAPI.medya || (YAPI.arkaUc === "supabase" ? "supabase" : "yerel");
+  const SINIR_MB = { yerel: 40, supabase: 40, r2: 95 };                   // arka uca göre video boyut sınırı (Supabase ücretsiz katman 50 MB; R2 için Pages istek gövdesi 100 MB)
+  const SINIR = { mb: SINIR_MB[ARKA] || 40, bayt: (SINIR_MB[ARKA] || 40) * 1024 * 1024, sureSn: 60, posterBayt: 400 * 1024, turler: ["video/mp4", "video/quicktime", "video/webm"] };
   const UZANTI = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm", "image/jpeg": "jpg" };
   const UZ_TUR = { mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm" };
-  const ARKA = YAPI.medya || (YAPI.arkaUc === "supabase" ? "supabase" : "yerel");
   const hata = (kod, ek) => Object.assign(new Error(kod), { kod }, ek);
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g, () => Math.floor(Math.random() * 16).toString(16)));
 
@@ -157,6 +159,15 @@
   }
   const durumHatasi = (d) => hata(d === 413 ? "buyuk" : d === 415 ? "tur" : d === 401 || d === 403 || d === 429 ? "yetki" : "yukleme", { durum: d });
 
+  const siteKok = () => String(YAPI.site || "").replace(/\/$/, "");          // boş = aynı köken (web); mobil pakette https://onlypositive.org
+  const supabaseUrl = (yol) => `${YAPI.supabaseUrl}/storage/v1/object/public/video/${encodeURI(yol)}`;
+  const r2Yolu = (yol) => typeof yol === "string" && yol.startsWith("r2/");
+  const r2Url = (yol) => `${String(YAPI.medyaGenelUrl || "").replace(/\/$/, "")}/${encodeURI(yol.slice(3))}`;
+  async function r2Sil(yollar, kimlik) {
+    if (!yollar.length) return;
+    await fetch(`${siteKok()}/api/medya/sil`, { method: "DELETE", headers: { Authorization: `Bearer ${kimlik.jeton}`, "Content-Type": "application/json" }, body: JSON.stringify({ yollar }) }).catch(() => {});
+  }
+
   // ---- arka uçlar. Hepsi: yukle(blob, { amac: "video"|"poster", ilerleme(0..1), sinyal, kimlik }) → { yol };  url(yol);  sil(yollar, kimlik)
   const ARKA_UCLAR = {
     yerel: {
@@ -185,24 +196,23 @@
         if (r.durum < 200 || r.durum >= 300) throw durumHatasi(r.durum);
         return { yol };
       },
-      url: (yol) => `${YAPI.supabaseUrl}/storage/v1/object/public/video/${encodeURI(yol)}`,
+      url: supabaseUrl,
       async sil(yollar, kimlik) {
         await fetch(`${YAPI.supabaseUrl}/storage/v1/object/video`, { method: "DELETE", headers: { apikey: YAPI.supabaseAnahtar, Authorization: `Bearer ${kimlik.jeton}`, "Content-Type": "application/json" },
           body: JSON.stringify({ prefixes: yollar }) }).catch(() => {});
       },
     },
-    r2: {   // TASLAK (KAPALI): sunucuda `medya-imza` Edge Function'ı (imzalı PUT adresi üretir) yazılıp YAPI.medya="r2" seçilince çalışır; şimdilik her çağrı r2_kapali verir.
+    r2: {   // Cloudflare R2 (Pages Function): ham dosya PUT, Supabase oturum jetonu Bearer; çerez yok (mobil uygulamada da çalışır)
       async yukle(blob, { amac, ilerleme, sinyal, kimlik }) {
-        if (!YAPI.medyaImzaFonksiyonu) throw hata("r2_kapali");
-        const imza = await fetch(`${YAPI.supabaseUrl}/functions/v1/${YAPI.medyaImzaFonksiyonu}`, { method: "POST", headers: { apikey: YAPI.supabaseAnahtar,
-          Authorization: `Bearer ${kimlik.jeton}`, "Content-Type": "application/json" }, body: JSON.stringify({ amac, tur: blob.type, boyut: blob.size }) }).then((r) => (r.ok ? r.json() : null));
-        if (!imza?.putUrl || !imza.yol) throw hata("r2_kapali");
-        const r = await xhrGonder("PUT", imza.putUrl, { "Content-Type": blob.type }, blob, ilerleme, sinyal);
+        const r = await xhrGonder("PUT", `${siteKok()}/api/medya/yukle?amac=${amac === "poster" ? "poster" : "video"}`,
+          { Authorization: `Bearer ${kimlik.jeton}`, "Content-Type": blob.type }, blob, ilerleme, sinyal);
         if (r.durum < 200 || r.durum >= 300) throw durumHatasi(r.durum);
-        return { yol: imza.yol };
+        let v = {}; try { v = JSON.parse(r.metin || "{}"); } catch { /* aşağıda reddedilir */ }
+        if (typeof v.yol !== "string" || !v.yol.startsWith("r2/")) throw hata("yukleme");
+        return { yol: v.yol };
       },
-      url: (yol) => `${String(YAPI.medyaGenelUrl || "").replace(/\/$/, "")}/${encodeURI(yol)}`,
-      async sil() { /* sunucu tarafı (gonderi-sil) siler; istemci yarım yüklemeyi R2'den silemez → yetim_videolar benzeri temizlik */ },
+      url: (yol) => supabaseUrl(yol),          // r2 seçiliyken öneksiz (eski) yollar Supabase'te; "r2/" yolları OP_MEDYA.url içinde ayrılır
+      sil: (yollar, kimlik) => ARKA_UCLAR.supabase.sil(yollar, kimlik),   // öneksiz (eski) yollar Supabase'te; "r2/" yolları OP_MEDYA.sil içinde R2'ye gider
     },
   };
   const arka = ARKA_UCLAR[ARKA] || ARKA_UCLAR.yerel;
@@ -210,7 +220,11 @@
   window.OP_MEDYA = {
     SINIR, arkaUc: ARKA, incele,
     yukle: (blob, o) => arka.yukle(new Blob([blob], { type: o.amac === "poster" ? "image/jpeg" : (o.tur || blob.type) }), o),   // tür açıkça verilir (seçilen dosyanın türü boş olabilir)
-    url: (yol) => (yol ? arka.url(yol) : ""),
-    sil: (yollar, kimlik) => arka.sil(yollar.filter(Boolean), kimlik),
+    url: (yol) => (!yol ? "" : r2Yolu(yol) ? r2Url(yol) : arka.url(yol)),   // "r2/" önekli yol → R2 genel adresi; öneksiz → seçili (eski) depo
+    sil: async (yollar, kimlik) => {
+      const l = yollar.filter(Boolean), r2 = l.filter(r2Yolu), diger = l.filter((y) => !r2Yolu(y));
+      if (r2.length) await r2Sil(r2, kimlik);
+      if (diger.length) await arka.sil(diger, kimlik);
+    },
   };
 })();
