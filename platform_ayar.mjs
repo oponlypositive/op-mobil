@@ -102,9 +102,18 @@ public class MainActivity extends BridgeActivity {
 \t\t</dict>
 \t</array>
 \t<key>NSCameraUsageDescription</key>
-\t<string>Gönderine fotoğraf eklemek için kamerayı yalnız sen istediğinde kullanırız. / We use the camera only when you choose to take a photo for a post.</string>
+\t<string>Gönderine fotoğraf ya da video eklemek için kamerayı yalnız sen istediğinde kullanırız. / We use the camera only when you choose to take a photo or video for a post.</string>
+\t<key>NSMicrophoneUsageDescription</key>
+\t<string>Video çekerken sesi kaydetmek için mikrofonu yalnız sen video çektiğinde kullanırız. / We use the microphone only while you record a video for a post.</string>
 \t<key>NSPhotoLibraryUsageDescription</key>
-\t<string>Gönderine fotoğraf seçebilmen için galerine erişiriz. / We access your library so you can pick a photo for a post.</string>
+\t<string>Gönderine fotoğraf ya da video seçebilmen için galerine erişiriz. / We access your library so you can pick a photo or video for a post.</string>
+\t<key>NSPhotoLibraryAddUsageDescription</key>
+\t<string>Çektiğin fotoğraf ya da videoyu galerine kaydedebilmen için. / So you can save a photo or video you took to your library.</string>
+\t<key>CFBundleLocalizations</key>
+\t<array>
+\t\t<string>tr</string>
+\t\t<string>en</string>
+\t</array>
 \t<key>ITSAppUsesNonExemptEncryption</key>
 \t<false/>
 </dict>
