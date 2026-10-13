@@ -53,7 +53,8 @@ const M = {
 const SUNUCU_EN = {
   "Adını yazar mısın?": "Please enter your name.", "Bir neden seçer misin?": "Please pick a reason.", "Bir şey yaz.": "Write something.",
   "Boş paylaşım olmaz.": "A post can't be empty.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
-  "Fotoğraf geçersiz.": "The photo isn't valid.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
+  "Fotoğraf geçersiz.": "The photo isn't valid.", "Video geçersiz.": "The video isn't valid.", "Video bulunamadı, tekrar yükler misin?": "We couldn't find the video, please upload it again.",
+  "Video çok büyük (en çok 40 MB).": "The video is too large (40 MB max).", "Video en çok 60 sn olabilir.": "A video can be 60 seconds at most.", "Bir gönderide fotoğraf ya da video olur.": "A post can have a photo or a video, not both.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
   "Kullanıcı adı 3-20 harf/rakam/_ olmalı.": "Your username must be 3-20 letters, numbers or _.",
   "Bu kullanıcı adı alınmış, başka bir tane dener misin?": "That username is taken, would you try another one?",
   "Silmeyi onaylaman gerekiyor.": "Please confirm the deletion.", "Bulunamadı": "Not found",
@@ -110,9 +111,14 @@ async function fonksiyon(ad, govde) {
 
 // ---- çıktı düzeltme: Storage yollarını tam URL'ye çevir (yerel sunucu /foto/… ve /haberfoto/… yolları veriyordu)
 const depoUrl = (kova, yol) => `${AYAR.url}/storage/v1/object/public/${kova}/${encodeURI(yol)}`;
+const medyaUrl = (yol) => (globalThis.OP_MEDYA ? globalThis.OP_MEDYA.url(yol) : depoUrl("video", yol));   // video + poster: medya adaptörü (public/medya.js) hangi depodaysa oradan
 export function ogeDuzelt(o) {
   if (!o) return o;
   if (o.foto && !/^https?:/i.test(o.foto)) o.foto = depoUrl("foto", o.foto);
+  if (o.video && !o.video.url) {   // depo biçimi { yol, poster_yol, sure_sn, en, boy, boyut, tur } → istemcinin ortak video biçimi { url, poster, sure_sn, … } (haber videosuyla aynı)
+    const v = o.video;
+    o.video = v.yol ? { ...v, url: medyaUrl(v.yol), poster: v.poster_yol ? medyaUrl(v.poster_yol) : "" } : null;
+  }
   if (o.gorsel && o.gorsel.dosya) o.gorsel = { ...o.gorsel, url: depoUrl("haber-foto", o.gorsel.dosya) };
   return o;
 }
@@ -166,9 +172,11 @@ export async function api(yol, govde, yontem) {
     const b = govde || {};
     let fotoYol = null;
     if (b.foto) fotoYol = await fotoYukle(b.foto);
-    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol })); }
+    const video = b.video ? { yol: b.video.yol, posterYol: b.video.posterYol, sure_sn: b.video.sure_sn, en: b.video.en, boy: b.video.boy } : undefined;   // video + poster app.js'te medya adaptörüyle ZATEN yüklendi
+    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol, video })); }
     catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }   // yarım kalan yüklemeyi temizle
   }
+  if (m === "GET" && p === "/api/videolar") return ogeleriDuzelt(await rpc("videolar", { p_dil: d }));   // gecis-007-video.sql
   if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/(begen|yay|kaydet)$/))) {
     return ogeleriDuzelt(await rpc("etkilesim_degistir", { p_id: r[1], p_tur: r[2], p_dil: d }));
   }

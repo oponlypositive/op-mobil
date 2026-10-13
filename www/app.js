@@ -47,6 +47,26 @@ const T = {
     duzenlendi: "edited", gonDuzenle: "Edit", gonSil: "Delete", silGonSor: "Delete this post? This can't be undone.", silYanSor: "Delete this reply? This can't be undone.", silindi: "Deleted",
     vazgec: "Cancel", duzKalan: "Time left", duzBitti: "Editing time is over", duzKaydedildi: "Post updated" },
 };
+Object.assign(T.tr, {   // video (gecis-007): yükleme, oynatıcı, Videolar akışı, otomatik oynatma tercihi
+  videolar: "Videolar", bosVideo: "Henüz video yok. İlk videoyu sen paylaşabilirsin.", videoEkle: "Video ekle",
+  videoHatirlat: "Yalnız kendi çektiğin, pozitif videolar. En çok 60 sn ve 40 MB; mp4 (H.264) en uyumlusu.",
+  videoBuyuk: "Video çok büyük (en çok 40 MB).", videoUzun: "Video çok uzun (en çok 60 sn).", videoTur: "Bu video biçimi desteklenmiyor. mp4, mov ya da webm seç.",
+  videoAcilamaz: "Bu video bu cihazda açılamıyor. iPhone'da kamerayı Ayarlar > Kamera > Biçimler > En Uyumlu (H.264) yap ya da mp4 bir video seç.",
+  videoHazirlaniyor: "Hazırlanıyor…", videoYukleniyor: "Yükleniyor", videoYuklenemedi: "Video yüklenemedi, tekrar dener misin?",
+  videoYetki: "Çok sık video yükledin ya da oturumun süresi doldu. Biraz sonra tekrar dene.", iptal: "İptal", tekrarDene: "Tekrar dene",
+  videoFotoDegis: "Bir gönderide fotoğraf ya da video olur.", videoAcilamadi: "Video açılamadı", duraklat: "Duraklat", tamEkran: "Tam ekran", videoIlerleme: "Video ilerlemesi",
+  otoVideo: "Videoları otomatik oynat", otoAcik: "Açık", otoKapali: "Kapalı", otoVideoNot: "Videolar sessiz oynar. Veri tasarrufu ya da hareketi azalt açıksa hiç kendiliğinden oynamaz.",
+});
+Object.assign(T.en, {
+  videolar: "Videos", bosVideo: "No videos yet. Be the first to share one.", videoEkle: "Add video",
+  videoHatirlat: "Only videos you filmed yourself, and positive ones. Up to 60 s and 40 MB; mp4 (H.264) works best.",
+  videoBuyuk: "The video is too large (40 MB max).", videoUzun: "The video is too long (60 seconds max).", videoTur: "This video format isn't supported. Pick an mp4, mov or webm file.",
+  videoAcilamaz: "This video can't be opened on this device. On iPhone set Settings > Camera > Formats > Most Compatible (H.264) or pick an mp4 video.",
+  videoHazirlaniyor: "Preparing…", videoYukleniyor: "Uploading", videoYuklenemedi: "The video couldn't be uploaded, please try again.",
+  videoYetki: "You uploaded videos too often, or your session has expired. Please try again in a bit.", iptal: "Cancel", tekrarDene: "Try again",
+  videoFotoDegis: "A post can have a photo or a video, not both.", videoAcilamadi: "Couldn't open the video", duraklat: "Pause", tamEkran: "Full screen", videoIlerleme: "Video progress",
+  otoVideo: "Autoplay videos", otoAcik: "On", otoKapali: "Off", otoVideoNot: "Videos play muted. They never autoplay when data saver or reduced motion is on.",
+});
 
 // ---------- arka uç seçimi (yapilandirma.js): "yerel" = server.js + cihaz anahtarı (bugünkü akış), "supabase" = bulut (gerçek giriş) ----------
 const YAPI = window.OP_YAPI || { arkaUc: "yerel" };
@@ -150,6 +170,12 @@ const IK = {   // satır içi çizgi ikonlar
   yaz: '<path d="M12 5v14"/><path d="M5 12h14"/>',
   foto: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>',
   sag: '<path d="M9 6l6 6-6 6"/>',
+  video: '<rect x="2.500" y="5.500" width="13" height="13" rx="3"/><path d="M15.500 10.500L21 7.500v9l-5.500-3"/>',
+  oynat: '<path d="M8 5.500v13l11-6.500z"/>',
+  duraklat: '<path d="M8 5v14"/><path d="M16 5v14"/>',
+  ses: '<path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path d="M15.500 9a4.500 4.500 0 010 6"/><path d="M18 6.500a8 8 0 010 11"/>',
+  sessiz: '<path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path d="M16 9.500l5 5"/><path d="M21 9.500l-5 5"/>',
+  tam: '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>',
   ayarlar: '<path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h2"/><path d="M10 17h10"/><circle cx="8" cy="17" r="2"/>',
   emoji: '<circle cx="12" cy="12" r="9"/><path d="M8.500 14a4 4 0 007 0"/><path d="M9 9.500h.01"/><path d="M15 9.500h.01"/>',
   k_bilim: '<path d="M9 3h6"/><path d="M10 3v6L4.5 19a1.5 1.5 0 001.3 2.2h12.4a1.5 1.5 0 001.3-2.2L14 9V3"/><path d="M7.5 15h9"/>',
@@ -210,11 +236,20 @@ function lisansSatiri(ad, g) {   // "Fotoğraf: sahibi · lisans · sağlayıcı
   const parcalar = [g.sahibi && bag(g.kaynak_url, g.sahibi), g.lisans && bag(g.lisans_url, g.lisans), g.saglayici && esc(g.saglayici)].filter(Boolean);
   return parcalar.length ? `<div class="lisans">${ad}: ${parcalar.join(" · ")}</div>` : "";
 }
-function videoHtml(v, detay) {   // akış: sessiz otomatik oynatma (ekrana girince), dokununca ses; detay: kontrollü oynatıcı
-  const ortak = `src="${esc(v.url)}" ${v.poster ? `poster="${esc(v.poster)}"` : ""} playsinline`;
-  if (detay) return `<div class="video-kap detay"><video class="haber-video" ${ortak} controls preload="metadata"></video></div>`;
-  return `<div class="video-kap durdu" data-e="video-ses" role="button" tabindex="0" aria-label="${t("sesAc")}"><video class="haber-video" data-oto="1" ${ortak} muted loop preload="none"></video>
-    <span class="video-rozet" aria-hidden="true"></span></div>`;
+const videoOran = (v) => (v.en > 0 && v.boy > 0 ? Math.min(16 / 9, Math.max(0.8, v.en / v.boy)) : 0);   // kullanıcı videosunda gerçek oran (4:5 ile 16:9 arası); haberde 16:9
+function videoHtml(v, detay) {   // akış: sessiz otomatik oynatma + kendi denetim çubuğu; detay: tarayıcının kontrollü oynatıcısı. Haber ve kullanıcı videosu AYNI oynatıcı
+  const ortak = `src="${esc(v.url)}" ${v.poster ? `poster="${esc(v.poster)}"` : ""} playsinline preload="metadata"`;
+  const oran = videoOran(v), kap = `video-kap${oran ? " ar" : ""}`, stil = oran ? ` style="--ar:${oran.toFixed(4)}"` : "";
+  const sure = `<span class="video-sure"${v.sure_sn > 0 ? "" : " hidden"}>${v.sure_sn > 0 ? sureYaz(Math.round(v.sure_sn)) : ""}</span>`;
+  const hata = `<div class="video-hata" role="alert"><span>${esc(t("videoAcilamadi"))}</span><button type="button" class="dug kucuk ikincil" data-e="video-yeniden">${esc(t("tekrarDene"))}</button></div>`;
+  if (detay) return `<div class="${kap} detay"${stil}><video class="haber-video" ${ortak} controls></video>${sure}${hata}</div>`;
+  const dug = (e, ad, ic) => `<button type="button" class="vb" data-e="${e}" aria-label="${esc(ad)}">${ic}</button>`;
+  return `<div class="${kap} durdu sessiz-ik" data-e="video-ses" role="button" tabindex="0" aria-label="${t("oynat")}"${stil}><video class="haber-video" data-oto="1" ${ortak} muted loop></video>
+    ${sure}<span class="video-buyuk" aria-hidden="true">${ikon("oynat", 30, true)}</span>
+    <div class="video-bar">${dug("video-oynat", t("oynat"), `<span class="ik-oynat">${ikon("oynat", 20, true)}</span><span class="ik-duraklat">${ikon("duraklat", 20)}</span>`)}
+      <div class="video-ilerleme" data-e="video-ara" role="progressbar" aria-label="${esc(t("videoIlerleme"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+      ${dug("video-ses-dugme", t("sesAc"), `<span class="ik-sessiz">${ikon("sessiz", 20)}</span><span class="ik-sesli">${ikon("ses", 20)}</span>`)}
+      ${dug("video-tam", t("tamEkran"), ikon("tam", 20))}</div>${hata}</div>`;
 }
 // görselsiz haber için OP tasarım kartı (yalnız CSS/SVG, dosya yok): 16:9, kategoriye göre sakin tek ton, çizgi ikon + etiket + başlık + OP logosu
 const HK_TON = { bilim: "petrol", teknoloji: "petrol", spor: "petrol", saglik: "yesil", doga: "yesil", hayvanlar: "yesil", iyilik: "altin", sanat: "altin", mahalle: "altin",
@@ -235,6 +270,7 @@ function haberKartHtml(o) {
 function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görsel (yoksa OP tasarım kartı) + (haberde) lisans satırı + kaynak kartı
   let h = "";
   if (o.foto) h += `<img class="gorsel" src="${esc(o.foto)}" alt="" loading="lazy">`;
+  if (o.video?.url && !o.haber) h += videoHtml(o.video, detay);   // kullanıcı videosu (haber videosuyla aynı oynatıcı; lisans satırı yok)
   if (o.haber) {
     const g = o.gorsel, v = o.video;
     if (v && v.url) h += videoHtml(v, detay) + lisansSatiri(t("video"), v);
@@ -314,6 +350,16 @@ async function kesfetCiz(my) {
   kok().innerHTML = kabuk(`<h1 class="baslik">${t("kesfet")}</h1><div class="kesfet-ust">${gundemHtml("kesfet")}${onerilenHtml("kesfet")}</div>` + Object.entries(KATEGORI).map(([id, ad]) =>
     `<button class="liste-satir" data-e="kategori" data-k="${id}"><span class="ad">${ad[di()]}</span><span class="gri">${t("say", say[id] || 0, t("haber"))}</span>${ikon("sag", 18)}</button>`).join(""));
 }
+async function videolarCiz(my) {   // yalnız videolu gönderiler/haberler, en yeni önce
+  const bas = `<h1 class="baslik">${t("videolar")}</h1>`;
+  kok().innerHTML = kabuk(bas + iskelet, {});
+  try {
+    const v = await api("/api/videolar");
+    if (my !== D.cizim) return;
+    D.ogeler = v.ogeler;
+    kok().innerHTML = kabuk(bas + (v.ogeler.length ? v.ogeler.map(satirHtml).join("") : bosHtml(t("bosVideo"))), {});
+  } catch (e) { if (my === D.cizim) kok().innerHTML = kabuk(bas + bosHtml(e.message, `<br><br><button class="dug ikincil" data-e="ust-yenile">↻</button>`), {}); }
+}
 async function onerilenCiz(my) {   // "Kimi takip etmeli" → Daha fazla göster: tüm OP hesapları
   const v = await api("/api/onerilen?tum=1").catch(() => ({ kullanicilar: [] }));
   if (my !== D.cizim) return;
@@ -377,7 +423,7 @@ async function detayCiz(my) {
 function ciz(basa = true) {
   const my = ++D.cizim; sheetKapat(); kok().onclick = kok().onkeydown = kok().onchange = null;
   yanCiz(); veriYukle().then(() => { if (my === D.cizim) sagCiz(); });
-  const s = G.sayfa, is = s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my) : s === "kesfet" ? kesfetCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : detayCiz(my);
+  const s = G.sayfa, is = s === "video" ? videolarCiz(my) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my) : s === "kesfet" ? kesfetCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : detayCiz(my);
   if (basa) scrollTo(0, 0);
   return is.then(() => { if (!basa && my === D.cizim) scrollTo(0, G.scroll || 0); });
 }
@@ -412,7 +458,8 @@ document.addEventListener("keydown", e => {
   else if (!e.shiftKey && document.activeElement === son) { e.preventDefault(); ilk.focus(); }
 });
 
-const taslak = { metin: "", foto: null };
+const taslak = { metin: "", foto: null, video: null, paylasiyor: false };
+let videoSayac = 0;
 const EMOJILER = ["😀", "😃", "😄", "😁", "😊", "🙂", "😍", "🥰", "😎", "🤩", "🥳", "🤗", "😇", "😂", "😌", "😉", "🙌", "👏", "👍", "💪",
   "🤝", "❤️", "🧡", "💛", "💚", "💙", "💜", "🌞", "🌻", "🌈", "⭐", "✨", "🎉", "🎈", "🌱", "🌿", "🍀", "🌸", "🐱", "🐶", "🦋"];
 const genis = () => matchMedia("(min-width:700px)").matches;
@@ -420,11 +467,13 @@ const genis = () => matchMedia("(min-width:700px)").matches;
 function yazAlani(sheetMi) {
   const id = (x) => (sheetMi ? `id="${x}"` : "");
   return `<textarea class="yaz-alan yz-metin" ${id("yaz-metin")} maxlength="280" rows="${sheetMi ? 5 : 2}" placeholder="${t("ne")}" aria-label="${t("ne")}">${esc(taslak.metin)}</textarea>
-    <div class="yz-foto"></div><div class="yz-ipucu" ${id("ipucu")}></div>
+    <div class="yz-foto"></div><div class="yz-video"></div><div class="yz-ipucu" ${id("ipucu")}></div>
     <div class="yz-emoji" hidden>${EMOJILER.map(e => `<button type="button" data-e="yz-emoji-ekle" data-m="${e}" aria-label="${e}">${e}</button>`).join("")}</div>
     <div class="alt-satir"><button type="button" class="yz-ik" data-e="yz-foto" aria-label="${t("foto")}">${ikon("foto", 22)}</button>
+      <button type="button" class="yz-ik" data-e="yz-video" aria-label="${t("videoEkle")}">${ikon("video", 22)}</button>
       <button type="button" class="yz-ik" data-e="yz-emoji" aria-label="${t("emoji")}" aria-expanded="false">${ikon("emoji", 22)}</button>
       <input type="file" accept="image/*" class="yz-dosya" ${id("foto-sec")} hidden>
+      <input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" class="yz-video-dosya" hidden>
       <div class="bosluk"></div><span class="sayac yz-sayac" ${id("sayac")}>280</span>
       ${sheetMi ? "" : `<button class="dug kucuk yz-gonder" data-e="paylas-gonder" disabled>${t("gonderiYayinla")}</button>`}</div>`;
 }
@@ -444,9 +493,83 @@ function yzGuncelle() {
     const m = $(".yz-metin", k), kalan = 280 - taslak.metin.length;
     if (m.value !== taslak.metin) m.value = taslak.metin;
     $(".yz-sayac", k).textContent = kalan; $(".yz-sayac", k).classList.toggle("az", kalan < 20);
-    const g = $(".yz-gonder", k); if (g && !g.dataset.bekle) g.disabled = !taslak.metin.trim() && !taslak.foto;
+    const g = $(".yz-gonder", k); if (g && !g.dataset.bekle) g.disabled = (!taslak.metin.trim() && !taslak.foto && !taslak.video) || taslak.video?.durum === "inceleniyor";
     $(".yz-foto", k).innerHTML = taslak.foto ? `<div class="foto-onizle"><img src="${taslak.foto}" alt=""><button type="button" data-e="foto-sil" aria-label="${t("kapat")}">✕</button></div>` : "";
+    videoOnizCiz(k);
   });
+}
+// ---- video taslağı: seç → tarayıcıda denetle + küçük resim → önizle → Paylaş'ta yükle (yüzde, iptal, tekrar dene) → gönderi
+const videoIleti = (kod) => t({ tur: "videoTur", buyuk: "videoBuyuk", uzun: "videoUzun", acilamaz: "videoAcilamaz", yetki: "videoYetki", ag: "hata" }[kod] || "videoYuklenemedi");
+const ipucuYazHepsi = (m) => document.querySelectorAll("[data-yz] .yz-ipucu").forEach(i => { i.innerHTML = m ? `<div class="ipucu">${esc(m)}</div>` : ""; });
+const boyutYaz = (b) => (b / 1048576).toFixed(1).replace(".", D.dil === "tr" ? "," : ".") + " MB";
+function videoOnizCiz(k) {
+  const kap = $(".yz-video", k), v = taslak.video; if (!kap) return;
+  if (String(kap.dataset.vid || "") !== String(v ? v.id : "")) {   // video değişti: çerçeve (oynatıcı öğesi) baştan kurulur; durum/yüzde değişince yalnız alt satır güncellenir
+    kap.dataset.vid = String(v ? v.id : ""); kap.dataset.vdurum = "";
+    kap.innerHTML = v ? `<div class="video-onizle"><video class="vo-video" src="${v.url}" muted playsinline controls preload="metadata"></video>
+      <button type="button" class="vo-kapat" data-e="video-sil" aria-label="${t("kapat")}">✕</button></div><div class="vo-durum" aria-live="polite"></div><p class="gri vo-not">${esc(t("videoHatirlat"))}</p>` : "";
+  }
+  if (!v) return;
+  const vv = $(".vo-video", kap); if (v.posterUrl && vv && !vv.getAttribute("poster")) vv.setAttribute("poster", v.posterUrl);
+  const d = $(".vo-durum", kap), imza = v.durum + "|" + (v.hataKod || "");
+  if (kap.dataset.vdurum !== imza) {
+    kap.dataset.vdurum = imza;
+    d.innerHTML = v.durum === "inceleniyor" ? `<span class="gri">${t("videoHazirlaniyor")}</span>`
+      : v.durum === "hazir" ? `<span class="gri vo-bilgi">${sureYaz(Math.round(v.sure_sn))} · ${boyutYaz(v.boyut)}</span>`
+      : v.durum === "yukleniyor" ? `<div class="vo-bar" role="progressbar" aria-label="${esc(t("videoYukleniyor"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><span class="vo-yuzde">0%</span>
+          <button type="button" class="dug kucuk ikincil" data-e="video-iptal">${t("iptal")}</button>`
+      : `<span class="vo-hata" role="alert">${esc(videoIleti(v.hataKod))}</span><button type="button" class="dug kucuk ikincil" data-e="video-tekrar">${t("tekrarDene")}</button>`;
+  }
+  if (v.durum === "yukleniyor") {
+    const bar = $(".vo-bar", d); if (bar) { bar.setAttribute("aria-valuenow", String(v.yuzde)); $("i", bar).style.width = v.yuzde + "%"; }
+    const y = $(".vo-yuzde", d); if (y) y.textContent = v.yuzde + "%";
+  }
+}
+const videoOnizGuncelle = () => document.querySelectorAll("[data-yz]").forEach(videoOnizCiz);
+async function medyaKimlik() {
+  if (BULUT) { const o = await OPB.op.oturum(); if (!o) throw Object.assign(new Error("oturum"), { kod: "yetki" }); return { uid: o.user.id, jeton: o.access_token }; }
+  return { handle: D.ben.handle, cihaz: D.cihaz };
+}
+function videoBirak(sil, yenile = true) {   // taslaktaki videoyu bırak: yükleme sürüyorsa durdur, blob adreslerini serbest bırak, depoya yüklenmiş dosyaları (gönderi olmadıysa) sil
+  const v = taslak.video; if (!v) return;
+  taslak.video = null;
+  v.ctrl?.abort();
+  [v.url, v.posterUrl].forEach(u => u && URL.revokeObjectURL(u));
+  if (sil && (v.videoYol || v.posterYol)) medyaKimlik().then(k => OP_MEDYA.sil([v.videoYol, v.posterYol], k)).catch(() => {});
+  if (yenile) yzGuncelle();
+}
+async function videoSec(dosya) {
+  if (taslak.paylasiyor) return;
+  if (taslak.foto) { taslak.foto = null; tost(t("videoFotoDegis")); }
+  videoBirak(true, false); ipucuYazHepsi("");
+  const id = ++videoSayac;
+  taslak.video = { id, durum: "inceleniyor", dosya, url: URL.createObjectURL(dosya) };
+  yzGuncelle();
+  try {
+    const b = await OP_MEDYA.incele(dosya);
+    if (taslak.video?.id !== id) return;
+    Object.assign(taslak.video, b, { durum: "hazir", posterUrl: URL.createObjectURL(b.poster) });
+  } catch (e) {
+    if (taslak.video?.id !== id) return;
+    videoBirak(false, false); ipucuYazHepsi(videoIleti(e.kod));   // net iletiyle reddedilir; taslakta video kalmaz
+  }
+  yzGuncelle();
+}
+async function videoYukle() {   // poster + video depoya (medya adaptörü); başarılıysa gönderi isteğine girecek { yol, posterYol, sure_sn, en, boy }. Yarım kalan yüklemede tekrar denenince yüklenenler yeniden kullanılır
+  const v = taslak.video;
+  if (v.yuklendi) return v.yuklendi;
+  v.durum = "yukleniyor"; v.yuzde = 0; v.hataKod = ""; v.ctrl = new AbortController(); yzGuncelle();
+  try {
+    const kimlik = await medyaKimlik();
+    if (!v.posterYol) v.posterYol = (await OP_MEDYA.yukle(v.poster, { amac: "poster", sinyal: v.ctrl.signal, kimlik })).yol;
+    if (!v.videoYol) v.videoYol = (await OP_MEDYA.yukle(v.dosya, { amac: "video", tur: v.tur, sinyal: v.ctrl.signal, kimlik, ilerleme: f => { v.yuzde = Math.min(100, Math.round(f * 100)); videoOnizGuncelle(); } })).yol;
+    v.yuklendi = { yol: v.videoYol, posterYol: v.posterYol, sure_sn: v.sure_sn, en: v.en, boy: v.boy };
+    v.durum = "hazir"; v.yuzde = 100;
+    return v.yuklendi;
+  } catch (e) {
+    v.durum = e.kod === "iptal" ? "hazir" : "hata"; v.hataKod = e.kod === "iptal" ? "" : (e.kod || "yukleme");
+    throw e;
+  } finally { if (taslak.video === v) yzGuncelle(); }
 }
 function yazKur() {
   document.querySelectorAll("[data-yz]:not([data-bagli])").forEach(k => {
@@ -456,9 +579,12 @@ function yazKur() {
     m.addEventListener("input", () => { taslak.metin = m.value; yzGuncelle(); clearTimeout(z); z = setTimeout(canliDenetle, 600, m, $(".yz-ipucu", k)); });
     $(".yz-dosya", k).addEventListener("change", async e => {
       const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+      if (taslak.paylasiyor) return;
+      if (taslak.video) { videoBirak(true, false); tost(t("videoFotoDegis")); }
       try { taslak.foto = await fotoKucult(f); } catch { tost(t("hata")); }
       yzGuncelle();
     });
+    $(".yz-video-dosya", k).addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) videoSec(f); });
   });
   yzGuncelle();
 }
@@ -489,13 +615,26 @@ function fotoKucult(dosya) {
   });
 }
 async function gonderiPaylas(k) {
-  const d = $(".yz-gonder", k), ip = $(".yz-ipucu", k); d.disabled = true; d.dataset.bekle = "1";
+  if (!k || taslak.paylasiyor) return;
+  const d = $(".yz-gonder", k), ip = $(".yz-ipucu", k); taslak.paylasiyor = true; if (d) { d.disabled = true; d.dataset.bekle = "1"; }
+  const v = taslak.video;
   try {
-    await api("/api/gonderi", { metin: taslak.metin, foto: taslak.foto });
+    if (ip) ip.innerHTML = "";
+    const video = v ? await videoYukle() : null;   // önce depoya (yüzde çubuğu); sonra gönderi (çift filtre sunucuda)
+    try { await api("/api/gonderi", { metin: taslak.metin, foto: taslak.foto, ...(video ? { video } : {}) }); }
+    catch (e) {
+      if (video && [400, 404, 413].includes(e.durum)) {   // sunucu videoyu kabul etmedi: yüklenenler silinir, tekrar denemede baştan yüklenir
+        medyaKimlik().then(kim => OP_MEDYA.sil([v.videoYol, v.posterYol], kim)).catch(() => {}); v.yuklendi = v.videoYol = v.posterYol = null;
+      }
+      throw e;
+    }
+    if (v) videoBirak(false, false);   // dosyalar artık gönderinin; yalnız önizleme adresleri serbest
     Object.assign(taslak, { metin: "", foto: null });
     sheetKapat(); tost(t("paylasildi"));
     D.sekme = "senin"; yigin.length = 0; G = { sayfa: "akis", kategori: "", handle: null, id: null, odak: false }; await ciz(true);   // kutu boşalır, yeni gönderi akışın tepesinde
-  } catch (e) { delete d.dataset.bekle; yzGuncelle(); ip.innerHTML = `<div class="ipucu">${esc(e.message)}</div>`; }
+  } catch (e) {
+    if (ip && e.kod !== "iptal" && !(v && e.kod)) ip.innerHTML = `<div class="ipucu">${esc(e.message)}</div>`;   // video yükleme hataları önizlemedeki satırda (Tekrar dene) gösterilir
+  } finally { taslak.paylasiyor = false; if (d) delete d.dataset.bekle; yzGuncelle(); }
 }
 async function yanitGonder(id) {
   const i = $("#yanit-metin"), metin = i.value.trim(); if (!metin) return;
@@ -514,34 +653,90 @@ function ayarlarAcYerel() {
   sheet(`<div class="sheet-ust"><h2>${t("ayarlar")}</h2><div class="bosluk"></div><button class="ust-dug" data-e="sheet-kapat" aria-label="${t("kapat")}">✕</button></div>
     <div class="alan"><label>${t("tema")}</label>${grup([["", t("oto")], ["acik", t("acik")], ["koyu", t("koyu")]], tm, "tema", "t")}</div>
     <div class="alan"><label>${t("dil")}</label>${grup([["tr", "Türkçe"], ["en", "English"]], D.dil, "dil", "d")}</div>
+    <div class="alan"><label>${t("otoVideo")}</label>${grup([["1", t("otoAcik")], ["0", t("otoKapali")]], otoVideoTercih() ? "1" : "0", "oto-video", "v")}<p class="gri oto-not">${t("otoVideoNot")}</p></div>
     <button class="dug ikincil tam" data-e="kayitlar">${ikon("kayit", 18)} ${t("kayitlar")}</button>
     <button class="dug ikincil tam" data-e="profil-duzenle">${t("duzenle")}</button>
     <p class="gri not">OP – Only Positive · ${D.dil === "en" ? "local test build. Only good news: no politics, religion, ethnicity or violence." : "yerel deneme sürümü. Sadece iyi haber: siyaset, din, etnik kimlik ve şiddet yok."}</p>
     <button class="dug ikincil tam" data-e="cikis">${t("cikis")}</button>`);
 }
 
-// ---------- haber videosu: ekrana girince sessiz oynat, çıkınca durdur, dokununca ses aç/kapat; veri tasarrufunda otomatik oynatma yok ----------
+// ---------- video oynatıcı (haber + kullanıcı): ekrana girince SESSİZ otomatik oynat (aynı anda tek video), çıkınca durdur; dokununca ses; denetim çubuğu; hata yedeği ----------
+// Otomatik oynatma YOK: Ayarlar'daki anahtar kapalıysa, veri tasarrufu (saveData) ya da "hareketi azalt" açıksa. Tercih yerel depoda: op-oto-video (çerez politikası tablosunda)
 const veriTasarrufu = () => !!navigator.connection?.saveData;
+const hareketAzalt = () => !!matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const otoVideoTercih = () => sakla.al("op-oto-video", true) !== false;
+const otoOynat = () => otoVideoTercih() && !veriTasarrufu() && !hareketAzalt();
+const gorunurOran = new Map();   // video → ekranda görünen oran (yalnız ekrana girmiş olanlar)
+function videoBirini() {   // yeterince görünenler (≥%60) arasında en görünür tek video oynar, diğerleri durur
+  let en = null, oran = 0;
+  for (const [v, o] of gorunurOran) if (v.isConnected && o >= 0.6 && o > oran && !v.dataset.elle && !v.closest(".video-kap.hatali")) { en = v; oran = o; }
+  for (const v of gorunurOran.keys()) if (v !== en && !v.paused) v.pause();
+  if (en && otoOynat() && en.paused) en.play().catch(() => {});
+}
 const videoGozlem = "IntersectionObserver" in window ? new IntersectionObserver(kayitlar => {
   for (const k of kayitlar) {
     const v = k.target;
-    if (k.isIntersecting && k.intersectionRatio >= 0.6) { if (!veriTasarrufu()) v.play().catch(() => {}); } else v.pause();
+    if (k.isIntersecting) gorunurOran.set(v, k.intersectionRatio); else { gorunurOran.delete(v); delete v.dataset.elle; if (!v.paused) v.pause(); }
   }
-}, { threshold: [0, 0.6] }) : null;
+  videoBirini();
+}, { threshold: [0, 0.25, 0.6, 0.85, 1] }) : null;
 function videolariBagla() {
   document.querySelectorAll("video.haber-video[data-oto]:not([data-bagli])").forEach(v => { v.dataset.bagli = "1"; videoGozlem?.observe(v); });
+  for (const v of [...gorunurOran.keys()]) if (!v.isConnected) gorunurOran.delete(v);
 }
 let videoKare = 0;
 new MutationObserver(() => { cancelAnimationFrame(videoKare); videoKare = requestAnimationFrame(videolariBagla); }).observe(document.body, { childList: true, subtree: true });
 function videoDurumu(v) {
   const kap = v.closest(".video-kap"); if (!kap || kap.classList.contains("detay")) return;
   kap.classList.toggle("durdu", v.paused); kap.classList.toggle("sesli", !v.muted && !v.paused);
-  kap.setAttribute("aria-label", t(v.muted ? "sesAc" : "sesKapat"));
+  kap.setAttribute("aria-label", t(v.paused ? "oynat" : v.muted ? "sesAc" : "sesKapat"));
+  const ses = kap.querySelector("[data-e='video-ses-dugme']"); if (ses) ses.setAttribute("aria-label", t(v.muted ? "sesAc" : "sesKapat"));
+  kap.classList.toggle("sessiz-ik", v.muted);
+  const oy = kap.querySelector("[data-e='video-oynat']"); if (oy) oy.setAttribute("aria-label", t(v.paused ? "oynat" : "duraklat"));
 }
-["play", "pause", "volumechange"].forEach(ad => document.addEventListener(ad, e => { if (e.target.matches?.("video.haber-video")) videoDurumu(e.target); }, true));
-function videoDokun(kap) {   // durmuşsa oynat (veri tasarrufu), oynuyorsa sesi aç/kapat
+function videoIlerleme(v) {
+  const kap = v.closest(".video-kap"); if (!kap || !(v.duration > 0)) return;
+  const yuzde = Math.min(100, (v.currentTime / v.duration) * 100), ilr = kap.querySelector(".video-ilerleme");
+  kap.style.setProperty("--p", yuzde.toFixed(2)); if (ilr) ilr.setAttribute("aria-valuenow", String(Math.round(yuzde)));
+}
+["play", "pause", "volumechange"].forEach(ad => document.addEventListener(ad, e => {
+  if (!e.target.matches?.("video.haber-video")) return;
+  if (ad === "play") document.querySelectorAll("video.haber-video").forEach(x => { if (x !== e.target && !x.paused) x.pause(); });   // aynı anda tek video
+  videoDurumu(e.target);
+}, true));
+document.addEventListener("timeupdate", e => { if (e.target.matches?.("video.haber-video")) videoIlerleme(e.target); }, true);
+document.addEventListener("loadedmetadata", e => {   // süre rozeti: sunucu süre vermediyse dosyadan
+  if (!e.target.matches?.("video.haber-video")) return;
+  const r = e.target.closest(".video-kap")?.querySelector(".video-sure");
+  if (r && r.hidden && e.target.duration > 0 && Number.isFinite(e.target.duration)) { r.textContent = sureYaz(Math.round(e.target.duration)); r.hidden = false; }
+}, true);
+document.addEventListener("error", e => { if (e.target.matches?.("video.haber-video")) { e.target.closest(".video-kap")?.classList.add("hatali"); videoDurumu(e.target); } }, true);   // zarif yedek: poster + "Video açılamadı · Tekrar dene"
+document.addEventListener("keydown", e => {
+  const kap = e.target.matches?.(".video-kap[data-e='video-ses']") ? e.target : null;
+  if (kap && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); videoDokun(kap); }
+});
+function videoDokun(kap) {   // durmuşsa sesli oynat, oynuyorsa sesi aç/kapat
   const v = kap.querySelector("video"); if (!v) return;
-  if (v.paused) v.play().catch(() => {}); else v.muted = !v.muted;
+  if (v.paused) { delete v.dataset.elle; v.muted = false; v.play().catch(() => {}); } else v.muted = !v.muted;
+}
+function videoOynatDuraklat(kap) {
+  const v = kap.querySelector("video"); if (!v) return;
+  if (v.paused) { delete v.dataset.elle; v.play().catch(() => {}); } else { v.dataset.elle = "1"; v.pause(); }
+}
+function videoAra(el, olay) {
+  const v = el.closest(".video-kap")?.querySelector("video"); if (!v || !(v.duration > 0)) return;
+  const r = el.getBoundingClientRect(); v.currentTime = Math.min(1, Math.max(0, (olay.clientX - r.left) / r.width)) * v.duration;
+}
+function videoTamEkran(kap) {
+  const v = kap.querySelector("video"); if (!v) return;
+  if (document.fullscreenElement || document.webkitFullscreenElement) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); return; }
+  if (kap.requestFullscreen) kap.requestFullscreen().catch(() => {}); else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();   // iOS: yalnız video öğesi tam ekran olur
+}
+function videoYeniden(kap) { const v = kap.querySelector("video"); kap.classList.remove("hatali"); if (v) { const s = v.src; v.removeAttribute("src"); v.src = s; v.load(); } }
+function otoVideoDegistir(ac) {
+  sakla.koy("op-oto-video", ac);
+  if (!ac) document.querySelectorAll("video.haber-video[data-oto]").forEach(v => { if (!v.paused && v.muted) v.pause(); });
+  else videoBirini();
 }
 
 // ---------- etkileşim ----------
@@ -570,7 +765,7 @@ const LOGO = {
 };
 const logo = (ad, boy = 26) => `<svg width="${boy}" height="${boy}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${LOGO[ad]}"/></svg>`;
 // paylaşım menüsü: gönderinin OP bağlantısı; iki sıra halinde hedefler
-const paylasBilgi = (o) => ({ url: `${NATIF ? (YAPI.site || "https://onlypositive.org").replace(/\/$/, "") : location.origin}/#g=${o.id}`, metin: String(o.metin || "").split("\n\n")[0].slice(0, 140) });
+const paylasBilgi = (o) => ({ url: `${NATIF ? (YAPI.site || "https://onlypositive.org").replace(/\/$/, "") : location.origin}/#g=${o.id}`, metin: String(o.metin || "").split("\n\n")[0].slice(0, 140) || (o.video ? t("video") : "") });
 const mobilMi = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 function disariPaylas(id) {
   const o = ogeBul(id); if (!o) return;
@@ -650,6 +845,16 @@ document.addEventListener("click", async e => {
     case "kaydet": if (girisGerekli()) return; return kaydetDegistir(a.id);
     case "devam": return gotur({ sayfa: "detay", id: a.id }, true);
     case "video-ses": return videoDokun(el);
+    case "video-oynat": return videoOynatDuraklat(el.closest(".video-kap"));
+    case "video-ses-dugme": { const v = el.closest(".video-kap")?.querySelector("video"); if (v) v.muted = !v.muted; return; }
+    case "video-ara": return videoAra(el, e);
+    case "video-tam": return videoTamEkran(el.closest(".video-kap"));
+    case "video-yeniden": return videoYeniden(el.closest(".video-kap"));
+    case "oto-video": { const ac = a.v === "1"; otoVideoDegistir(ac); return document.querySelector(".sheet") && ayarlarAc(); }
+    case "yz-video": if (girisGerekli()) return; return $(".yz-video-dosya", el.closest("[data-yz]")).click();
+    case "video-sil": return videoBirak(true, true);
+    case "video-iptal": return taslak.video?.ctrl?.abort();
+    case "video-tekrar": return gonderiPaylas(el.closest("[data-yz]") || $("[data-yz]"));
     case "kayitlar": sheetKapat(); return gotur({ sayfa: "kayit" }, true);
     case "paylas": return disariPaylas(a.id);
     case "paylas-kopyala": return paylasKopyala(a.id);
@@ -942,6 +1147,7 @@ function ayarlarAcBulut() {
   sheet(`<div class="sheet-ust"><h2>${t("ayarlar")}</h2><div class="bosluk"></div><button class="ust-dug" data-e="sheet-kapat" aria-label="${t("kapat")}">✕</button></div>
     <div class="alan"><label>${t("tema")}</label>${grup([["", t("oto")], ["acik", t("acik")], ["koyu", t("koyu")]], tm, "tema", "t")}</div>
     <div class="alan"><label>${t("dil")}</label>${grup([["tr", "Türkçe"], ["en", "English"]], D.dil, "dil", "d")}</div>
+    <div class="alan"><label>${t("otoVideo")}</label>${grup([["1", t("otoAcik")], ["0", t("otoKapali")]], otoVideoTercih() ? "1" : "0", "oto-video", "v")}<p class="gri oto-not">${t("otoVideoNot")}</p></div>
     ${giris ? `<button class="dug ikincil tam" data-e="kayitlar">${ikon("kayit", 18)} ${t("kayitlar")}</button>
       <button class="dug ikincil tam" data-e="profil-duzenle">${t("duzenle")}</button>
       <button class="dug ikincil tam" data-e="engellenenler">${bt("engellenenler")}</button>`
@@ -1112,12 +1318,12 @@ async function hesapSilSon(dugme) {
 
 // ---------- yan alanlar: sol menü (≥700 px), sağ sütun (≥1100 px), mobil çekmece, "İyi gündem" + "Kimi takip etmeli" (tek kod, her yerde aynı bileşen) ----------
 const girisli = () => !BULUT || !!D.ben;
-const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], bildirim: ["bildirim", "bildirim"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"] };
-const menuOgeleri = (sira) => sira.filter(s => girisli() || s === "akis" || s === "kesfet" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
+const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], bildirim: ["bildirim", "bildirim"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"] };
+const menuOgeleri = (sira) => sira.filter(s => girisli() || s === "akis" || s === "kesfet" || s === "video" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
 function solSecili() {
   if (G.sayfa === "akis") return G.kategori ? "kesfet" : "akis";
   if (G.sayfa === "profil") return !G.handle || G.handle === D.ben?.handle ? "profil" : "";
-  return ["kesfet", "bildirim", "kayit"].includes(G.sayfa) ? G.sayfa : "";
+  return ["kesfet", "bildirim", "kayit", "video"].includes(G.sayfa) ? G.sayfa : "";
 }
 const menuDugme = (s, sinif) => {
   const [ik, ad] = MENU_TANIM[s], sec = solSecili() === s, e = s === "ayarlar" ? 'data-e="ayarlar"' : `data-e="git" data-s="${s}"`;
@@ -1133,7 +1339,7 @@ function hesapKartHtml() {
 }
 function solHtml() {
   return `<div class="sol-ic"><div class="sol-ust"><button class="sol-logo" data-e="ust-yenile" aria-label="OP"><img src="icons/op.svg" alt="OP"></button>${betaEtiket()}</div>
-    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "bildirim", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
+    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "bildirim", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
     <button class="dug sol-yaz" data-e="yaz-sol" aria-label="${t("gonderiYayinla")}"><span class="yaz-ik">${ikon("yaz", 26)}</span><span class="yaz-ad">${t("gonderiYayinla")}</span></button>
     <div class="bosluk"></div>${hesapKartHtml()}</div>`;
 }
@@ -1201,7 +1407,7 @@ function cekmeceHtml() {
       <span class="cek-say gri">${typeof k.takipSayisi === "number" ? `<span><b>${k.takipSayisi}</b> ${t("takipSay")}</span> · <span><b>${k.takipci || 0}</b> ${t("takipciSay")}</span>` : ""}</span></button>`
     : `<div class="cek-misafir">${avatarHtml(null)}<button class="dug tam" data-e="giris-ac">${bt("girisYap")}</button><button class="dug ikincil tam" data-e="kayit-ac">${bt("kayitOl")}</button></div>`;
   return `<div class="cek-ust"><span class="cek-baslik">${t("yanMenu")}</span><button class="ust-dug" data-e="sheet-kapat" aria-label="${t("kapat")}">✕</button></div>${hesap}
-    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "kesfet", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
+    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "kesfet", "video", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
       ${BULUT && k ? `<button class="cek-oge" data-e="cikis-yap"><span class="sol-ad">${bt("cikisYap")}</span></button>` : ""}</nav>
     <div class="bosluk"></div><div class="grup cek-tema" role="group" aria-label="${t("tema")}"><button class="dug kucuk ${tm === "acik" ? "" : "ikincil"}" data-e="tema" data-t="acik" aria-pressed="${tm === "acik"}">${t("acikTema")}</button>
       <button class="dug kucuk ${tm === "koyu" ? "" : "ikincil"}" data-e="tema" data-t="koyu" aria-pressed="${tm === "koyu"}">${t("koyuTema")}</button></div>

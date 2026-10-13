@@ -212,10 +212,46 @@ html.klavye .alt,html.klavye .fab{display:none}
 .video-kap.detay{cursor:default}
 .haber-video{display:block;width:100%;max-height:420px;aspect-ratio:16/9;object-fit:cover;background:#000}
 .video-kap.detay .haber-video{object-fit:contain;max-height:70vh}
-.video-rozet{position:absolute;right:10px;bottom:10px;min-width:32px;height:32px;padding:0 9px;border-radius:16px;background:rgba(0,0,0,.6);color:#fff;font-size:15px;line-height:32px;text-align:center;pointer-events:none}
-.video-rozet::before{content:"🔇"}
-.video-kap.sesli .video-rozet::before{content:"🔊"}
-.video-kap.durdu .video-rozet::before{content:"▶"}
+.video-kap.ar .haber-video{aspect-ratio:var(--ar);object-fit:contain;max-height:min(75vh,600px)}   /* kullanıcı videosu: gerçek oran (4:5 – 16:9), kırpma yok */
+.video-kap.detay.ar .haber-video{max-height:75vh}
+.video-sure{position:absolute;left:10px;top:10px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,.6);color:#fff;font-size:13px;font-weight:700;line-height:20px;pointer-events:none}
+.video-sure[hidden]{display:none}
+.video-buyuk{position:absolute;inset:0;display:none;place-items:center;pointer-events:none;color:#fff}
+.video-buyuk svg{box-sizing:content-box;width:30px;height:30px;padding:16px;border-radius:50%;background:rgba(0,0,0,.55)}
+.video-kap.durdu .video-buyuk{display:grid}
+.video-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:2px;padding:20px 6px 4px;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff}
+.vb{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;color:#fff}
+.vb:hover{background:rgba(255,255,255,.18)}
+.vb .ik-duraklat,.vb .ik-sesli{display:none}
+.video-kap:not(.durdu) .vb .ik-oynat{display:none}
+.video-kap:not(.durdu) .vb .ik-duraklat{display:inline-flex}
+.video-kap:not(.sessiz-ik) .vb .ik-sessiz{display:none}
+.video-kap:not(.sessiz-ik) .vb .ik-sesli{display:inline-flex}
+.video-ilerleme{position:relative;flex:1;min-width:0;height:28px;cursor:pointer}
+.video-ilerleme::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:rgba(255,255,255,.35)}
+.video-ilerleme i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:#fff;width:calc(var(--p,0) * 1%)}
+.video-hata{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;background:rgba(0,0,0,.72);color:#fff;text-align:center}
+.video-hata .dug.ikincil{color:#fff;border-color:#fff}
+.video-kap.hatali .video-hata{display:flex}
+.video-kap.hatali .video-bar,.video-kap.hatali .video-buyuk{display:none}
+.video-kap:fullscreen{display:flex;align-items:center;justify-content:center;margin:0;border:0;border-radius:0;background:#000}
+.video-kap:fullscreen .haber-video{width:100%;height:100%;max-height:none;aspect-ratio:auto;object-fit:contain}
+.video-kap:-webkit-full-screen{display:flex;align-items:center;justify-content:center;margin:0;border:0;border-radius:0;background:#000}
+.video-kap:-webkit-full-screen .haber-video{width:100%;height:100%;max-height:none;aspect-ratio:auto;object-fit:contain}
+/* yazma kutusu: video önizleme + yükleme çubuğu */
+.yz-video:empty{display:none}
+.video-onizle{position:relative;margin:8px 0 0;border-radius:16px;overflow:hidden;border:1px solid var(--cizgi);background:#000}
+.vo-video{display:block;width:100%;max-height:300px;object-fit:contain;background:#000}
+.vo-kapat{position:absolute;top:8px;right:8px;z-index:2;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff}
+.vo-durum{display:flex;align-items:center;gap:10px;min-height:34px;margin-top:6px;font-size:14px}
+.vo-bar{flex:1;height:6px;border-radius:3px;background:var(--cizgi);overflow:hidden}
+.vo-bar i{display:block;height:100%;width:0;background:var(--vurgu)}
+.vo-yuzde{min-width:38px;text-align:right;color:var(--yazi2);font-variant-numeric:tabular-nums}
+.vo-hata{flex:1;color:#B3261E}
+:root[data-tema="koyu"] .vo-hata{color:#FF8A80}
+@media (prefers-color-scheme:dark){ :root:not([data-tema="acik"]) .vo-hata{color:#FF8A80} }
+.vo-not{margin:2px 0 4px;font-size:13px}
+@media (prefers-reduced-motion:no-preference){ .vo-bar i{transition:width .15s linear} }
 
 .avatar.logo{background:none}
 .avatar.logo img{width:100%;height:100%;display:block}
@@ -419,3 +455,4 @@ html.klavye .alt,html.klavye .fab{display:none}
 .hk-logo{flex:none;width:24px;height:24px;margin-left:auto;opacity:.92}
 .duz-dug{display:flex;gap:8px;margin-left:auto}
 .duz .alt-satir{row-gap:6px}
+.oto-not{margin:6px 0 0;font-size:13px}
