@@ -47,7 +47,7 @@ if (hedef === "android") {
   const bg = path.join(A, "build.gradle");
   let g = oku(bg);
   if (!g.includes("OP_VERSION_CODE")) {
-    g = degistir(g, "versionCode 1", 'versionCode (System.getenv("OP_VERSION_CODE") ?: "1").toInteger()', "versionCode");
+    g = degistir(g, "versionCode 1", 'versionCode Integer.parseInt(System.getenv("OP_VERSION_CODE") ?: "1")', "versionCode");
     g = degistir(g, 'versionName "1.0"', 'versionName System.getenv("OP_VERSION_NAME") ?: "1.0"', "versionName");
     g = degistir(g, "    buildTypes {", `    signingConfigs {
         release {
