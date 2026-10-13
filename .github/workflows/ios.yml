@@ -68,7 +68,12 @@ jobs:
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
           mkdir -p "$HOME/private_keys"
-          printf '%s' "$APPSTORE_KEY_P8" > "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          # Windows'tan yapıştırılan anahtarda satır sonu CRLF olabilir; PEM ayrıştırıcısı bunu reddeder → CR atılır, son satır sonu eklenir
+          ANAHTAR="$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          printf '%s
+' "$APPSTORE_KEY_P8" | tr -d '' | sed -e 's/[[:space:]]*$//' -e '/^$/d' > "$ANAHTAR"
+          # gizli değer yazdırılmaz; yalnız biçim teşhisi
+          echo "anahtar: satir=$(wc -l < "$ANAHTAR") ilk=$(head -1 "$ANAHTAR" | grep -c -- '-----BEGIN PRIVATE KEY-----') son=$(tail -1 "$ANAHTAR" | grep -c -- '-----END PRIVATE KEY-----')"
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" \
                 -authenticationKeyID "$APPSTORE_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID")
           xcodebuild archive -project ios/App/App.xcodeproj -scheme App -configuration Release \
