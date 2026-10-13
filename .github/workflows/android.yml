@@ -1,0 +1,80 @@
+# OP – Android derlemesi (GitHub Actions, ücretsiz: herkese açık depoda sınırsız dakika).
+# Her gönderimde: imzasız DEBUG APK (telefona elle kurulabilir, derlenebilirlik kanıtı). Gizli değerler varsa: imzalı AAB (Google Play yükleme paketi).
+# Gizli değerler (Settings → Secrets and variables → Actions) — ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD — README'de nasıl üretileceği yazılı.
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  derle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+      OP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      OP_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      OP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      OP_VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21   # Capacitor 8 / Android Gradle Plugin 8.x için JDK 21
+
+      - name: Sürüm adı (package.json)
+        run: echo "OP_VERSION_NAME=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+
+      - run: npm ci
+
+      - name: Android projesini üret + OP ayarlarını yaz + simgeleri üret + web paketini eşle
+        run: |
+          npx cap add android
+          node platform_ayar.mjs android
+          npx capacitor-assets generate --android
+          npx cap sync android
+
+      - name: Debug APK (imzasız)
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OP-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: İmzalı AAB (yalnız anahtar gizli değerleri tanımlıysa)
+        if: env.ANDROID_KEYSTORE_B64 != '' && github.event_name != 'pull_request'
+        working-directory: android
+        run: |
+          echo "$ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/op-yukleme.keystore"
+          export OP_KEYSTORE_FILE="$RUNNER_TEMP/op-yukleme.keystore"
+          ./gradlew --no-daemon bundleRelease
+          rm -f "$RUNNER_TEMP/op-yukleme.keystore"
+
+      - uses: actions/upload-artifact@v4
+        if: env.ANDROID_KEYSTORE_B64 != '' && github.event_name != 'pull_request'
+        with:
+          name: OP-imzali-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 30

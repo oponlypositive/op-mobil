@@ -1,0 +1,104 @@
+# OP – iOS derlemesi (GitHub Actions macOS koşucusu). Herkese açık depoda macOS dakikaları da ücretsizdir.
+# 1) HER gönderimde: simülatör için imzasız derleme (derlenebilirlik kanıtı; Apple hesabı gerekmez).
+# 2) Gizli değerler tanımlıysa (main dalı / elle çalıştırma): App Store Connect API anahtarıyla bulutta imzalı IPA + TestFlight yüklemesi.
+# Gizli değerler: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8, APPLE_TEAM_ID (README'de nereden alınacağı yazılı).
+name: iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  derle:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Capacitor 8 iOS: Xcode 26+ gerekir (App Store de 2026'dan beri Xcode 26 SDK ister). Kurulu en yeni kararlı sürümü seçer.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - run: npm ci
+
+      - name: iOS projesini üret + OP ayarlarını yaz + simgeleri üret + web paketini eşle
+        run: |
+          npx cap add ios
+          node platform_ayar.mjs ios
+          npx capacitor-assets generate --ios
+          npx cap sync ios
+
+      - name: Simülatör derlemesi (imzasız)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO build
+          ditto -c -k --keepParent "$RUNNER_TEMP/dd/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/OP-simulator.app.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OP-simulator-app
+          path: ${{ runner.temp }}/OP-simulator.app.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: İmzalı IPA (bulutta yönetilen imza, App Store Connect API anahtarı)
+        if: env.APPSTORE_KEY_P8 != '' && env.APPLE_TEAM_ID != '' && github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$APPSTORE_KEY_P8" > "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" \
+                -authenticationKeyID "$APPSTORE_KEY_ID" -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID")
+          xcodebuild archive -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/OP.xcarchive" "${AUTH[@]}" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" MARKETING_VERSION="$VERSION"
+          cat > "$RUNNER_TEMP/exportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/OP.xcarchive" -exportPath "$RUNNER_TEMP/ipa" \
+            -exportOptionsPlist "$RUNNER_TEMP/exportOptions.plist" "${AUTH[@]}"
+          ls -la "$RUNNER_TEMP/ipa"
+          echo "IPA_YOLU=$(ls "$RUNNER_TEMP"/ipa/*.ipa | head -1)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        if: env.IPA_YOLU != ''
+        with:
+          name: OP-imzali-ipa
+          path: ${{ env.IPA_YOLU }}
+          retention-days: 30
+
+      - name: TestFlight'a yükle
+        if: env.IPA_YOLU != ''
+        run: |
+          xcrun altool --upload-app --type ios --file "$IPA_YOLU" --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID"
+          rm -f "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"

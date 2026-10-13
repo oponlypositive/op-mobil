@@ -1,0 +1,34 @@
+{
+  "appId": "org.onlypositive.app",
+  "appName": "OP",
+  "webDir": "www",
+  "backgroundColor": "#FFFFFF",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "ios": {
+    "contentInset": "never",
+    "allowsLinkPreview": false,
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "launchShowDuration": 0,
+      "backgroundColor": "#FFFFFF",
+      "showSpinner": false
+    },
+    "SystemBars": {
+      "insetsHandling": "css"
+    },
+    "Keyboard": {
+      "resize": "native",
+      "resizeOnFullScreen": true
+    }
+  }
+}
