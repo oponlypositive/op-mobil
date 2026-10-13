@@ -68,6 +68,16 @@ Object.assign(T.en, {
   otoVideo: "Autoplay videos", otoAcik: "On", otoKapali: "Off", otoVideoNot: "Videos play muted. They never autoplay when data saver or reduced motion is on.",
 });
 
+Object.assign(T.tr, {   // alıntılı paylaşım + görüntülenme (gecis-008)
+  alintila: "Alıntıla", yenidenGeriAl: "Yeniden paylaşımı geri al", alintilar: "Alıntılar", alintiYorum: "Yorum ekle", alintiYok: "Bu gönderi görüntülenemiyor", alintiSilindi: "Bu gönderi silinmiş",
+  alintiIcerir: "Alıntı içerir", goruntulenme: "Görüntülenme", goruntulenmeAria: (n) => `${n} görüntülenme`, bosAlinti: "Henüz alıntı yok.", yenidenMenu: "Yeniden paylaş seçenekleri",
+});
+Object.assign(T.en, {
+  alintila: "Quote", yenidenGeriAl: "Undo repost", alintilar: "Quotes", alintiYorum: "Add a comment", alintiYok: "This post is unavailable", alintiSilindi: "This post was deleted",
+  alintiIcerir: "Contains a quote", goruntulenme: "Views", goruntulenmeAria: (n) => `${n} views`, bosAlinti: "No quotes yet.", yenidenMenu: "Repost options",
+});
+T.tr.bildirimMetin.alinti = "gönderini alıntıladı"; T.en.bildirimMetin.alinti = "quoted your post";
+
 // ---------- arka uç seçimi (yapilandirma.js): "yerel" = server.js + cihaz anahtarı (bugünkü akış), "supabase" = bulut (gerçek giriş) ----------
 const YAPI = window.OP_YAPI || { arkaUc: "yerel" };
 const NATIF = YAPI.platform === "ios" || YAPI.platform === "android";   // mağaza uygulaması (Capacitor); web'de hep false → web davranışı değişmez. İşareti mobil/hazirla.mjs + mobil.js koyar
@@ -172,6 +182,8 @@ const IK = {   // satır içi çizgi ikonlar
   sag: '<path d="M9 6l6 6-6 6"/>',
   video: '<rect x="2.500" y="5.500" width="13" height="13" rx="3"/><path d="M15.500 10.500L21 7.500v9l-5.500-3"/>',
   oynat: '<path d="M8 5.500v13l11-6.500z"/>',
+  gorunum: '<path d="M5 21V12"/><path d="M12 21V4"/><path d="M19 21v-6.500"/>',
+  alinti: '<path d="M7 8H5.500A1.500 1.500 0 004 9.500V13a1.500 1.500 0 001.500 1.500H8V17a3 3 0 01-3 3"/><path d="M17 8h-1.500A1.500 1.500 0 0014 9.500V13a1.500 1.500 0 001.500 1.500H18V17a3 3 0 01-3 3"/>',
   duraklat: '<path d="M8 5v14"/><path d="M16 5v14"/>',
   ses: '<path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path d="M15.500 9a4.500 4.500 0 010 6"/><path d="M18 6.500a8 8 0 010 11"/>',
   sessiz: '<path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path d="M16 9.500l5 5"/><path d="M21 9.500l-5 5"/>',
@@ -215,11 +227,20 @@ function menuDug(tur, id, yazar, o = {}) {
   return `<button class="menu-dug" data-e="menu" data-t="${tur}" data-id="${esc(id)}" data-h="${esc(yazar.handle)}" data-ed="${yazar.editor || yazar.resmi ? 1 : 0}"${kendi ? ` data-own="1" data-z="${esc(o.zaman || "")}"` : ""} aria-label="${bt("menu")}">•••</button>`;
 }
 const sayi = (n) => (n ? `<span>${n}</span>` : "");
+function kisaSayi(n) {   // 1,2 B · 1,6 Mn (TR) / 1.2K · 1.6M (EN); aşağı yuvarlar
+  n = Math.max(0, Number(n) || 0);
+  if (n < 1000) return String(n);
+  const en = D.dil === "en", bir = (v) => { const x = (Math.floor(v * 10) / 10).toFixed(1); return en ? x.replace(/\.0$/, "") : x.replace(".", ",").replace(/,0$/, ""); };
+  const bicim = (v) => (v >= 100 ? String(Math.floor(v)) : bir(v));
+  return n < 1e6 ? bicim(n / 1e3) + (en ? "K" : " B") : bicim(n / 1e6) + (en ? "M" : " Mn");
+}
 function eylemHtml(o) {
+  const toplamYay = (o.yaySayisi || 0) + (o.alintiSayisi || 0), gor = o.goruntulenme || 0;   // X gibi: yeniden paylaşım + alıntı toplamı (ayrımı detayda)
   return `<div class="eylemler">
     <button class="eylem" data-e="yanit" data-id="${o.id}" aria-label="${t("yanitla")}">${ikon("yanit", 20)}${sayi(o.yanitSayisi)}</button>
-    <button class="eylem yay ${o.yaydimMi ? "aktif" : ""}" data-e="yay" data-id="${o.id}" aria-label="${t("yeniden")}" aria-pressed="${!!o.yaydimMi}">${ikon("yay", 20)}${sayi(o.yaySayisi)}</button>
+    <button class="eylem yay ${o.yaydimMi ? "aktif" : ""}" data-e="yay" data-id="${o.id}" aria-label="${t("yeniden")}" aria-haspopup="dialog" aria-pressed="${!!o.yaydimMi}">${ikon("yay", 20)}${sayi(toplamYay)}</button>
     <button class="eylem begen ${o.begendimMi ? "aktif" : ""}" data-e="begen" data-id="${o.id}" aria-label="${t("begen")}" aria-pressed="${!!o.begendimMi}">${ikon("begen", 20, o.begendimMi)}${sayi(o.begeniSayisi)}</button>
+    <span class="eylem gor" role="img" aria-label="${esc(gor ? t("goruntulenmeAria", kisaSayi(gor)) : t("goruntulenme"))}">${ikon("gorunum", 20)}${gor ? `<span>${kisaSayi(gor)}</span>` : ""}</span>
     <button class="eylem kayit ${o.kaydettimMi ? "aktif" : ""}" data-e="kaydet" data-id="${o.id}" aria-label="${t("kayit")}" aria-pressed="${!!o.kaydettimMi}">${ikon("kayit", 20, o.kaydettimMi)}</button>
     <button class="eylem" data-e="paylas" data-id="${o.id}" aria-label="${t("disari")}">${ikon("paylas", 20)}</button>
   </div>`;
@@ -281,6 +302,21 @@ function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görse
   }
   return h;
 }
+// alıntı kartı: alıntılanan gönderinin kısa görünümü (akış, detay, yazma penceresi önizlemesi). onizleme: dokunulmaz, video yerine poster (yazarken oynatıcı yeniden kurulmasın)
+function alintiKartHtml(a, onizleme = false) {
+  if (!a) return "";
+  if (a.yok) return `<div class="alinti-kart yok" role="note">${esc(t(a.silindi ? "alintiSilindi" : "alintiYok"))}</div>`;
+  const y = a.yazar, [baslik, ...gerisi] = String(a.metin || "").split("\n\n");
+  const metin = a.haber ? `<b class="baslik-metin">${esc(baslik)}</b>${gerisi.length ? `<br>${esc(gerisi.join("\n\n"))}` : ""}` : esc(a.metin || "");
+  let medya = "";
+  if (a.video?.url) medya = onizleme ? `<span class="alinti-video-onizle" style="min-height:110px">${a.video.poster ? `<img src="${esc(a.video.poster)}" alt="">` : ""}${ikon("oynat", 30, true)}</span>` : videoHtml(a.video);
+  else if (a.foto) medya = `<img class="gorsel" src="${esc(a.foto)}" alt="" loading="lazy">`;
+  else if (a.haber) medya = a.gorsel?.url ? `<img class="gorsel" src="${esc(a.gorsel.url)}" alt="" loading="lazy">` : haberKartHtml(a);
+  const kaynak = a.haber && a.kaynak ? `<div class="alinti-kaynak">${t("kaynak")}: ${esc(a.kaynak)}</div>` : "";
+  const kimlik = onizleme ? `class="alinti-kart onizleme"` : `class="alinti-kart" data-e="alinti-ac" data-id="${esc(a.id)}" role="link" tabindex="0"`;
+  return `<div ${kimlik} data-alinti="${esc(a.id)}"><div class="alinti-kim">${avatarHtml(y)}<span class="ad">${esc(y?.ad)}</span>${rozetHtml(y)}<span class="gri kisa">@${esc(y?.handle)}</span><span class="gri zaman">· ${zamanYaz(a.zaman)}</span></div>
+    ${metin ? `<div class="alinti-metin">${metin}</div>` : ""}${medya}${kaynak}${a.alintiIcerir || a.alinti ? `<div class="alinti-not">${esc(t("alintiIcerir"))}</div>` : ""}</div>`;
+}
 function satirHtml(o) {
   const y = o.yazar;
   return `<article class="satir" data-oge="${o.id}">
@@ -288,17 +324,17 @@ function satirHtml(o) {
     <div class="satir-ic"><span class="sol" data-profil="${esc(y?.handle)}">${avatarHtml(y)}</span>
       <div class="govde"><div class="kim"><span class="ad" data-profil="${esc(y?.handle)}">${esc(y?.ad)}</span>${rozetHtml(y)}
         <span class="gri kisa" data-profil="${esc(y?.handle)}">@${esc(y?.handle)}</span><span class="gri zaman">· ${zamanYaz(o.zaman)}</span>${o.duzenlendi ? `<span class="gri duzenlendi">· ${t("duzenlendi")}</span>` : ""}${menuDug("gonderi", o.id, y, o)}</div>
-        ${metinHtml(o)}${ekHtml(o)}${eylemHtml(o)}</div></div></article>`;
+        ${metinHtml(o)}${ekHtml(o)}${alintiKartHtml(o.alinti)}${eylemHtml(o)}</div></div></article>`;
 }
 function detayGonHtml(o) {
-  const y = o.yazar, sayac = [[o.yanitSayisi, t("yanit")], [o.yaySayisi, t("yeniPay")], [o.begeniSayisi, t("begeni")]].filter(([n]) => n);
+  const y = o.yazar, sayac = [[o.yanitSayisi, t("yanit")], [o.yaySayisi, t("yeniPay")], [o.alintiSayisi, t("alintilar"), 1], [o.begeniSayisi, t("begeni")], [o.goruntulenme, t("goruntulenme"), 0, 1]].filter(([n]) => n);
   const zaman = new Date(o.zaman).toLocaleString(D.dil === "en" ? "en-GB" : "tr-TR", { dateStyle: "medium", timeStyle: "short" });
   return `<article class="detay-gon" data-oge="${o.id}" data-gor="detay">
     <div class="detay-ust"><span data-profil="${esc(y?.handle)}">${avatarHtml(y)}</span>
       <div class="detay-kim" data-profil="${esc(y?.handle)}"><div class="ad">${esc(y?.ad)}${rozetHtml(y)}</div><div class="gri">@${esc(y?.handle)}</div></div>${menuDug("gonderi", o.id, y, o)}</div>
-    ${metinHtml(o, true)}${ekHtml(o, true)}
+    ${metinHtml(o, true)}${ekHtml(o, true)}${alintiKartHtml(o.alinti)}
     <div class="gri detay-zaman">${esc(zaman)}${o.sehir ? " · 📍" + esc(o.sehir) : ""}${o.duzenlendi ? " · " + esc(t("duzenlendi")) : ""}</div>
-    ${sayac.length ? `<div class="sayilar">${sayac.map(([n, ad]) => `<span><b>${n}</b> ${ad}</span>`).join("")}</div>` : ""}${eylemHtml(o)}</article>`;
+    ${sayac.length ? `<div class="sayilar">${sayac.map(([n, ad, dugme, kisa]) => dugme ? `<button class="sayac-dug" data-e="alintilar" data-id="${o.id}" aria-expanded="${!!document.querySelector("#alinti-bolum")}"><b>${n}</b> ${ad}</button>` : `<span><b>${kisa ? kisaSayi(n) : n}</b> ${ad}</span>`).join("")}</div>` : ""}${eylemHtml(o)}</article>`;
 }
 const yanitHtml = (y) => `<article class="satir yanit" data-yanit="${esc(y.id)}"><div class="satir-ic"><span class="sol" data-profil="${esc(y.yazar?.handle)}">${avatarHtml(y.yazar)}</span>
   <div class="govde"><div class="kim"><span class="ad" data-profil="${esc(y.yazar?.handle)}">${esc(y.yazar?.ad)}</span>${rozetHtml(y.yazar)}
@@ -369,10 +405,10 @@ async function bildirimCiz(my) {
   const v = await api("/api/bildirimler?okundu=1").catch(() => ({ bildirimler: [] }));
   if (my !== D.cizim) return;
   D.okunmamis = 0;
-  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", takip: "profil" };
+  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil" };
   kok().innerHTML = kabuk(`<h1 class="baslik">${t("bildirim")}</h1>` + (v.bildirimler.length ? v.bildirimler.map(b =>
     `<div class="satir bildirim ${b.okundu ? "" : "yeni"}" data-e="bil-ac" data-t="${esc(b.tur)}" data-h="${esc(b.tur === "takip" ? b.kimden?.handle : b.hedef)}"><div class="satir-ic"><span class="bil-ik">${ikon(tur[b.tur] || "begen", 22, b.tur === "begen")}</span>
-      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin"><b>${esc(b.kimden?.ad)}</b> ${bm[b.tur] || ""}${b.tur === "yanit" && b.ek ? `<div class="gri">${esc(b.ek)}</div>` : ""}
+      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin"><b>${esc(b.kimden?.ad)}</b> ${bm[b.tur] || ""}${(b.tur === "yanit" || b.tur === "alinti") && b.ek ? `<div class="gri">${esc(b.ek)}</div>` : ""}
       <div class="gri">${zamanYaz(b.zaman)}</div></div></div></div></div>`).join("") : bosHtml(t("bosBildirim"))));
 }
 async function kayitCiz(my) {
@@ -436,14 +472,15 @@ window.addEventListener("popstate", () => { if (yigin.length) { G = yigin.pop();
 
 // ---------- alt sayfalar ----------
 function sheet(html) {
-  sheetKapat();
+  sheetKapat(true);
   const p = document.createElement("div"); p.className = "perde"; p.dataset.e = "sheet-kapat";
   const s = document.createElement("div"); s.className = "sheet"; s.setAttribute("role", "dialog"); s.setAttribute("aria-modal", "true"); s.innerHTML = html;
   document.body.append(p, s); return s;
 }
-function sheetKapat() {
+function sheetKapat(yeniAcilis) {   // yeniAcilis: sheet() yeni bir pencere açmadan önce çağırır (taslaktaki alıntı korunur)
   const cek = document.querySelector(".cekmece"), geri = D.odakGeri;
   document.querySelectorAll(".perde,.sheet,.cekmece").forEach(e => e.remove());
+  if (!yeniAcilis && taslak.alinti) { taslak.alinti = null; yzGuncelle(); }   // alıntı penceresi kapandı/iptal: vazgeçildi
   if (cek) { D.odakGeri = null; if (geri?.isConnected) geri.focus({ preventScroll: true }); }   // çekmece kapanınca odak avatara döner
 }
 document.addEventListener("keydown", e => {
@@ -458,7 +495,7 @@ document.addEventListener("keydown", e => {
   else if (!e.shiftKey && document.activeElement === son) { e.preventDefault(); ilk.focus(); }
 });
 
-const taslak = { metin: "", foto: null, video: null, paylasiyor: false };
+const taslak = { metin: "", foto: null, video: null, alinti: null, paylasiyor: false };
 let videoSayac = 0;
 const EMOJILER = ["😀", "😃", "😄", "😁", "😊", "🙂", "😍", "🥰", "😎", "🤩", "🥳", "🤗", "😇", "😂", "😌", "😉", "🙌", "👏", "👍", "💪",
   "🤝", "❤️", "🧡", "💛", "💚", "💙", "💜", "🌞", "🌻", "🌈", "⭐", "✨", "🎉", "🎈", "🌱", "🌿", "🍀", "🌸", "🐱", "🐶", "🦋"];
@@ -466,8 +503,8 @@ const genis = () => matchMedia("(min-width:700px)").matches;
 // yazma bileşeni: TEK kod, iki yüz — akış tepesindeki satır içi kutu (≥700 px) ve alt-sayfa penceresi (mobil "+"); ikisi aynı `taslak` ve aynı gonderiPaylas'ı paylaşır
 function yazAlani(sheetMi) {
   const id = (x) => (sheetMi ? `id="${x}"` : "");
-  return `<textarea class="yaz-alan yz-metin" ${id("yaz-metin")} maxlength="280" rows="${sheetMi ? 5 : 2}" placeholder="${t("ne")}" aria-label="${t("ne")}">${esc(taslak.metin)}</textarea>
-    <div class="yz-foto"></div><div class="yz-video"></div><div class="yz-ipucu" ${id("ipucu")}></div>
+  return `<textarea class="yaz-alan yz-metin" ${id("yaz-metin")} maxlength="280" rows="${sheetMi ? 5 : 2}" placeholder="${t(taslak.alinti ? "alintiYorum" : "ne")}" aria-label="${t(taslak.alinti ? "alintiYorum" : "ne")}">${esc(taslak.metin)}</textarea>
+    <div class="yz-foto"></div><div class="yz-video"></div><div class="yz-alinti"></div><div class="yz-ipucu" ${id("ipucu")}></div>
     <div class="yz-emoji" hidden>${EMOJILER.map(e => `<button type="button" data-e="yz-emoji-ekle" data-m="${e}" aria-label="${e}">${e}</button>`).join("")}</div>
     <div class="alt-satir"><button type="button" class="yz-ik" data-e="yz-foto" aria-label="${t("foto")}">${ikon("foto", 22)}</button>
       <button type="button" class="yz-ik" data-e="yz-video" aria-label="${t("videoEkle")}">${ikon("video", 22)}</button>
@@ -495,6 +532,8 @@ function yzGuncelle() {
     $(".yz-sayac", k).textContent = kalan; $(".yz-sayac", k).classList.toggle("az", kalan < 20);
     const g = $(".yz-gonder", k); if (g && !g.dataset.bekle) g.disabled = (!taslak.metin.trim() && !taslak.foto && !taslak.video) || taslak.video?.durum === "inceleniyor";
     $(".yz-foto", k).innerHTML = taslak.foto ? `<div class="foto-onizle"><img src="${taslak.foto}" alt=""><button type="button" data-e="foto-sil" aria-label="${t("kapat")}">✕</button></div>` : "";
+    const al = $(".yz-alinti", k), alId = taslak.alinti?.id || "";
+    if (al && (al.dataset.id || "") !== alId) { al.dataset.id = alId; al.innerHTML = taslak.alinti ? alintiKartHtml(taslak.alinti, true) : ""; }
     videoOnizCiz(k);
   });
 }
@@ -621,7 +660,7 @@ async function gonderiPaylas(k) {
   try {
     if (ip) ip.innerHTML = "";
     const video = v ? await videoYukle() : null;   // önce depoya (yüzde çubuğu); sonra gönderi (çift filtre sunucuda)
-    try { await api("/api/gonderi", { metin: taslak.metin, foto: taslak.foto, ...(video ? { video } : {}) }); }
+    try { await api("/api/gonderi", { metin: taslak.metin, foto: taslak.foto, ...(video ? { video } : {}), ...(taslak.alinti ? { alintiId: taslak.alinti.id } : {}) }); }
     catch (e) {
       if (video && [400, 404, 413].includes(e.durum)) {   // sunucu videoyu kabul etmedi: yüklenenler silinir, tekrar denemede baştan yüklenir
         medyaKimlik().then(kim => OP_MEDYA.sil([v.videoYol, v.posterYol], kim)).catch(() => {}); v.yuklendi = v.videoYol = v.posterYol = null;
@@ -629,7 +668,7 @@ async function gonderiPaylas(k) {
       throw e;
     }
     if (v) videoBirak(false, false);   // dosyalar artık gönderinin; yalnız önizleme adresleri serbest
-    Object.assign(taslak, { metin: "", foto: null });
+    Object.assign(taslak, { metin: "", foto: null, alinti: null });
     sheetKapat(); tost(t("paylasildi"));
     D.sekme = "senin"; yigin.length = 0; G = { sayfa: "akis", kategori: "", handle: null, id: null, odak: false }; await ciz(true);   // kutu boşalır, yeni gönderi akışın tepesinde
   } catch (e) {
@@ -714,6 +753,8 @@ document.addEventListener("error", e => { if (e.target.matches?.("video.haber-vi
 document.addEventListener("keydown", e => {
   const kap = e.target.matches?.(".video-kap[data-e='video-ses']") ? e.target : null;
   if (kap && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); videoDokun(kap); }
+  const ak = e.target.matches?.(".alinti-kart[data-e='alinti-ac']") ? e.target : null;
+  if (ak && e.key === "Enter") { e.preventDefault(); gotur({ sayfa: "detay", id: ak.dataset.id }, true); }
 });
 function videoDokun(kap) {   // durmuşsa sesli oynat, oynuyorsa sesi aç/kapat
   const v = kap.querySelector("video"); if (!v) return;
@@ -738,6 +779,60 @@ function otoVideoDegistir(ac) {
   if (!ac) document.querySelectorAll("video.haber-video[data-oto]").forEach(v => { if (!v.paused && v.muted) v.pause(); });
   else videoBirini();
 }
+
+// ---------- yeniden paylaş menüsü · alıntıla · alıntılar listesi (gecis-008) ----------
+function yayMenusu(id) {
+  const o = ogeBul(id); if (!o) return;
+  sheet(sheetUst(t("yeniden")) + `<div class="yay-menu" role="menu" aria-label="${esc(t("yenidenMenu"))}">
+    <button class="liste-satir" role="menuitem" data-e="yay-yap" data-id="${esc(id)}">${ikon("yay", 22)}<span class="ad">${esc(t(o.yaydimMi ? "yenidenGeriAl" : "yeniden"))}</span></button>
+    <button class="liste-satir" role="menuitem" data-e="alintila" data-id="${esc(id)}">${ikon("alinti", 22)}<span class="ad">${esc(t("alintila"))}</span></button></div>`);
+}
+function alintilaAc(id) {   // yazma penceresi açılır, altında alıntı önizlemesi (kaldırılamaz; ✕ ile vazgeçilir)
+  const o = ogeBul(id); if (!o) return;
+  taslak.alinti = o; yazAc();
+}
+async function alintilariAc(id) {   // detay sayfasında "Alıntılar" sayısına dokununca liste açılır/kapanır
+  const var_ = $("#alinti-bolum");
+  if (var_) { var_.remove(); document.querySelector("[data-e='alintilar']")?.setAttribute("aria-expanded", "false"); return; }
+  const b = document.createElement("section"); b.id = "alinti-bolum";
+  b.innerHTML = `<h2 class="alt-baslik">${esc(t("alintilar"))}</h2><div id="alinti-liste">${iskelet}</div>`;
+  $(".detay-gon")?.after(b); document.querySelector("[data-e='alintilar']")?.setAttribute("aria-expanded", "true");
+  try {
+    const v = await api(`/api/oge/${id}/alintilar`);
+    if (!b.isConnected) return;
+    for (const o of v.ogeler) if (!D.ogeler.some(x => x.id === o.id)) D.ogeler.push(o);   // listedeki gönderilerin düğmeleri çalışsın (ogeBul/ogeGuncelle)
+    $("#alinti-liste").innerHTML = v.ogeler.length ? v.ogeler.map(satirHtml).join("") : bosHtml(t("bosAlinti"));
+  } catch (e) { if (b.isConnected) $("#alinti-liste").innerHTML = bosHtml(e.message); }
+}
+
+// ---------- görüntülenme sayımı (gecis-008): ekranda ≥1 sn ve ≥%50 görünen gönderi kuyruğa girer; 10 sn'de bir ya da sayfa gizlenirken TOPLU (en çok 50) gider; oturumda aynı gönderi bir kez ----------
+const goruntuKuyruk = new Set(), goruntulendi = new Set(), goruntuSayac = new Map();
+function goruntuSay(id) {
+  if (goruntulendi.has(id)) return;
+  const o = ogeBul(id); if (o?.yazar?.handle && o.yazar.handle === D.ben?.handle) return;   // yazarın kendi görüntülemesi sayılmaz (sunucu da saymaz)
+  goruntulendi.add(id); goruntuKuyruk.add(id);
+  if (goruntuKuyruk.size >= 50) goruntuGonder();
+}
+function goruntuGonder() {
+  if (!goruntuKuyruk.size) return;
+  const idler = [...goruntuKuyruk].slice(0, 50); idler.forEach(i => goruntuKuyruk.delete(i));
+  api("/api/goruntule", { idler }).catch(() => {});   // sayım en iyi çabadır: hata sessiz
+}
+const goruntuGozlem = "IntersectionObserver" in window ? new IntersectionObserver(kayitlar => {
+  for (const k of kayitlar) {
+    const el = k.target, id = el.dataset.oge;
+    if (!id || goruntulendi.has(id)) { goruntuGozlem.unobserve(el); continue; }
+    const yeterli = k.isIntersecting && (k.intersectionRatio >= 0.5 || k.intersectionRect.height >= innerHeight * 0.5);   // uzun gönderi ekranın yarısını doldurunca da sayılır
+    if (yeterli) { if (!goruntuSayac.has(el)) goruntuSayac.set(el, setTimeout(() => { goruntuSayac.delete(el); if (el.isConnected && !document.hidden) goruntuSay(id); }, 1000)); }
+    else if (goruntuSayac.has(el)) { clearTimeout(goruntuSayac.get(el)); goruntuSayac.delete(el); }
+  }
+}, { threshold: [0, 0.25, 0.5, 0.75, 1] }) : null;
+function goruntuBagla() { document.querySelectorAll("[data-oge]:not([data-gb])").forEach(el => { el.dataset.gb = "1"; goruntuGozlem?.observe(el); }); }
+let goruntuKare = 0;
+new MutationObserver(() => { cancelAnimationFrame(goruntuKare); goruntuKare = requestAnimationFrame(goruntuBagla); }).observe(document.body, { childList: true, subtree: true });
+setInterval(goruntuGonder, 10000);
+document.addEventListener("visibilitychange", () => { if (document.hidden) goruntuGonder(); });
+addEventListener("pagehide", goruntuGonder);
 
 // ---------- etkileşim ----------
 function ogeGuncelle(yeni) {
@@ -840,7 +935,12 @@ document.addEventListener("click", async e => {
     case "sekme": D.sekme = a.s; return ciz(true);
     case "ust-yenile": yigin.length = 0; G = { sayfa: "akis", kategori: "", handle: null, id: null, odak: false }; return ciz(true);
     case "kategori": return gotur({ sayfa: "akis", kategori: a.k }, true);
-    case "begen": case "yay": if (girisGerekli()) return; return etkilesim(a.e, a.id);
+    case "begen": if (girisGerekli()) return; return etkilesim(a.e, a.id);
+    case "yay": if (girisGerekli()) return; return yayMenusu(a.id);
+    case "yay-yap": sheetKapat(); return etkilesim("yay", a.id);
+    case "alintila": sheetKapat(); return alintilaAc(a.id);
+    case "alinti-ac": return gotur({ sayfa: "detay", id: a.id }, true);
+    case "alintilar": return alintilariAc(a.id);
     case "yanit": return gotur({ sayfa: "detay", id: a.id, odak: true }, true);
     case "kaydet": if (girisGerekli()) return; return kaydetDegistir(a.id);
     case "devam": return gotur({ sayfa: "detay", id: a.id }, true);

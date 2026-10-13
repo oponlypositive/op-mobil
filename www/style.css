@@ -456,3 +456,35 @@ html.klavye .alt,html.klavye .fab{display:none}
 .duz-dug{display:flex;gap:8px;margin-left:auto}
 .duz .alt-satir{row-gap:6px}
 .oto-not{margin:6px 0 0;font-size:13px}
+
+/* ALINTILI PAYLAŞIM (gecis-008): alıntı kartı (akış, detay, yazma penceresi önizlemesi) + yeniden paylaş menüsü + görüntülenme sayısı */
+.alinti-kart{display:block;margin-top:10px;padding:10px 12px 12px;border:1px solid var(--cizgi);border-radius:16px;overflow:hidden;cursor:pointer;text-align:left}
+.alinti-kart:hover{background:color-mix(in srgb,var(--yuzey) 70%,transparent)}
+.alinti-kart:focus-visible{outline:2px solid var(--vurgu);outline-offset:2px}
+.alinti-kart.yok,.alinti-kart.onizleme{cursor:default}
+.alinti-kart.yok{color:var(--yazi2);font-size:14px;background:var(--yuzey)}
+.alinti-kart.yok:hover{background:var(--yuzey)}
+.alinti-kim{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;font-size:14px}
+.alinti-kim .avatar{width:20px;height:20px;font-size:12px;flex:none}
+.alinti-kim .avatar.logo img{width:14px;height:14px}
+.alinti-kim .ad{font-weight:700;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.alinti-kim .gri{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.alinti-kim .zaman{flex:none}
+.alinti-metin{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:6;line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.alinti-kart .gorsel,.alinti-kart .video-kap,.alinti-kart .hk{margin-top:8px;border-radius:12px}
+.alinti-kart .gorsel{max-height:300px}
+.alinti-kart .hk{min-height:110px;padding:10px 12px 8px}
+.alinti-kaynak{margin-top:6px;font-size:12px;color:var(--yazi2);overflow-wrap:anywhere}
+.alinti-not{margin-top:6px;font-size:12px;color:var(--yazi2)}
+.alinti-video-onizle{position:relative;display:block;margin-top:8px;border-radius:12px;overflow:hidden;background:#000}
+.alinti-video-onizle img{display:block;width:100%;max-height:260px;object-fit:cover}
+.alinti-video-onizle .ik{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;filter:drop-shadow(0 1px 4px rgba(0,0,0,.6))}
+.yz-alinti{margin:8px 0 0}
+.yz-alinti:empty{display:none}
+.yay-menu .liste-satir{gap:14px}
+.yay-menu .liste-satir .ik{flex:none;color:var(--yazi2)}
+.eylem.gor{min-width:0;padding:0 6px;cursor:default}
+.eylem.gor:hover{color:var(--yazi2);background:none}
+.sayilar .sayac-dug{padding:0;border:0;background:none;font:inherit;color:inherit;cursor:pointer}
+.sayilar .sayac-dug:hover{text-decoration:underline}
+.alt-baslik{margin:0;padding:12px 16px;font-size:16px;font-weight:800;border-bottom:1px solid var(--cizgi)}

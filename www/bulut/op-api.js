@@ -52,7 +52,7 @@ const M = {
 // Sunucunun (Edge Function) Türkçe iletileri → EN karşılık (tam eşleşme); eşleşmeyen sunucu iletisi olduğu gibi gösterilir.
 const SUNUCU_EN = {
   "Adını yazar mısın?": "Please enter your name.", "Bir neden seçer misin?": "Please pick a reason.", "Bir şey yaz.": "Write something.",
-  "Boş paylaşım olmaz.": "A post can't be empty.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
+  "Boş paylaşım olmaz.": "A post can't be empty.", "Alıntıya bir şey yaz ya da medya ekle.": "Add a comment or media to your quote.", "Alıntılanan gönderi geçersiz.": "The post you're quoting isn't available.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
   "Fotoğraf geçersiz.": "The photo isn't valid.", "Video geçersiz.": "The video isn't valid.", "Video bulunamadı, tekrar yükler misin?": "We couldn't find the video, please upload it again.",
   "Video çok büyük (en çok 40 MB).": "The video is too large (40 MB max).", "Video en çok 60 sn olabilir.": "A video can be 60 seconds at most.", "Bir gönderide fotoğraf ya da video olur.": "A post can have a photo or a video, not both.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
   "Kullanıcı adı 3-20 harf/rakam/_ olmalı.": "Your username must be 3-20 letters, numbers or _.",
@@ -120,6 +120,7 @@ export function ogeDuzelt(o) {
     o.video = v.yol ? { ...v, url: medyaUrl(v.yol), poster: v.poster_yol ? medyaUrl(v.poster_yol) : "" } : null;
   }
   if (o.gorsel && o.gorsel.dosya) o.gorsel = { ...o.gorsel, url: depoUrl("haber-foto", o.gorsel.dosya) };
+  if (o.alinti && !o.alinti.yok) ogeDuzelt(o.alinti);   // alıntı kartı (gecis-008): aynı yol → URL çevirisi
   return o;
 }
 const ogeleriDuzelt = (v) => { if (v?.ogeler) v.ogeler.forEach(ogeDuzelt); if (v?.gonderiler) v.gonderiler.forEach(ogeDuzelt); if (v?.oge) ogeDuzelt(v.oge); if (v?.gonderi) ogeDuzelt(v.gonderi); return v; };
@@ -173,7 +174,7 @@ export async function api(yol, govde, yontem) {
     let fotoYol = null;
     if (b.foto) fotoYol = await fotoYukle(b.foto);
     const video = b.video ? { yol: b.video.yol, posterYol: b.video.posterYol, sure_sn: b.video.sure_sn, en: b.video.en, boy: b.video.boy } : undefined;   // video + poster app.js'te medya adaptörüyle ZATEN yüklendi
-    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol, video })); }
+    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol, video, ...(b.alintiId ? { alintiId: b.alintiId } : {}) })); }
     catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }   // yarım kalan yüklemeyi temizle
   }
   if (m === "GET" && p === "/api/videolar") return ogeleriDuzelt(await rpc("videolar", { p_dil: d }));   // gecis-007-video.sql
@@ -196,6 +197,12 @@ export async function api(yol, govde, yontem) {
     if (!v) throw hataYap(ileti("bulunamadi"), 404);
     return v;
   }
+  if (m === "GET" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/alintilar$/))) {   // gecis-008: bu gönderiyi alıntılayanlar
+    const v = await rpc("alintilar", { p_id: r[1], p_dil: d });
+    if (!v) throw hataYap(ileti("bulunamadi"), 404);
+    return ogeleriDuzelt(v);
+  }
+  if (m === "POST" && p === "/api/goruntule") return { sayilan: await rpc("goruntule", { p_idler: ((govde || {}).idler || []).slice(0, 50) }) };   // gecis-008: toplu görüntülenme (en çok 50 kimlik)
   if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/yanit$/))) return fonksiyon("yanit-olustur", { gonderiId: r[1], metin: (govde || {}).metin });
   if (m === "GET" && p === "/api/bildirimler") return rpc("bildirimler", { p_okundu: q.get("okundu") === "1", p_dil: d });
 
