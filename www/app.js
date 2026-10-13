@@ -590,7 +590,7 @@ async function videoSec(dosya) {
     Object.assign(taslak.video, b, { durum: "hazir", posterUrl: URL.createObjectURL(b.poster) });
   } catch (e) {
     if (taslak.video?.id !== id) return;
-    videoBirak(false, false); ipucuYazHepsi(videoIleti(e.kod));   // net iletiyle reddedilir; taslakta video kalmaz
+    videoBirak(false, false); ipucuYazHepsi(videoIleti(e.kod) + (e.asama ? ` [${e.asama}]` : ""));   // net iletiyle reddedilir; taslakta video kalmaz
   }
   yzGuncelle();
 }
