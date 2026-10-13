@@ -4,13 +4,15 @@
 :root[data-tema="koyu"]{--zemin:#07090A;--yuzey:#12181B;--yazi:#E8EEF0;--yazi2:#8A9AA1;--cizgi:#1E282C;--vurgu:#6FC1D1;--isaret:#4A4310;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--zemin);color:var(--yazi);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.55}
-.ust{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;max-width:760px;margin:0 auto;padding:10px 16px;background:var(--zemin);border-bottom:1px solid var(--cizgi)}
+.ust{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(var(--ust,env(safe-area-inset-top,0px)) + 6px) calc(env(safe-area-inset-right,0px) + 12px) 6px calc(env(safe-area-inset-left,0px) + 12px);background:var(--zemin);border-bottom:1px solid var(--cizgi)}
+.ust>*{max-width:100%}
 .bosluk{flex:1}
-.geri{color:var(--vurgu);font-weight:700;text-decoration:none}
+.geri{display:inline-flex;align-items:center;min-width:44px;min-height:44px;padding:0 14px;border-radius:999px;background:var(--yuzey);color:var(--vurgu);font-weight:700;text-decoration:none;touch-action:manipulation}
+.geri:active{opacity:.6}
 .dil{display:flex;gap:6px}
 .dil button{font:inherit;font-size:14px;padding:6px 12px;border:1px solid var(--cizgi);border-radius:999px;background:transparent;color:var(--yazi);cursor:pointer}
 .dil button[aria-pressed="true"]{background:var(--vurgu);border-color:var(--vurgu);color:var(--zemin);font-weight:700}
-.sayfa{max-width:760px;margin:0 auto;padding:8px 16px 64px}
+.sayfa{max-width:760px;margin:0 auto;padding:8px calc(env(safe-area-inset-right,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 64px) calc(env(safe-area-inset-left,0px) + 16px)}
 h1{font-size:26px;line-height:1.25;margin:20px 0 10px}
 h2{font-size:19px;margin:28px 0 8px}
 h3{font-size:16px;margin:18px 0 6px}

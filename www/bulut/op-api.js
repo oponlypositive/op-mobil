@@ -164,8 +164,13 @@ export async function api(yol, govde, yontem) {
   if (m === "GET" && p === "/api/engellenenler") return rpc("engellenenler", { p_dil: d });
 
   if (m === "GET" && p === "/api/akis") {
-    return ogeleriDuzelt(await rpc("akis", { p_sekme: q.get("sekme") || "senin", p_sehir: q.get("sehir") || "", p_kategori: q.get("kategori") || "", p_dil: d }));
+    const sinir = Math.min(Math.max(Number(q.get("sinir")) || 120, 1), 120);
+    return ogeleriDuzelt(await rpc("akis", { p_sekme: q.get("sekme") || "senin", p_sehir: q.get("sehir") || "", p_kategori: q.get("kategori") || "", p_dil: d, p_sinir: sinir, p_once: q.get("once") || null }));
   }
+  if (m === "GET" && p === "/api/akis-yeni") {   // gecis-010: ucuz "yeni var mı" sorgusu → { sayi, enYeni }; uç yoksa istemci sessizce vazgeçer
+    return rpc("akis_yeni", { p_sekme: q.get("sekme") || "senin", p_sehir: q.get("sehir") || "", p_kategori: q.get("kategori") || "", p_sonra: q.get("sonra") || null });
+  }
+  if (m === "POST" && p === "/api/ilgi") return rpc("ilgi_kaydet", { p_ilgi: (govde || {}).ilgi || {} });   // gecis-010: { kategori: 0|1|2 }
   if (m === "GET" && p === "/api/kategoriler") return rpc("kategori_sayilari");
   if (m === "GET" && p === "/api/onerilen") return ogeleriDuzelt(await rpc("onerilen", { p_dil: d, p_tum: q.get("tum") === "1" }));   // gecis-005-onerilen.sql; yoksa istemci kutuyu gizler
 

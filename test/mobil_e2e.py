@@ -18,6 +18,7 @@ EKRAN = HERE / "ekran"
 EKRAN.mkdir(exist_ok=True)
 sys.path.insert(0, str(APP / "test"))
 import e2e_bulut as eb   # noqa: E402  (Bulut taklidi; import yan etki çalıştırmaz)
+import _yenile_ilgi as yi   # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 PORT = 5291
@@ -32,7 +33,7 @@ def adim(ad, ok=True, ayrinti=""):
 
 def senaryo(tarayici, cihaz, ad, platform):
     b = tarayici.new_context(**cihaz, locale="tr-TR", service_workers="block")
-    b.add_init_script(f"window.__OP_PLATFORM_TEST = '{platform}';"
+    b.add_init_script("localStorage.setItem('op-ilgi-sordu', '[\"*\"]');" f"window.__OP_PLATFORM_TEST = '{platform}';"
                       "Object.defineProperty(navigator, 'share', {value: (d) => { window.__paylasilan = d; return Promise.resolve(); }, configurable: true});")
     bulut = eb.Bulut()
     b.route(re.compile(r"^https://yixyvsspetwjatixfaki\.supabase\.co/.*"), bulut.yonlendir)
@@ -64,6 +65,8 @@ def senaryo(tarayici, cihaz, ad, platform):
     pt = s.evaluate("() => parseFloat(getComputedStyle(document.querySelector('.karsila')).paddingTop)")
     adim(f"{ad}: güvenli alan: karşılama üst boşluğu --ust (47) + 36 = 83px", abs(pt - 83) < 0.6, f"{pt}px")
     adim(f"{ad}: viewport-fit=cover", "viewport-fit=cover" in s.locator("meta[name=viewport]").get_attribute("content"))
+    vm = s.locator("meta[name=viewport]").get_attribute("content")
+    adim(f"{ad}: NATIF'te viewport ölçeği kilitli (maximum-scale=1, user-scalable=no)", "maximum-scale=1" in vm and "user-scalable=no" in vm, vm)
 
     # ===== 2. yasal sayfa paket içinde =====
     s.click("[data-k='1']"); s.wait_for_selector(".manifesto"); s.click("[data-k='2']"); s.wait_for_selector("#p-eposta")
@@ -74,6 +77,15 @@ def senaryo(tarayici, cihaz, ad, platform):
     adim(f"{ad}: yasal sayfa 'OP' geri bağlantısı index.html'e gider", s.locator("a.geri").get_attribute("href") == "/index.html")
     adim(f"{ad}: yasal sayfa bağlantıları .html'li (iç gezinti)", all(h.endswith(".html") for h in s.locator(".ust-gezin a").evaluate_all("els => els.map(e => e.getAttribute('href'))")))
     s.screenshot(path=str(EKRAN / f"mobil-{ad}-02-yasal.png"))
+    # güvenli alan taklidi (iPhone 14 Pro: üst 59 px): Geri düğmesi güvenli alanın ALTINDA, ≥44x44, yapışkan; tıklanınca uygulamaya döner
+    s.add_style_tag(content=":root{--ust:59px}")
+    gk = s.locator("a.geri").bounding_box()
+    adim(f"{ad}: yasal sayfa 'Geri' düğmesi güvenli alanın altında (y ≥ 59) ve ≥ 44x44", gk["y"] >= 59 and gk["width"] >= 44 and gk["height"] >= 44, str(gk))
+    s.evaluate("() => scrollTo(0, 600)"); s.wait_for_timeout(150)
+    gk2 = s.locator("a.geri").bounding_box()
+    adim(f"{ad}: Geri düğmesi yapışkan (kaydırınca da görünür, güvenli alanın altında)", gk2["y"] >= 59 and gk2["y"] < 200, str(gk2))
+    s.locator("a.geri").click(); s.wait_for_selector("#uygulama > *", timeout=8000); s.wait_for_timeout(500)
+    adim(f"{ad}: Geri'ye basınca yasal sayfadan uygulamaya dönülür", "/yasal/" not in s.url and s.locator("#uygulama").count() == 1, s.url)
 
     # ===== 3. e-posta dönüşü: şifre sıfırlama (özel şema + PKCE) =====
     bulut.kullanicilar["deneme@example.com"] = {"id": "55555555-5555-4555-8555-555555555555", "sifre": "gizli-sifre-123", "onayli": True}
@@ -145,6 +157,29 @@ def senaryo(tarayici, cihaz, ad, platform):
     s.wait_for_selector(".detay-gon")
     adim(f"{ad}: paylaşılan bağlantı (derin bağlantı) gönderiyi açar", "Sabah yürüyüşünde" in s.inner_text("#uygulama"))
     foto("06-derin-baglanti")
+
+    # ===== 8. kenardan kaydırarak geri (yalnız NATIF) + yazı alanları ≥16 px =====
+    if yi.dokun_hazir(s):
+        w = s.evaluate("() => innerWidth")
+        s.evaluate("([w]) => { __dokun('touchstart', 6, 400); for (let i = 1; i <= 8; i++) __dokun('touchmove', 6 + i * (w * 0.45) / 8, 404); __dokun('touchend', 6 + w * 0.45, 404); }", [w])
+        s.wait_for_selector(".sekmeler", timeout=5000); s.wait_for_timeout(300)
+        adim(f"{ad}: detayda sol kenardan sağa kaydırma (>%30) geri götürür; sayfa kayma dönüşümü temizlenir", s.locator(".detay-gon").count() == 0 and s.evaluate("() => document.getElementById('uygulama').style.transform === ''"))
+        s.evaluate("() => { __dokun('touchstart', 6, 400); for (let i = 1; i <= 4; i++) __dokun('touchmove', 6 + i * 8, 402); __dokun('touchend', 40, 402); }")
+        s.wait_for_timeout(400)
+        adim(f"{ad}: kısa kenar kaydırması (eşik altı) geri götürmez/çekmece açmaz", s.locator(".cekmece").count() == 0)
+        s.evaluate("([w]) => { __dokun('touchstart', 6, 400); for (let i = 1; i <= 8; i++) __dokun('touchmove', 6 + i * (w * 0.45) / 8, 404); __dokun('touchend', 6 + w * 0.45, 404); }", [w])
+        s.wait_for_selector(".cekmece", timeout=4000)
+        adim(f"{ad}: ana sekmede sol kenar kaydırması yan çekmeceyi açar (X gibi)", s.locator(".cekmece").count() == 1)
+        s.keyboard.press("Escape"); s.wait_for_timeout(300)
+    yazi = s.evaluate("() => [...document.querySelectorAll('input,textarea,select')].filter(e => !['checkbox','radio','file','hidden'].includes(e.type)).map(e => parseFloat(getComputedStyle(e).fontSize))")
+    adim(f"{ad}: akıştaki tüm yazı alanları ≥ 16 px", all(f >= 16 for f in yazi), str(yazi))
+    s.click(".yz-kisa") if s.locator(".yz-kisa").count() else None
+    s.wait_for_timeout(300)
+    yazi2 = s.evaluate("() => [...document.querySelectorAll('input,textarea,select')].filter(e => !['checkbox','radio','file','hidden'].includes(e.type)).map(e => parseFloat(getComputedStyle(e).fontSize))")
+    adim(f"{ad}: yazma penceresi (composer) yazı alanları ≥ 16 px", yazi2 and all(f >= 16 for f in yazi2), str(yazi2))
+    s.keyboard.press("Escape"); s.wait_for_timeout(200)
+    kopya = s.evaluate("() => visualViewport.scale")
+    adim(f"{ad}: sayfa ölçeği 1", kopya == 1, str(kopya))
     adim(f"{ad}: Supabase dışına/izinsiz çağrı yok", not bulut.izinsiz, str(bulut.izinsiz))
     b.close()
 
