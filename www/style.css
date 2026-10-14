@@ -696,6 +696,39 @@ button.anket-sec:hover{background:color-mix(in srgb,var(--vurgu) 10%,transparent
 .hk.skor.kucuk .sk-takim{font-size:13px}
 @media (max-width:340px){.hk.skor{padding:10px 10px 8px}.sk-sahne{gap:4px}}
 
+/* ---- gecis-020: skor LİSTESİ (.hk.skorlar, <ol>) + PUAN TABLOSU (.hk.puan, <table>); yalnız .hk ton değişkenleri (--a/--b/--yazi-k/--et/--k) → 20 temada kontrast: gövde --yazi-k ≥ 7:1, ikincil --et ≥ 4.5:1 (test/tema_kontrast.mjs ölçütleri); arma/logo/kulüp rengi yok ---- */
+.hk.kt{max-height:none;min-height:0;aspect-ratio:auto;justify-content:flex-start;gap:6px;padding:12px 14px 10px}
+.kt-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.kt-alt{font-size:12px;font-weight:600;line-height:1.3;color:var(--et);overflow-wrap:anywhere}
+.kt-daha,.kt-not{margin-top:2px}
+.kt-liste{list-style:none;margin:0;padding:0}
+.kt-mac{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--k)}
+.kt-mac:first-child{border-top:0}
+.kt-takim{min-width:0;font-size:clamp(13px,3.7vw,16px);font-weight:600;line-height:1.2;color:var(--et);overflow-wrap:anywhere;hyphens:auto}
+.kt-takim:first-child{text-align:right}
+.kt-takim:last-child{text-align:left}
+.kt-takim.kazanan{font-weight:800;color:var(--yazi-k)}
+.kt-skor{display:flex;align-items:baseline;justify-content:center;gap:.15em;min-width:3.4em;font-size:clamp(15px,4.4vw,19px);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--et)}
+.kt-sayi.kazanan{font-weight:800;color:var(--yazi-k)}
+.kt-ayrac{font-weight:600}
+.kt-tablo{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums}
+.kt-cap{caption-side:top;padding:0 0 6px;text-align:left}
+.kt-cap-ust{display:flex;align-items:center;gap:8px;color:var(--et)}
+.kt-tablo th,.kt-tablo td{position:relative;padding:6px 3px;border-top:1px solid var(--k);font-size:clamp(12.5px,3.5vw,14.5px);font-weight:400;line-height:1.2;text-align:left;vertical-align:middle;color:var(--yazi-k)}
+.kt-tablo thead th{padding-top:3px;padding-bottom:4px;border-top:0;border-bottom:1px solid var(--k);font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--et)}
+.kt-tablo .kt-sira{width:2.2em;text-align:center}
+.kt-tablo .kt-tak{font-weight:600;overflow-wrap:anywhere;hyphens:auto}
+.kt-tablo thead .kt-tak{font-weight:700}
+.kt-tablo .kt-sayisal{width:2.4em;text-align:right}
+.kt-tablo .kt-av{width:3em}
+.kt-tablo td.kt-puan{font-weight:800}
+/* 320 px: sütunlar daralır (kaydırma yok); takım sütunu kalan genişliği alır ve 2 satıra sarar */
+@media (max-width:360px){.hk.kt{padding:10px 10px 8px}.kt-tablo .kt-sira{width:1.9em}.kt-tablo .kt-sayisal{width:2.1em}.kt-tablo .kt-av{width:2.7em}.kt-mac{gap:5px}.kt-tablo th,.kt-tablo td{padding:6px 2px}}
+/* alıntı içinde: sıkı (yoğunluk kuralı .alinti-kart .hk'yi gizler; liste/tablo kartı hariç) */
+.alinti-kart .hk.kt{display:flex;min-height:0;padding:8px 10px;gap:4px;margin-top:6px;border-radius:12px}
+.hk.kt.kucuk .kt-mac{padding:4px 0}
+.hk.kt.kucuk .kt-tablo th,.hk.kt.kucuk .kt-tablo td{padding-top:4px;padding-bottom:4px}
+
 /* ---- gecis-019: yazı serileri + çoklu kayıt listeleri (yalnız mevcut tema değişkenleri: --yazi/--yazi2/--zemin/--yuzey/--cizgi/--vurgu → 20 temada kontrast kuralları aynen geçerli) ---- */
 .alan textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--cizgi);border-radius:10px;background:var(--zemin);outline:none;resize:vertical;line-height:1.4}
 .alan textarea:focus{border-color:var(--vurgu)}

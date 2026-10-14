@@ -493,6 +493,39 @@ function skorKartHtml(k, { detay = false, kucuk = false } = {}) {
     <div class="sk-sahne" aria-hidden="true">${takim(k.taraf1, 1)}<div class="sk-skor${w === 0 ? " esit" : ""}">${sayi(k.skor1, 1)}<span class="sk-ayrac">–</span>${sayi(k.skor2, 2)}</div>${takim(k.taraf2, 2)}</div>
     <div class="hk-alt" aria-hidden="true"><span></span><img class="hk-logo" src="icons/op.svg" alt=""></div></div>`;
 }
+// ---- gecis-020: SKOR LİSTESİ (kart.tur "skorlar") + PUAN TABLOSU (kart.tur "puan"). Sahip kuralı 2026-10-14: "Skor paylaşıyorsan mutlaka liste halinde paylaş, puan durumundan söz ediyorsan mutlaka puan durumunu alta koy."
+// skorlar = başlıklı sade <ol> (taraf1 skor1–skor2 taraf2, kazanan kalın); puan = gerçek <table> + <caption> (Sıra · Takım · O · P · A; O/A yalnız veri varsa). Arma/logo/kulüp rengi YOK; yalnız .hk ton değişkenleri.
+// Fotoğraf/video varsa ALTINA eklenir (tek maçlık "skor" kartı eski davranışta: yalnız görsel yoksa). k.kismi (tablonun yalnız ilk satırları kanıtlandı) → "İlk N takım" notu.
+Object.assign(T.tr, { sonuclarBaslik: "Maç sonuçları", puanBaslik: "Puan durumu", puanSira: "Sıra", puanTakim: "Takım", puanO: "O", puanOAd: "Oynanan", puanP: "P", puanPAd: "Puan", puanA: "A", puanAAd: "Averaj", puanIlk: (n) => "İlk " + n + " takım", kazandi: "kazandı", daha: (n) => "+" + n + " maç daha" });
+Object.assign(T.en, { sonuclarBaslik: "Match results", puanBaslik: "Standings", puanSira: "Rank", puanTakim: "Team", puanO: "P", puanOAd: "Played", puanP: "Pts", puanPAd: "Points", puanA: "GD", puanAAd: "Goal difference", puanIlk: (n) => "Top " + n + " teams", kazandi: "won", daha: (n) => "+" + n + " more matches" });
+const skorlarKartiMi = (k) => !!k && k.tur === "skorlar" && Array.isArray(k.maclar) && k.maclar.length >= 2 && k.maclar.every((m) => !!m && typeof m.taraf1 === "string" && typeof m.taraf2 === "string" && Number.isInteger(m.skor1) && Number.isInteger(m.skor2));
+const puanKartiMi = (k) => !!k && k.tur === "puan" && Array.isArray(k.satirlar) && k.satirlar.length >= 3 && k.satirlar.every((r) => !!r && typeof r.takim === "string" && Number.isInteger(r.sira) && Number.isInteger(r.puan));
+const listeKartiMi = (k) => skorlarKartiMi(k) || puanKartiMi(k);
+function skorlarHtml(k, { kucuk = false } = {}) {
+  const ust = [k.organizasyon, k.asama].filter(Boolean).join(" · "), liste = k.maclar.slice(0, kucuk ? 3 : 12), fazla = k.maclar.length - liste.length;
+  const mac = (m) => {
+    const w = m.skor1 > m.skor2 ? 1 : m.skor2 > m.skor1 ? 2 : 0;
+    const takim = (ad, n) => `<span class="kt-takim${w === n ? " kazanan" : ""}">${esc(ad)}${w === n ? `<span class="kt-sr"> (${esc(t("kazandi"))})</span>` : ""}</span>`;
+    const sayi = (v, n) => `<span class="kt-sayi${w === n ? " kazanan" : ""}">${v}</span>`;
+    return `<li class="kt-mac">${takim(m.taraf1, 1)}<span class="kt-skor">${sayi(m.skor1, 1)}<span class="kt-ayrac">–</span>${sayi(m.skor2, 2)}</span>${takim(m.taraf2, 2)}</li>`;
+  };
+  return `<div class="hk kt skorlar${kucuk ? " kucuk" : ""}" data-ton="petrol" data-kategori="spor">
+    <div class="hk-ust">${ikon("k_spor", 22)}<span class="hk-et">${esc(t("sonuclarBaslik"))}</span></div>${ust ? `<div class="kt-alt">${esc(ust)}</div>` : ""}
+    <ol class="kt-liste" aria-label="${esc(t("sonuclarBaslik") + (ust ? " — " + ust : ""))}">${liste.map(mac).join("")}</ol>${fazla > 0 ? `<div class="kt-alt kt-daha">${esc(t("daha", fazla))}</div>` : ""}</div>`;
+}
+function puanHtml(k, { kucuk = false } = {}) {
+  const liste = k.satirlar.slice(0, kucuk ? 4 : 20), kesik = liste.length < k.satirlar.length || k.kismi === true;
+  const oVar = liste.every((r) => Number.isInteger(r.oynanan)), aVar = liste.every((r) => Number.isInteger(r.averaj));
+  const alt = [k.organizasyon, k.tarih_notu].filter(Boolean).join(" · ");
+  const sutun = (sinif, kisa, uzun) => `<th scope="col" class="kt-sayisal ${sinif}"><span aria-hidden="true">${esc(kisa)}</span><span class="kt-sr">${esc(uzun)}</span></th>`;
+  const averaj = (v) => (v > 0 ? "+" + v : v < 0 ? "−" + Math.abs(v) : "0");
+  const bas = `<tr><th scope="col" class="kt-sira"><span aria-hidden="true">#</span><span class="kt-sr">${esc(t("puanSira"))}</span></th><th scope="col" class="kt-tak">${esc(t("puanTakim"))}</th>${oVar ? sutun("", t("puanO"), t("puanOAd")) : ""}${sutun("kt-puan", t("puanP"), t("puanPAd"))}${aVar ? sutun("kt-av", t("puanA"), t("puanAAd")) : ""}</tr>`;
+  const satir = (r) => `<tr><td class="kt-sira">${r.sira}</td><th scope="row" class="kt-tak">${esc(r.takim)}</th>${oVar ? `<td class="kt-sayisal">${r.oynanan}</td>` : ""}<td class="kt-sayisal kt-puan">${r.puan}</td>${aVar ? `<td class="kt-sayisal kt-av">${averaj(r.averaj)}</td>` : ""}</tr>`;
+  return `<div class="hk kt puan${kucuk ? " kucuk" : ""}${oVar ? " ovar" : ""}${aVar ? " avar" : ""}" data-ton="petrol" data-kategori="spor">
+    <table class="kt-tablo"><caption class="kt-cap"><span class="kt-cap-ust">${ikon("k_spor", 22)}<span class="hk-et">${esc(t("puanBaslik"))}</span></span>${alt ? `<span class="kt-alt">${esc(alt)}</span>` : ""}</caption>
+    <thead>${bas}</thead><tbody>${liste.map(satir).join("")}</tbody></table>${kesik ? `<div class="kt-alt kt-not">${esc(t("puanIlk", liste.length))}</div>` : ""}</div>`;
+}
+const listeKartHtml = (k, opt) => (k.tur === "skorlar" ? skorlarHtml(k, opt) : puanHtml(k, opt));
 function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görsel (yoksa OP tasarım kartı) + (haberde) lisans satırı + kaynak kartı
   let h = "";
   if (o.foto) h += `<img class="gorsel" src="${esc(o.foto)}" alt="" loading="lazy" decoding="async" data-e="foto-ac">`;
@@ -503,6 +536,7 @@ function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görse
     else if (g && g.url) h += `<img class="gorsel" src="${esc(g.url)}" alt="" loading="lazy" decoding="async" data-e="foto-ac">` + lisansSatiri(t("foto"), g);
     else if (kartGorunur(o)) h += haberKartHtml(o, detay);
     else if (skorKartiMi(o.kart)) h += skorKartHtml(o.kart, { detay });   // maç sonucu: armasız skor kartı (yalnız fotoğraf/video yoksa)
+    if (listeKartiMi(o.kart)) h += listeKartHtml(o.kart, { detay });      // skor LİSTESİ / PUAN TABLOSU: fotoğraf/video varsa ALTINA, yoksa tek başına (gecis-020)
     const link = guvenliUrl(o.link);
     if (o.kategori !== "sohbet" || link) h += `<${link ? `a href="${esc(link)}" target="_blank" rel="noopener noreferrer"` : "div"} class="kaynak-kart"><span>${o.yer ? "📍 " + esc(o.yer) + " · " : ""}${t("kaynak")}: ${esc(o.kaynak)}</span>${link ? " ↗" : ""}</${link ? "a" : "div"}>`;
   }
@@ -584,6 +618,7 @@ function alintiKartHtml(a, onizleme = false) {
   else if (a.foto) medya = `<img class="gorsel" src="${esc(a.foto)}" alt="" loading="lazy">`;
   else if (a.haber && a.gorsel?.url) medya = `<img class="gorsel" src="${esc(a.gorsel.url)}" alt="" loading="lazy" decoding="async">`;   // görselsiz haberde tasarım kartı YOK (başlık zaten metinde)
   else if (a.haber && skorKartiMi(a.kart)) medya = skorKartHtml(a.kart, { kucuk: true });   // yalnız skor kartı alıntıda da gösterilir (küçük)
+  if (a.haber && listeKartiMi(a.kart)) medya += listeKartHtml(a.kart, { kucuk: true });      // liste/tablo: alıntıda kısaltılmış (ilk 3 maç / 4 satır), fotoğrafın altına (gecis-020)
   const kaynak = a.haber && a.kaynak ? `<div class="alinti-kaynak">${t("kaynak")}: ${esc(a.kaynak)}</div>` : "";
   const kimlik = onizleme ? `class="alinti-kart onizleme"` : `class="alinti-kart" data-e="alinti-ac" data-id="${esc(a.id)}" role="link" tabindex="0"`;
   return `<div ${kimlik} data-alinti="${esc(a.id)}"><div class="alinti-kim">${avatarHtml(y)}<span class="ad">${esc(y?.ad)}</span>${rozetHtml(y)}<span class="gri kisa">@${esc(y?.handle)}</span><span class="gri zaman">· ${zamanYaz(a.zaman)}</span></div>
