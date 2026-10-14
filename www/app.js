@@ -287,7 +287,9 @@ function eylemHtml(o) {
     <button class="eylem" data-e="paylas" data-id="${o.id}" aria-label="${t("disari")}">${ikon("paylas", 20)}</button>
   </div>`;
 }
-const kartGorunur = (o) => !!o.haber && !(o.video && o.video.url) && !(o.gorsel && o.gorsel.url);   // görselsiz haber: OP tasarım kartı gösterilir
+// OP tasarım kartı YALNIZ alıntı (felsefe/edebiyat/şiir/mitoloji) ve soru (sohbet) gönderilerinde; görselsiz sıradan haberde kart yok, başlık + metin yeter
+// (sahip 2026-10-14: kesik başlıklı boş kart "anlamsız"; içerik böyle görselle verilmemeli)
+const kartGorunur = (o) => !!o.haber && !(o.video && o.video.url) && !(o.gorsel && o.gorsel.url) && (HK_ALINTI.has(o.kategori) || o.kategori === "sohbet");
 function metinHtml(o, buyuk) {
   if (!o.haber) return o.metin ? `<div class="metin ${buyuk ? "buyuk" : ""}">${bagla(o.metin)}</div>` : "";
   const [baslik, ...gerisi] = String(o.metin).split("\n\n");
@@ -346,7 +348,7 @@ function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görse
     const g = o.gorsel, v = o.video;
     if (v && v.url) h += videoHtml(v, detay) + lisansSatiri(t("video"), v);
     else if (g && g.url) h += `<img class="gorsel" src="${esc(g.url)}" alt="" loading="lazy" decoding="async" data-e="foto-ac">` + lisansSatiri(t("foto"), g);
-    else h += haberKartHtml(o, detay);
+    else if (kartGorunur(o)) h += haberKartHtml(o, detay);
     const link = guvenliUrl(o.link);
     if (o.kategori !== "sohbet" || link) h += `<${link ? `a href="${esc(link)}" target="_blank" rel="noopener noreferrer"` : "div"} class="kaynak-kart"><span>${o.yer ? "📍 " + esc(o.yer) + " · " : ""}${t("kaynak")}: ${esc(o.kaynak)}</span>${link ? " ↗" : ""}</${link ? "a" : "div"}>`;
   }
