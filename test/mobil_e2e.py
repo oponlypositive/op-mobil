@@ -162,11 +162,26 @@ def senaryo(tarayici, cihaz, ad, platform):
     # ===== 6. paylaş menüsü: yerel paylaşım + site adresi + dış bağlantı =====
     s.locator(".satir").filter(has_text="komşuma").locator("[data-e='paylas']").click(); s.wait_for_selector(".paylas-izgara")
     foto("05-paylas-menu")
-    wa = s.locator("a.p-oge[href^='https://wa.me']")
+    # WhatsApp (iPhone'da api.whatsapp.com/WA Business sorusu çıkmasın): ÖNCE kişisel WhatsApp şeması whatsapp://send, açılmazsa (uygulama arka plana geçmezse) sistem paylaşım sayfası
+    s.evaluate("() => { window.__wa = null; window.__paylasilan = null; document.addEventListener('click', (e) => { const a = e.target.closest('a[href^=\"whatsapp:\"]'); if (a) { window.__wa = a.href; e.preventDefault(); } }, true); }")
     hedef0 = s.url
-    wa.click(); s.wait_for_timeout(300)
-    son = s.evaluate("() => OP_MOBIL.sonDisBaglanti || ''")
-    adim(f"{ad}: WhatsApp bağlantısı uygulama içi tarayıcıya yönlendirildi (sayfa değişmedi)", son.startswith("https://wa.me/") and s.url == hedef0, son[:60])
+    adim(f"{ad}: paylaş menüsünde 'Diğer…' (sistem paylaşım sayfası) seçeneği var", s.locator("[data-e='paylas-diger'] >> text=Diğer…").count() == 1)
+    adim(f"{ad}: WhatsApp artık wa.me/api.whatsapp.com bağlantısı değil, düğme", s.locator("a.p-oge[href*='wa.me']").count() == 0 and s.locator("[data-e='paylas-wa']").count() == 1)
+    s.click("[data-e='paylas-wa']"); s.wait_for_timeout(250)
+    wa_url = s.evaluate("() => window.__wa || ''")
+    adim(f"{ad}: WhatsApp → önce whatsapp://send?text= şeması denenir (metin + site bağlantısı), sayfa değişmedi", wa_url.startswith("whatsapp://send?text=") and "komşuma" in unquote(wa_url) and "https://onlypositive.org/#g=" in unquote(wa_url) and s.url == hedef0, unquote(wa_url)[:100])
+    adim(f"{ad}: paylaşım menüsü kapandı", s.locator(".sheet").count() == 0)
+    s.wait_for_timeout(1700)
+    pl0 = s.evaluate("() => window.__paylasilan || null")
+    adim(f"{ad}: şema açılamadı (uygulama arka plana geçmedi) → sistem paylaşım sayfasına düşer", pl0 and pl0["title"] == "OP" and pl0["url"].startswith("https://onlypositive.org/#g="), str(pl0)[:100])
+    s.evaluate("() => { window.__wa = null; window.__paylasilan = null; }")
+    s.locator(".satir").filter(has_text="komşuma").locator("[data-e='paylas']").click(); s.wait_for_selector(".paylas-izgara")
+    s.click("[data-e='paylas-wa']"); s.wait_for_timeout(300)
+    s.evaluate("() => { Object.defineProperty(document, 'hidden', { get: () => true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); }")   # WhatsApp açıldı: uygulama arka plana geçti
+    s.wait_for_timeout(1800)
+    s.evaluate("() => { delete document.hidden; }")
+    adim(f"{ad}: şema açıldı (uygulama arka plana geçti) → sistem paylaşım sayfası AÇILMAZ", s.evaluate("() => window.__paylasilan || null") is None and s.evaluate("() => !!window.__wa"))
+    son = wa_url
     adim(f"{ad}: paylaşım bağlantısı siteye göre (https://onlypositive.org/#g=…), capacitor/localhost değil", "https://onlypositive.org/#g=" in unquote(son), unquote(son)[:120])
     s.locator(".satir").filter(has_text="komşuma").locator("[data-e='paylas']").click(); s.wait_for_selector(".paylas-izgara")
     s.click("[data-e='paylas-diger']"); s.wait_for_timeout(300)
@@ -185,6 +200,18 @@ def senaryo(tarayici, cihaz, ad, platform):
     s.wait_for_selector(".detay-gon")
     adim(f"{ad}: paylaşılan bağlantı (derin bağlantı) gönderiyi açar", "Sabah yürüyüşünde" in s.inner_text("#uygulama"))
     foto("06-derin-baglanti")
+
+    # ===== 7b. ARAMA (gecis-023): Keşfet = büyüteç + "Ara ve Keşfet"; Enter ile arama; #etiket; son aramalar yalnız cihazda =====
+    s.evaluate("() => OP_UYG.geri()"); s.wait_for_selector(".alt", timeout=6000)   # detaydan akışa (alt menü görünsün)
+    s.click(".alt [data-s='kesfet']"); s.wait_for_selector(".ara-form", timeout=8000); s.wait_for_timeout(400)
+    adim(f"{ad}: Keşfet sekmesi büyüteç simgeli, sayfa 'Ara ve Keşfet' + arama kutusu 'OP'de ara'", s.locator(".alt [data-s='kesfet'] svg circle").count() == 1 and s.locator(".ara-girdi").get_attribute("placeholder") == "OP'de ara" and "Ara ve Keşfet" in s.locator("h1.baslik").first.inner_text())
+    s.fill(".ara-girdi", "KOMŞUMA"); s.press(".ara-girdi", "Enter"); s.wait_for_selector(".ara-sekmeler", timeout=8000); s.wait_for_selector(".ara-sonuc .satir", timeout=8000)
+    adim(f"{ad}: arama sonuçları 4 sekme + katlamalı eşleşme (KOMŞUMA → komşuma)", s.locator(".ara-sekme").count() == 4 and "komşuma" in s.locator(".ara-sonuc").inner_text().lower())
+    foto("07b-arama-sonuc")
+    s.click(".alt [data-s='kesfet']"); s.wait_for_selector(".ara-son-satir", timeout=6000)
+    adim(f"{ad}: son aramalar bu cihazda (localStorage) listelenir", s.evaluate("() => JSON.parse(localStorage.getItem('op-aramalar') || '[]')[0]") == "KOMŞUMA" and s.locator(".ara-son-satir").count() == 1)
+    s.click(".alt [data-s='akis']"); s.wait_for_selector(".satir", timeout=8000); s.wait_for_timeout(300)
+    s.evaluate("() => OP_MOBIL.baglantiIsle('https://onlypositive.org/#g=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3')"); s.wait_for_selector(".detay-gon")   # sonraki bölüm detay sayfasında başlar
 
     # ===== 8. kenardan kaydırarak geri (yalnız NATIF) + yazı alanları ≥16 px =====
     if yi.dokun_hazir(s):

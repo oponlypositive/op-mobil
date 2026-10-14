@@ -80,6 +80,7 @@ const SUNUCU_EN = {
   "OP'de inanç konularını herkesin kendine bırakıyoruz 🌿 Paylaşımını bu kısım olmadan dener misin?": "On OP we leave matters of belief to everyone's own heart 🌿 Could you try without that part?",
   "OP'de herkes sadece insan 🤗 Kimlik vurgusu olmadan paylaşmayı dener misin?": "On OP everyone is simply a person 🤗 Could you share without emphasising identity?",
   "Bu konu biraz ağır geldi ☁️ OP'de sadece iyi haberler var; içindeki umut veren tarafı anlatır mısın?": "That feels a little heavy ☁️ OP is only good news; could you share the hopeful side of it?",
+  "Yazı en çok 120 karakter olabilir.": "The text can be 120 characters at most.", "Yazı stili geçersiz.": "That text style isn't valid.",
 };
 const FOTO_COK = ["En çok 4 fotoğraf eklenebilir.", "You can add up to 4 photos."];
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
@@ -161,6 +162,27 @@ export async function api(yol, govde, yontem) {
 
   if (m === "GET" && p === "/api/saglik") return rpc("saglik");
 
+  // ---- gecis-022: ANLAR (24 saatlik fotoğraf şeridi). Okuma/tepki = RPC; ekleme/silme = an-yaz Edge Function (çift filtre + hız sınırı); fotoğraf gönderiyle aynı yoldan Storage'a yüklenir.
+  if (m === "GET" && p === "/api/anlar") {
+    const v = await rpc("an_serit", { p_sekme: q.get("sekme") === "takip" ? "takip" : "senin", p_dil: d });
+    for (const g of v?.gruplar || []) for (const a of g.anlar || []) a.foto = depoUrl("foto", a.foto);
+    return v;
+  }
+  if (m === "POST" && p === "/api/an") {
+    const b = govde || {};
+    const fotoYol = await fotoYukle(b.foto);
+    try {
+      const v = await fonksiyon("an-yaz", { islem: "olustur", fotoYol, ...(b.metin ? { metin: b.metin, stil: b.stil } : {}) });
+      if (v?.an) v.an.foto = depoUrl("foto", v.an.foto);
+      return v;
+    } catch (e) { await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }
+  }
+  if (m === "DELETE" && (r = p.match(/^\/api\/an\/([0-9a-f-]{36})$/))) return fonksiyon("an-yaz", { islem: "sil", id: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/an\/([0-9a-f-]{36})\/goruldu$/))) return rpc("an_goruldu", { p_id: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/an\/([0-9a-f-]{36})\/begen$/))) return rpc("an_begen_degistir", { p_id: r[1] });
+  if (m === "GET" && (r = p.match(/^\/api\/an\/([0-9a-f-]{36})\/gorenler$/))) return rpc("an_gorenler", { p_id: r[1] });
+
+
   if (m === "POST" && p === "/api/kullanici") {   // profil oluştur / güncelle (kimlik = oturum)
     const b = govde || {};
     let fotoYol = null;   // gecis-016: profil fotoğrafı (istemcide 512x512 JPEG) → Storage `foto/<uid>/<uuid>.jpg`; yol profil-kaydet'e gider
@@ -194,6 +216,12 @@ export async function api(yol, govde, yontem) {
   }
   if (m === "POST" && p === "/api/ilgi") return rpc("ilgi_kaydet", { p_ilgi: (govde || {}).ilgi || {} });   // gecis-010: { kategori: 0|1|2 }
   if (m === "GET" && p === "/api/kategoriler") return rpc("kategori_sayilari");
+  // ---- gecis-023: ARAMA (yalnız oturumlu; sonuç sayfalı) + GÜNDEMDE (girişsiz de okunur)
+  if (m === "GET" && p === "/api/ara") {
+    const v = await rpc("ara", { p_q: (q.get("q") || "").slice(0, 60), p_tur: q.get("tur") || "one", p_dil: d, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 20, 1), 20), p_baslangic: Math.max(Number(q.get("baslangic")) || 0, 0) });
+    return ogeleriDuzelt(v);
+  }
+  if (m === "GET" && p === "/api/gundem") return rpc("gundem", { p_sinir: 10 });
   if (m === "GET" && p === "/api/onerilen") return ogeleriDuzelt(await rpc("onerilen", { p_dil: d, p_tum: q.get("tum") === "1" }));   // gecis-005-onerilen.sql; yoksa istemci kutuyu gizler
 
   if (m === "POST" && p === "/api/gonderi") {
