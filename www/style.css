@@ -661,3 +661,14 @@ button.anket-sec:hover{background:color-mix(in srgb,var(--vurgu) 10%,transparent
 .kirp-kap canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
 .kirp-yak{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:14px;color:var(--yazi2)}
 .kirp-yak input{flex:1}
+/* @etiket (gecis-017): metindeki bağlantı, öneri listesi, OP içerik hesabı notu */
+.bahset{color:var(--vurgu);cursor:pointer;overflow-wrap:anywhere}
+.bahset:hover{text-decoration:underline}
+.bahset:focus-visible{outline:2px solid var(--vurgu);outline-offset:2px;border-radius:4px}
+.bahset-liste{position:fixed;z-index:80;max-height:min(46vh,300px);overflow:auto;overscroll-behavior:contain;padding:4px;border:1px solid var(--cizgi);border-radius:14px;background:var(--yukselt,var(--zemin));box-shadow:0 6px 24px var(--golge,rgba(0,0,0,.22))}
+.bahset-liste[hidden]{display:none}
+.bahset-oge{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 10px;border-radius:10px;cursor:pointer}
+.bahset-oge[aria-selected="true"],.bahset-oge:hover{background:color-mix(in srgb,var(--vurgu) 14%,transparent)}
+.bahset-ad{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.bahset-takip{font-size:12px;flex:none}
+.bot-not{margin:8px 0 0;font-size:13px}

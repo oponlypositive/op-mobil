@@ -168,6 +168,7 @@ export async function api(yol, govde, yontem) {
   if (m === "POST" && (r = p.match(/^\/api\/kullanici\/([a-z0-9_]+)\/takip$/))) return rpc("takip_degistir", { p_handle: r[1] });
   if (m === "POST" && (r = p.match(/^\/api\/engelle\/([a-z0-9_]+)$/))) return rpc("engelle_degistir", { p_handle: r[1] });
   if (m === "GET" && p === "/api/engellenenler") return rpc("engellenenler", { p_dil: d });
+  if (m === "GET" && p === "/api/kullanici-ara") return rpc("kullanici_ara", { p_sorgu: (q.get("q") || "").slice(0, 24), p_dil: d });   // gecis-017: @ önerisi → { kullanicilar } (en çok 6; takip ettiklerim önce)
 
   if (m === "GET" && p === "/api/akis") {
     const sinir = Math.min(Math.max(Number(q.get("sinir")) || 120, 1), 120);

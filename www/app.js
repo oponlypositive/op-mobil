@@ -5,6 +5,31 @@ const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<"
 const guvenliUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "");
 const BG = window.OP_BAGLANTI || null;   // bağlantı çekirdeği (public/baglanti.js): tıklanabilir bağlantı, kart doğrulama
 const bagla = (m) => (BG ? BG.bagla(m, esc) : esc(m));   // düz metin → güvenli HTML (http/https bağlantıları <a>)
+// @etiket (gecis-017): AYNI düzenli ifade sunucuda (SQL etiket_cikar / yerel sunucu). '@' bir harf/rakam/_/@/./ karakterinden sonra gelmez (a@b.com e-posta, bağlantı yolu), handle 2-20 harf/rakam/_.
+const ETIKET_RE = /(^|[^A-Za-z0-9_@./])@([A-Za-z0-9_]{2,20})(?![A-Za-z0-9_])/g;
+// Metin → güvenli HTML: bağlantılar bagla() ile, SUNUCUNUN doğruladığı etiketler (var olan hesaplar; `etiketler` dizisi) profile giden bağlantı olur; olmayan handle düz metin kalır. Bağlantı içindeki @ etiket sayılmaz.
+function baglaEtiket(m, etiketler) {
+  const s = String(m ?? "");
+  if (!etiketler || !etiketler.length) return bagla(s);
+  const var_ = new Set(etiketler.map(x => String(x).toLowerCase()));
+  const parca = (t) => {   // bağlantısız metin parçası
+    let h = "", i = 0, r; ETIKET_RE.lastIndex = 0;
+    while ((r = ETIKET_RE.exec(t))) {
+      const hd = r[2].toLowerCase(); if (!var_.has(hd)) continue;
+      const bas = r.index + r[1].length;
+      h += esc(t.slice(i, bas)) + `<span class="bahset" data-e="etiket" data-h="${esc(hd)}" role="link" tabindex="0">@${esc(r[2])}</span>`;
+      i = bas + 1 + r[2].length;
+    }
+    return h + esc(t.slice(i));
+  };
+  if (!BG) return parca(s);
+  let h = "", i = 0;
+  for (const b of BG.bul(s)) {
+    if (!BG.temizle(b.ham)) continue;
+    h += parca(s.slice(i, b.bas)) + bagla(b.ham); i = b.son;
+  }
+  return h + parca(s.slice(i));
+}
 const sakla = { al(k, v) { try { const x = localStorage.getItem(k); return x === null ? v : JSON.parse(x); } catch { return v; } },
   koy(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
@@ -104,6 +129,11 @@ Object.assign(T.en, {
   alintiIcerir: "Contains a quote", goruntulenme: "Views", goruntulenmeAria: (n) => `${n} views`, bosAlinti: "No quotes yet.", yenidenMenu: "Repost options",
 });
 T.tr.bildirimMetin.alinti = "gönderini alıntıladı"; T.en.bildirimMetin.alinti = "quoted your post";
+T.tr.bildirimMetin.bahset = "senden bahsetti"; T.en.bildirimMetin.bahset = "mentioned you";   // @etiket (gecis-017)
+Object.assign(T.tr, { etiketOneri: "Hesap önerileri", botKuyruk: (ad) => `${ad} sorunu aldı; yanıtı biraz zaman alabilir.`, botGunluk: "Bugün OP hesaplarına en fazla 5 soru sorabilirsin; yarın yine bekleriz.",
+  botYogun: (ad) => `${ad} şu an çok soru aldı; biraz sonra tekrar dener misin?`, botKonu: (ad) => `${ad} bir konuda en fazla 2 kez yanıt verir.`, botNot: "Bu bir OP içerik hesabıdır, yanıtları yapay zekâ yazar." });
+Object.assign(T.en, { etiketOneri: "Account suggestions", botKuyruk: (ad) => `${ad} got your question; the reply may take a little while.`, botGunluk: "You can ask OP accounts up to 5 questions a day; we'll be happy to see you again tomorrow.",
+  botYogun: (ad) => `${ad} has received a lot of questions right now; please try again in a little while.`, botKonu: (ad) => `${ad} replies at most twice on one topic.`, botNot: "This is an OP content account; its replies are written by AI." });
 Object.assign(T.tr, { baglantiKaldir: "Bağlantı önizlemesini kaldır", ytAc: "YouTube'da aç", ytOynat: "Videoyu oynat", gorunum: "Görünüm", sistem: "Sistem", acikZemin: "Açık tema zemini", koyuZemin: "Koyu tema zemini" });
 Object.assign(T.en, { baglantiKaldir: "Remove link preview", ytAc: "Open on YouTube", ytOynat: "Play video", gorunum: "Appearance", sistem: "System", acikZemin: "Light theme background", koyuZemin: "Dark theme background" });
 
@@ -175,7 +205,88 @@ async function api(yol, govde, yontem) {
   if (!r.ok) { const e = new Error(v.hata || t("hata")); e.filtre = v.filtre; e.durum = r.status; throw e; }
   return v;
 }
-function tost(m) { const e = document.createElement("div"); e.className = "tost"; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 2600); }
+function tost(m, ms = 2600) { const e = document.createElement("div"); e.className = "tost"; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), ms); }
+
+// ---------- @etiket önerisi (yazma kutusu, yanıt kutusu, yerinde düzenleme) ----------
+// '@' + en az 1 harf: sunucuda ön ek araması (api /api/kullanici-ara), en çok 6; takip ettiklerim önce. Klavye: ↑/↓ + Enter, Esc kapatır; dokunmatik/fare: öneriye dokun. ARIA: combobox + listbox + aria-activedescendant.
+const EO = { girdi: null, liste: [], sec: 0, no: 0, z: 0, kutu: null, onbellek: new Map() };
+function etiketJeton(g) {   // imlecin bulunduğu @parça: { bas, son, q } ya da null
+  const c = g.selectionStart ?? g.value.length, onc = g.value.slice(0, c), m = /(^|[^A-Za-z0-9_@./])@([A-Za-z0-9_]{1,20})$/.exec(onc);
+  return m ? { bas: m.index + m[1].length, son: c, q: m[2] } : null;
+}
+function etiketOnerKur(g) {
+  if (!g || g.dataset.etiketKurulu) return; g.dataset.etiketKurulu = "1";
+  g.setAttribute("role", "combobox"); g.setAttribute("aria-autocomplete", "list"); g.setAttribute("aria-haspopup", "listbox"); g.setAttribute("aria-expanded", "false");
+  const ara = () => etiketAra(g);
+  g.addEventListener("input", ara); g.addEventListener("click", ara);
+  g.addEventListener("keyup", e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) ara(); });
+  g.addEventListener("blur", () => setTimeout(() => { if (EO.girdi === g && document.activeElement !== g) etiketKapat(); }, 160));
+}
+function etiketAra(g) {
+  const j = etiketJeton(g); if (!j || !D.ben) return etiketKapat();
+  EO.girdi = g; clearTimeout(EO.z); const no = ++EO.no, q = j.q.toLowerCase(), onb = EO.onbellek.get(q);
+  if (onb) return etiketCiz(g, onb);
+  EO.z = setTimeout(async () => {
+    try {
+      const v = await api(`/api/kullanici-ara?q=${encodeURIComponent(q)}`); if (no !== EO.no) return;   // eski yanıt atılır
+      const l = v.kullanicilar || []; EO.onbellek.set(q, l); if (EO.onbellek.size > 40) EO.onbellek.delete(EO.onbellek.keys().next().value);
+      etiketCiz(g, l);
+    } catch { if (no === EO.no) etiketKapat(); }
+  }, 180);
+}
+function etiketCiz(g, liste) {
+  if (!liste.length || !g.isConnected || document.activeElement !== g) return etiketKapat();
+  EO.liste = liste; EO.sec = 0;
+  let k = EO.kutu;
+  if (!k) {
+    k = EO.kutu = document.createElement("div"); k.id = "bahset-liste"; k.className = "bahset-liste"; k.setAttribute("role", "listbox");
+    k.addEventListener("mousedown", e => e.preventDefault());   // yazma kutusu odağı kaybolmasın
+    k.addEventListener("click", e => { const o = e.target.closest("[data-i]"); if (o) etiketSec(+o.dataset.i); });
+    document.body.appendChild(k);
+  }
+  k.setAttribute("aria-label", t("etiketOneri"));
+  k.innerHTML = liste.map((u, i) => `<div class="bahset-oge" role="option" id="bahset-o${i}" data-i="${i}" aria-selected="${i === 0}">${avatarHtml(u, "kucuk")}
+    <span class="bahset-ad"><b class="ad">${esc(u.ad)}</b>${rozetHtml(u)}<span class="gri"> @${esc(u.handle)}</span></span>${u.takipEdiyorMu ? `<span class="gri bahset-takip">${t("takipte")}</span>` : ""}</div>`).join("");
+  const r = g.getBoundingClientRect(), vv = window.visualViewport, vh = vv ? vv.height : innerHeight, vt = vv ? vv.offsetTop : 0;
+  const gen = Math.min(Math.max(r.width, 240), 360, innerWidth - 16);
+  k.hidden = false; k.style.width = gen + "px"; k.style.left = Math.max(8, Math.min(r.left, innerWidth - gen - 8)) + "px";
+  const h = k.offsetHeight, alt = vt + vh - r.bottom, ust = r.top - vt;
+  if (alt >= h + 10 || alt >= ust) { k.style.bottom = "auto"; k.style.top = (r.bottom + 6) + "px"; } else { k.style.top = "auto"; k.style.bottom = (innerHeight - r.top + 6) + "px"; }
+  g.setAttribute("aria-expanded", "true"); g.setAttribute("aria-controls", "bahset-liste"); g.setAttribute("aria-activedescendant", "bahset-o0");
+}
+function etiketVurgu() {
+  EO.kutu?.querySelectorAll("[role=option]").forEach((o, i) => { o.setAttribute("aria-selected", String(i === EO.sec)); if (i === EO.sec) o.scrollIntoView({ block: "nearest" }); });
+  EO.girdi?.setAttribute("aria-activedescendant", "bahset-o" + EO.sec);
+}
+function etiketKapat() {
+  clearTimeout(EO.z); EO.no++;
+  if (EO.kutu) EO.kutu.hidden = true;
+  if (EO.girdi) { EO.girdi.setAttribute("aria-expanded", "false"); EO.girdi.removeAttribute("aria-activedescendant"); }
+  EO.liste = [];
+}
+function etiketSec(i) {
+  const g = EO.girdi, u = EO.liste[i], j = g && etiketJeton(g); if (!u || !j) return etiketKapat();
+  const sonra = g.value.slice(j.son), bosluk = /^\s/.test(sonra), ek = "@" + u.handle + (bosluk ? "" : " "), yeni = g.value.slice(0, j.bas) + ek + sonra;
+  if (g.maxLength > 0 && yeni.length > g.maxLength) return etiketKapat();
+  g.value = yeni; const c = j.bas + ek.length + (bosluk ? 1 : 0); g.setSelectionRange(c, c);
+  etiketKapat(); g.dispatchEvent(new Event("input", { bubbles: true })); g.focus();
+}
+document.addEventListener("keydown", e => {   // pencere/Esc kısayollarından ÖNCE (yakalama aşaması): liste açıkken ok/Enter/Esc yalnız listeyi yönetir
+  if (!EO.kutu || EO.kutu.hidden || e.target !== EO.girdi || !EO.liste.length) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopImmediatePropagation(); EO.sec = (EO.sec + (e.key === "ArrowDown" ? 1 : -1) + EO.liste.length) % EO.liste.length; etiketVurgu(); }
+  else if (e.key === "Enter") { e.preventDefault(); e.stopImmediatePropagation(); etiketSec(EO.sec); }
+  else if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); etiketKapat(); }
+}, true);
+// OP içerik hesabı etiketlendiyse gönderi/yanıt cevabındaki bot durumlarından tek satır bilgi ("" = söylenecek bir şey yok)
+function botBilgi(v) {
+  const b = (v?.bot || []).filter(x => x.durum !== "zaten"), ad = (x) => (D.dil === "en" ? x.adEn : x.ad) || x.handle;
+  if (!b.length) return "";
+  const k = b.filter(x => x.durum === "kuyruk");
+  if (k.length) return t("botKuyruk", k.map(ad).join(", "));
+  const g = b.find(x => x.durum === "gunluk_sinir"); if (g) return t("botGunluk");
+  const y = b.find(x => x.durum === "bot_yogun"); if (y) return t("botYogun", ad(y));
+  const z = b.find(x => x.durum === "konu_sinir"); return z ? t("botKonu", ad(z)) : "";
+}
 
 // ---------- BETA etiketi + kapatılabilir bilgi şeridi ----------
 const betaEtiket = () => (BETA ? '<span class="beta-et" title="Beta">BETA</span>' : "");
@@ -291,7 +402,7 @@ function eylemHtml(o) {
 // (sahip 2026-10-14: kesik başlıklı boş kart "anlamsız"; içerik böyle görselle verilmemeli)
 const kartGorunur = (o) => !!o.haber && !(o.video && o.video.url) && !(o.gorsel && o.gorsel.url) && (HK_ALINTI.has(o.kategori) || o.kategori === "sohbet");
 function metinHtml(o, buyuk) {
-  if (!o.haber) return o.metin ? `<div class="metin ${buyuk ? "buyuk" : ""}">${bagla(o.metin)}</div>` : "";
+  if (!o.haber) return o.metin ? `<div class="metin ${buyuk ? "buyuk" : ""}">${baglaEtiket(o.metin, o.etiketler)}</div>` : "";
   const [baslik, ...gerisi] = String(o.metin).split("\n\n");
   if (!buyuk && kartGorunur(o)) {   // başlık kartta zaten var: akışta tekrar yazılmaz (alıntı/gökbilim kartında metnin tamamı kartta)
     if (HK_ALINTI.has(KATEGORI[o.kategori] ? o.kategori : "genel")) return "";
@@ -424,7 +535,7 @@ function alintiKartHtml(a, onizleme = false) {
   if (!a) return "";
   if (a.yok) return `<div class="alinti-kart yok" role="note">${esc(t(a.silindi ? "alintiSilindi" : "alintiYok"))}</div>`;
   const y = a.yazar, [baslik, ...gerisi] = String(a.metin || "").split("\n\n");
-  const metin = a.haber ? `<b class="baslik-metin">${esc(baslik)}</b>${gerisi.length ? `<br>${esc(gerisi.join("\n\n"))}` : ""}` : (onizleme ? esc(a.metin || "") : bagla(a.metin || ""));
+  const metin = a.haber ? `<b class="baslik-metin">${esc(baslik)}</b>${gerisi.length ? `<br>${esc(gerisi.join("\n\n"))}` : ""}` : (onizleme ? esc(a.metin || "") : baglaEtiket(a.metin || "", a.etiketler));
   let medya = "";
   if (a.video?.url) medya = onizleme ? `<span class="alinti-video-onizle" style="min-height:110px">${a.video.poster ? `<img src="${esc(a.video.poster)}" alt="">` : ""}${ikon("oynat", 30, true)}</span>` : videoHtml(a.video);
   else if (a.foto) medya = `<img class="gorsel" src="${esc(a.foto)}" alt="" loading="lazy">`;
@@ -455,7 +566,7 @@ function detayGonHtml(o) {
 }
 const yanitHtml = (y) => `<article class="satir yanit" data-yanit="${esc(y.id)}"><div class="satir-ic"><span class="sol" data-profil="${esc(y.yazar?.handle)}">${avatarHtml(y.yazar)}</span>
   <div class="govde"><div class="kim"><span class="ad" data-profil="${esc(y.yazar?.handle)}">${esc(y.yazar?.ad)}</span>${rozetHtml(y.yazar)}
-  <span class="gri kisa">@${esc(y.yazar?.handle)}</span><span class="gri zaman">· ${zamanYaz(y.zaman)}</span>${menuDug("yanit", y.id, y.yazar, y)}</div><div class="metin">${bagla(y.metin)}</div></div></div></article>`;
+  <span class="gri kisa">@${esc(y.yazar?.handle)}</span><span class="gri zaman">· ${zamanYaz(y.zaman)}</span>${menuDug("yanit", y.id, y.yazar, y)}</div><div class="metin">${baglaEtiket(y.metin, y.etiketler)}</div></div></div></article>`;
 const bosHtml = (m, ek = "") => `<div class="bos">${esc(m)}${ek}</div>`;
 const iskelet = `<div class="iskelet"></div><div class="iskelet"></div><div class="iskelet"></div>`;
 
@@ -621,10 +732,10 @@ async function bildirimCiz(my) {
   const v = await api("/api/bildirimler?okundu=1").catch(() => ({ bildirimler: [] }));
   if (my !== D.cizim) return;
   D.okunmamis = 0;
-  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil" };
+  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit" };
   kok().innerHTML = kabuk(`<h1 class="baslik">${t("bildirim")}</h1>` + (v.bildirimler.length ? v.bildirimler.map(b =>
     `<div class="satir bildirim ${b.okundu ? "" : "yeni"}" data-e="bil-ac" data-t="${esc(b.tur)}" data-h="${esc(b.tur === "takip" ? b.kimden?.handle : b.hedef)}"><div class="satir-ic"><span class="bil-ik">${ikon(tur[b.tur] || "begen", 22, b.tur === "begen")}</span>
-      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin"><b>${esc(b.kimden?.ad)}</b> ${bm[b.tur] || ""}${(b.tur === "yanit" || b.tur === "alinti") && b.ek ? `<div class="gri">${esc(b.ek)}</div>` : ""}
+      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin"><b>${esc(b.kimden?.ad)}</b> ${bm[b.tur] || ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
       <div class="gri">${zamanYaz(b.zaman)}</div></div></div></div></div>`).join("") : bosHtml(t("bosBildirim"))));
 }
 async function kayitCiz(my) {
@@ -649,6 +760,7 @@ async function profilCiz(my) {
         : `${BULUT && D.ben && !k.editor && !k.resmi ? `<button class="menu-dug" data-e="menu" data-t="profil" data-id="" data-h="${esc(k.handle)}" data-ed="0" data-eng="${v.engelliMi ? 1 : 0}" aria-label="${bt("menu")}">•••</button>` : ""}<button class="dug ${v.takipEdiyorMu ? "ikincil" : ""}" data-e="takip" data-h="${esc(k.handle)}">${v.takipEdiyorMu ? t("takipte") : t("takipEt")}</button>`}</div>
     <div class="profil-bilgi"><h2 class="ad">${esc(k.ad)}${rozetHtml(k)}</h2><div class="gri">@${esc(k.handle)}</div>
       ${etiket ? `<div class="etiket">${esc(etiket)}</div>` : ""}
+      ${k.editor && !k.resmi ? `<p class="gri bot-not" role="note">${esc(t("botNot"))}</p>` : ""}
       ${k.bio ? `<p class="bio">${esc(k.bio)}</p>` : ""}
       <div class="gri meta">${k.sehir ? `<span>📍 ${esc(k.sehir)}</span>` : ""}<span>${esc(t("katildi", katildi))}</span></div>
       <div class="istatistik"><span><b>${k.takipSayisi}</b> ${t("takipSay")}</span><span><b>${k.takipci}</b> ${t("takipciSay")}</span></div></div>
@@ -664,6 +776,7 @@ function detayYaz(v) {
     `<div id="yanit-liste">${v.yanitlar ? v.yanitlar.map(yanitHtml).join("") : iskelet}</div>` + (v.yanitlar && !v.yanitlar.length ? `<div class="bos az" id="yanit-bos">${t("bosYanit")}</div>` : ""),
     { geri: true, alt: false, fab: false, ekstra: bar });
   const i = $("#yanit-metin"); if (!i) return; let z;
+  etiketOnerKur(i);
   if (D.odakYanit === v.oge.id) { D.odakYanit = null; i.focus({ preventScroll: true }); }
   i.addEventListener("input", () => { $("#yanit-dug").disabled = !i.value.trim(); clearTimeout(z); z = setTimeout(canliDenetle, 600, i, "#ipucu"); });
   i.closest("form").addEventListener("submit", e => { e.preventDefault(); yanitGonder(v.oge.id); });
@@ -708,6 +821,7 @@ function sheet(html) {
   document.body.append(p, s); return s;
 }
 function sheetKapat(yeniAcilis) {   // yeniAcilis: sheet() yeni bir pencere açmadan önce çağırır (taslaktaki alıntı korunur)
+  etiketKapat();
   const cek = document.querySelector(".cekmece"), geri = D.odakGeri;
   document.querySelectorAll(".perde,.sheet,.cekmece").forEach(e => e.remove());
   if (!yeniAcilis && taslak.alinti) { taslak.alinti = null; yzGuncelle(); }   // alıntı penceresi kapandı/iptal: vazgeçildi
@@ -944,6 +1058,7 @@ function yazKur() {
   document.querySelectorAll("[data-yz]:not([data-bagli])").forEach(k => {
     k.dataset.bagli = "1";
     const m = $(".yz-metin", k); let z, zb;
+    etiketOnerKur(m);
     m.addEventListener("focus", () => { if (girisGerekli()) m.blur(); });   // misafir: kutuya dokununca giriş/kayıt penceresi
     m.addEventListener("input", () => { taslak.metin = m.value; yzGuncelle(); clearTimeout(z); z = setTimeout(canliDenetle, 600, m, $(".yz-ipucu", k)); clearTimeout(zb); zb = setTimeout(baglantiTara, 600); });
     $(".yz-dosya", k).addEventListener("change", async e => {
@@ -991,7 +1106,8 @@ async function gonderiPaylas(k) {
   try {
     if (ip) ip.innerHTML = "";
     const video = v ? await videoYukle() : null;   // önce depoya (yüzde çubuğu); sonra gönderi (çift filtre sunucuda)
-    try { await api("/api/gonderi", { metin: taslak.metin, foto: taslak.foto, ...(video ? { video } : {}), ...(taslak.alinti ? { alintiId: taslak.alinti.id } : {}), ...(taslak.anket && anketTaslakGecerli() ? { anket: { secenekler: taslak.anket.secenekler.map((x) => x.trim()).filter(Boolean), sureGun: taslak.anket.sureGun } } : {}), ...(taslak.baglantiYok && taslak.baglantiYok === (BG?.ilkBaglanti(taslak.metin)?.temiz || "") ? { baglantiYok: true } : {}) }); }
+    let cevap = null;
+    try { cevap = await api("/api/gonderi", { metin: taslak.metin, foto: taslak.foto, ...(video ? { video } : {}), ...(taslak.alinti ? { alintiId: taslak.alinti.id } : {}), ...(taslak.anket && anketTaslakGecerli() ? { anket: { secenekler: taslak.anket.secenekler.map((x) => x.trim()).filter(Boolean), sureGun: taslak.anket.sureGun } } : {}), ...(taslak.baglantiYok && taslak.baglantiYok === (BG?.ilkBaglanti(taslak.metin)?.temiz || "") ? { baglantiYok: true } : {}) }); }
     catch (e) {
       if (video && [400, 404, 413].includes(e.durum)) {   // sunucu videoyu kabul etmedi: yüklenenler silinir, tekrar denemede baştan yüklenir
         medyaKimlik().then(kim => OP_MEDYA.sil([v.videoYol, v.posterYol], kim)).catch(() => {}); v.yuklendi = v.videoYol = v.posterYol = null;
@@ -1000,7 +1116,7 @@ async function gonderiPaylas(k) {
     }
     if (v) videoBirak(false, false);   // dosyalar artık gönderinin; yalnız önizleme adresleri serbest
     Object.assign(taslak, { metin: "", foto: null, alinti: null, anket: null, baglanti: null, baglantiUrl: "", baglantiYok: "", baglantiDenendi: "" });
-    sheetKapat(); tost(t("paylasildi")); onbSil();
+    sheetKapat(); { const bb = botBilgi(cevap); tost(bb ? `${t("paylasildi")} · ${bb}` : t("paylasildi"), bb ? 5600 : 2600); } onbSil();
     D.sekme = "senin"; yigin.length = 0; G = { sayfa: "akis", kategori: "", handle: null, id: null, odak: false }; await ciz(true);   // kutu boşalır, yeni gönderi akışın tepesinde
   } catch (e) {
     if (ip && e.kod !== "iptal" && !(v && e.kod)) ip.innerHTML = `<div class="ipucu">${esc(e.message)}</div>`;   // video yükleme hataları önizlemedeki satırda (Tekrar dene) gösterilir
@@ -1014,6 +1130,7 @@ async function yanitGonder(id) {
     i.value = ""; $("#ipucu").innerHTML = "";
     $("#yanit-bos")?.remove(); $("#yanit-liste").insertAdjacentHTML("beforeend", yanitHtml(v.yanit));
     ogeGuncelle({ id, yanitSayisi: (D.detay.oge.yanitSayisi || 0) + 1 });
+    const bb = botBilgi(v); if (bb) tost(bb, 5600);
   } catch (e) { $("#yanit-dug").disabled = false; $("#ipucu").innerHTML = `<div class="ipucu">${esc(e.message)}</div>`; }
 }
 // Ayarlar > Görünüm: Açık / Koyu / Sistem + "Açık tema zemini" ve "Koyu tema zemini" için 10'ar önizleme kutusu (seçim anında uygulanır)
@@ -1113,6 +1230,8 @@ document.addEventListener("keydown", e => {
   if (kap && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); videoDokun(kap); }
   const yk = e.target.matches?.(".bag-kart[data-e='yt-oynat']") ? e.target : null;
   if (yk && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); ytOynat(yk); }
+  const et = e.target.matches?.(".bahset[data-e='etiket']") ? e.target : null;
+  if (et && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.stopPropagation(); gotur({ sayfa: "profil", handle: et.dataset.h }, true); }
   const ak = e.target.matches?.(".alinti-kart[data-e='alinti-ac']") ? e.target : null;
   if (ak && e.key === "Enter") { e.preventDefault(); gotur({ sayfa: "detay", id: ak.dataset.id }, true); }
 });
@@ -1349,6 +1468,7 @@ document.addEventListener("click", async e => {
     case "yay-yap": sheetKapat(); return etkilesim("yay", a.id);
     case "alintila": sheetKapat(); return alintilaAc(a.id);
     case "alinti-ac": return gotur({ sayfa: "detay", id: a.id }, true);
+    case "etiket": return gotur({ sayfa: "profil", handle: a.h }, true);   // @etiket bağlantısı
     case "alintilar": return alintilariAc(a.id);
     case "yanit": return gotur({ sayfa: "detay", id: a.id, odak: true }, true);
     case "kaydet": if (girisGerekli()) return; return kaydetDegistir(a.id);
@@ -1746,6 +1866,7 @@ function duzenleBasla(id) {
     const m = $(".metin", el);
     if (m) m.replaceWith(duz); else ($(".kim", el) || $(".detay-ust", el)).after(duz);
     const ta = $(".duz-metin", duz), kaydet = $('[data-e="duz-kaydet"]', duz); let z;
+    etiketOnerKur(ta);
     ta.addEventListener("input", () => {
       const kalan = 280 - ta.value.length; $(".duz-sayac", duz).textContent = kalan; $(".duz-sayac", duz).classList.toggle("az", kalan < 20);
       const bos = !ta.value.trim() && !o.foto;
