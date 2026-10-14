@@ -60,7 +60,7 @@ const M = {
 const SUNUCU_EN = {
   "Adını yazar mısın?": "Please enter your name.", "Bir neden seçer misin?": "Please pick a reason.", "Bir şey yaz.": "Write something.",
   "Anket geçersiz.": "The poll isn't valid.", "Anket için bir soru yaz.": "Write a question for your poll.", "Anket 2-5 seçenek içerir; her biri en çok 40 karakter olabilir.": "A poll has 2-5 options, each up to 40 characters.", "Seçenekler birbirinden farklı olmalı.": "Options must be different from each other.", "Anket süresi 1, 3 ya da 7 gün olabilir.": "A poll can last 1, 3 or 7 days.", "Anketli gönderide fotoğraf, video ya da alıntı olmaz.": "A poll post can't have a photo, video or quote.", "Oy gelen anketin sorusu değiştirilemez.": "A poll with votes can't be edited.", "Boş paylaşım olmaz.": "A post can't be empty.", "Alıntıya bir şey yaz ya da medya ekle.": "Add a comment or media to your quote.", "Alıntılanan gönderi geçersiz.": "The post you're quoting isn't available.", "Fotoğraf bulunamadı, tekrar yükler misin?": "We couldn't find the photo, please upload it again.",
-  "Fotoğraf geçersiz.": "The photo isn't valid.", "Video geçersiz.": "The video isn't valid.", "Video bulunamadı, tekrar yükler misin?": "We couldn't find the video, please upload it again.",
+  "Fotoğraf geçersiz.": "The photo isn't valid.", "En çok 4 fotoğraf eklenebilir.": "You can add up to 4 photos.", "Fotoğraf çok büyük (en çok 700 KB).": "The photo is too large (700 KB max).", "Video geçersiz.": "The video isn't valid.", "Video bulunamadı, tekrar yükler misin?": "We couldn't find the video, please upload it again.",
   "Video çok büyük (en çok 40 MB).": "The video is too large (40 MB max).", "Video çok büyük (en çok 95 MB).": "The video is too large (95 MB max).", "Video en çok 60 sn olabilir.": "A video can be 60 seconds at most.", "Bir gönderide fotoğraf ya da video olur.": "A post can have a photo or a video, not both.", "Kendi içeriğini şikâyet edemezsin.": "You can't report your own content.",
   "Kullanıcı adı 3-20 harf/rakam/_ olmalı.": "Your username must be 3-20 letters, numbers or _.",
   "Bu kullanıcı adı alınmış, başka bir tane dener misin?": "That username is taken, would you try another one?",
@@ -81,6 +81,7 @@ const SUNUCU_EN = {
   "OP'de herkes sadece insan 🤗 Kimlik vurgusu olmadan paylaşmayı dener misin?": "On OP everyone is simply a person 🤗 Could you share without emphasising identity?",
   "Bu konu biraz ağır geldi ☁️ OP'de sadece iyi haberler var; içindeki umut veren tarafı anlatır mısın?": "That feels a little heavy ☁️ OP is only good news; could you share the hopeful side of it?",
 };
+const FOTO_COK = ["En çok 4 fotoğraf eklenebilir.", "You can add up to 4 photos."];
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
 function hataYap(mesaj, durum = 400, filtre = false, bekleSn = 0) { const e = new Error(mesaj || ileti("genel")); e.durum = durum; e.filtre = filtre; e.bekleSn = bekleSn; return e; }
 const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, anket_bitti: 409, zaten_oy: 409, seri_ad: 400, seri_limit: 409, seri_var: 409, seri_derinlik: 400, liste_ad: 400, liste_limit: 409, liste_var: 409 };
@@ -124,6 +125,7 @@ const medyaUrl = (yol) => (globalThis.OP_MEDYA ? globalThis.OP_MEDYA.url(yol) : 
 export function ogeDuzelt(o) {
   if (!o) return o;
   if (o.foto && !/^https?:/i.test(o.foto)) o.foto = depoUrl("foto", o.foto);
+  if (Array.isArray(o.fotolar)) o.fotolar = o.fotolar.map((y) => (/^https?:/i.test(y) ? y : depoUrl("foto", y)));   // gecis-021: 2-4 fotoğraf (ilki 'foto' ile aynı)
   if (o.video && !o.video.url) {   // depo biçimi { yol, poster_yol, sure_sn, en, boy, boyut, tur } → istemcinin ortak video biçimi { url, poster, sure_sn, … } (haber videosuyla aynı)
     const v = o.video;
     o.video = v.yol ? { ...v, url: medyaUrl(v.yol), poster: v.poster_yol ? medyaUrl(v.poster_yol) : "" } : null;
@@ -132,6 +134,7 @@ export function ogeDuzelt(o) {
   if (o.alinti && !o.alinti.yok) ogeDuzelt(o.alinti);   // alıntı kartı (gecis-008): aynı yol → URL çevirisi
   return o;
 }
+export const FOTO_EN_COK = 4;   // gecis-021: gönderi başına en çok 4 fotoğraf (X gibi); video tek kalır
 const ogeleriDuzelt = (v) => { if (v?.ogeler) v.ogeler.forEach(ogeDuzelt); if (v?.gonderiler) v.gonderiler.forEach(ogeDuzelt); if (v?.oge) ogeDuzelt(v.oge); if (v?.gonderi) ogeDuzelt(v.gonderi); return v; };
 
 // ---- fotoğraf yükleme (data URL → Storage `foto/<uid>/<uuid>.jpg`; istemcide zaten ≤1080 px JPEG ve ≤700 KB)
@@ -195,12 +198,17 @@ export async function api(yol, govde, yontem) {
 
   if (m === "POST" && p === "/api/gonderi") {
     const b = govde || {};
-    let fotoYol = null;
-    if (b.foto) fotoYol = await fotoYukle(b.foto);
+    const fotoVeriler = (Array.isArray(b.fotolar) && b.fotolar.length ? b.fotolar : b.foto ? [b.foto] : []).slice(0, FOTO_EN_COK + 1);   // gecis-021: 1-4 fotoğraf (data URL); eski istemci tek 'foto' gönderir
+    if (fotoVeriler.length > FOTO_EN_COK) throw hataYap(FOTO_COK[dil() === "en" ? 1 : 0], 400);
+    const fotoYollari = [];   // her dosya ayrı yüklenir (aynı biçim/boyut denetimi); biri başarısız olursa yüklenenler temizlenir
+    try { for (const v of fotoVeriler) fotoYollari.push(await fotoYukle(v)); }
+    catch (e) { if (fotoYollari.length) await sb.storage.from("foto").remove(fotoYollari).catch(() => {}); throw e; }
     const video = b.video ? { yol: b.video.yol, posterYol: b.video.posterYol, sure_sn: b.video.sure_sn, en: b.video.en, boy: b.video.boy } : undefined;   // video + poster app.js'te medya adaptörüyle ZATEN yüklendi
-    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, fotoYol, video, ...(b.alintiId ? { alintiId: b.alintiId } : {}), ...(b.baglantiYok === true ? { baglantiYok: true } : {}), ...(b.anket ? { anket: b.anket } : {}) })); }
-    catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }   // yarım kalan yüklemeyi temizle
+    try { return ogeleriDuzelt(await fonksiyon("gonderi-olustur", { metin: b.metin, ...(fotoYollari.length ? { fotoYollari } : {}), video, ...(b.alintiId ? { alintiId: b.alintiId } : {}), ...(b.baglantiYok === true ? { baglantiYok: true } : {}), ...(b.anket ? { anket: b.anket } : {}) })); }
+    catch (e) { if (fotoYollari.length) await sb.storage.from("foto").remove(fotoYollari).catch(() => {}); throw e; }   // yarım kalan yüklemeyi temizle (tüm dosyalar)
   }
+  if (m === "GET" && p === "/api/anketler") return ogeleriDuzelt(await rpc("anketler", { p_dil: d, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 20, 1), 30), p_baslangic: Math.max(Number(q.get("baslangic")) || 0, 0) }));   // gecis-021: Son Anketler → { ogeler, daha }
+  if (m === "POST" && (r = p.match(/^\/api\/yanit\/([0-9a-f-]{36})\/begen$/))) return rpc("yorum_begen_degistir", { p_id: r[1], p_dil: d });   // gecis-021: yorum beğenisi → { yanit }
   if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/anket-oy$/))) return rpc("anket_oy", { p_post: r[1], p_secenek: Number((govde || {}).secenek) });   // gecis-014: tek oy → { anket }
   if (m === "POST" && p === "/api/baglanti-onizle") return fonksiyon("baglanti-onizle", { url: (govde || {}).url });   // gecis-012: composer canlı kart önizlemesi → { baglanti }
   if (m === "POST" && p === "/api/gorunum") return rpc("gorunum_kaydet", { p_gorunum: { acik: (govde || {}).acik, koyu: (govde || {}).koyu } });   // gecis-012: arka plan teması tercihi
@@ -251,7 +259,7 @@ export async function api(yol, govde, yontem) {
     return ogeleriDuzelt(v);
   }
   if (m === "POST" && p === "/api/goruntule") return { sayilan: await rpc("goruntule", { p_idler: ((govde || {}).idler || []).slice(0, 50) }) };   // gecis-008: toplu görüntülenme (en çok 50 kimlik)
-  if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/yanit$/))) return fonksiyon("yanit-olustur", { gonderiId: r[1], metin: (govde || {}).metin });
+  if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/yanit$/))) return fonksiyon("yanit-olustur", { gonderiId: r[1], metin: (govde || {}).metin, ...((govde || {}).ustYanitId ? { ustYanitId: govde.ustYanitId } : {}) });
   if (m === "GET" && p === "/api/bildirimler") return rpc("bildirimler", { p_okundu: q.get("okundu") === "1", p_dil: d });
 
   if (m === "POST" && p === "/api/bekleme") {

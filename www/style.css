@@ -783,3 +783,59 @@ button.liste-kart:hover{background:var(--yukselt)}
 .liste-yeni-form{display:flex;gap:8px;margin-top:12px}
 .liste-yeni-ad{flex:1;min-width:0;height:40px;padding:0 12px;border:1px solid var(--cizgi);border-radius:10px;background:var(--zemin);outline:none}
 .liste-yeni-ad:focus{border-color:var(--vurgu)}
+
+/* ---- gecis-021: çoklu fotoğraf ızgarası (1 tek · 2 yan yana · 3 solda büyük + sağda iki · 4 = 2x2) ---- */
+.fotolar{display:grid;gap:2px;margin-top:10px;aspect-ratio:16/9;border-radius:16px;overflow:hidden;border:1px solid var(--cizgi);background:var(--yuzey)}
+.fotolar .gorsel,.alinti-kart .fotolar .gorsel{width:100%;height:100%;max-height:none;aspect-ratio:auto;margin:0;border:0;border-radius:0;object-fit:cover;min-width:0;min-height:0}
+.fotolar.f2,.fotolar.f3,.fotolar.f4{grid-template-columns:1fr 1fr}
+.fotolar.f3,.fotolar.f4{grid-template-rows:1fr 1fr}
+.fotolar.f3 .gorsel:first-child{grid-row:1 / span 2}
+.fotolar.kucuk{margin-top:8px;border-radius:12px;max-height:200px}
+.fotolar:not(.kucuk) .gorsel{cursor:zoom-in}
+/* composer önizlemesi */
+.foto-onizle-izgara{display:grid;grid-template-columns:1fr;gap:6px;margin:8px 0 0 56px}
+.yz-sag .foto-onizle-izgara{margin-left:0}
+.foto-onizle-izgara:not(.n1){grid-template-columns:repeat(2,minmax(0,1fr))}
+.foto-onizle-izgara .foto-onizle{margin:0}
+.foto-onizle-izgara:not(.n1) .foto-onizle img{height:120px;max-height:none}
+/* tam ekran görüntüleyici: sayaç + ‹ › (dokunmatikte yalnız kaydırma) */
+.gor-sayac{position:absolute;z-index:2;top:calc(var(--ust) + 18px);left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:13px;font-weight:600}
+.gor-ok{position:absolute;z-index:2;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:30px;line-height:1;display:grid;place-items:center}
+.gor-ok[hidden]{display:none}
+.gor-onceki{left:calc(var(--sol) + 12px)}
+.gor-sonraki{right:calc(var(--sag) + 12px)}
+@media (hover:none){ .gor-ok{display:none} }
+
+/* ---- gecis-021: yanıtlar — iç içe konuşma (en çok 3 görsel düzey), yorum beğenisi ---- */
+.yanit-dugum[data-duzey="1"]{border-bottom:1px solid var(--cizgi)}
+.yanit-dugum>.satir.yanit{border-bottom:0}
+.yanit-dugum .yanit-alt{margin-left:37px;border-left:2px solid var(--cizgi)}
+.yanit-alt .yanit-alt{margin-left:27px}
+.yanit-dugum .yanit-alt.derin{margin-left:0;border-left:0}
+.yanit-alt .satir.yanit{padding:10px 12px}
+.yanit-alt .avatar{width:32px;height:32px;font-size:17px}
+.yanit-ust{margin-top:2px;font-size:13px}
+.eylemler.yanit-ey{max-width:none;justify-content:flex-start;gap:14px;margin:2px 0 -8px -8px}
+.satir.yanit .yanit-ey .eylem{height:34px;min-width:40px}
+.konusma-dug{margin:2px 0 12px 12px}
+.yanit-hedef{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;padding:4px 6px 4px 12px;border-radius:12px;background:var(--yuzey);font-size:14px;color:var(--yazi2)}
+.yanit-hedef[hidden]{display:none}
+.yanit-hedef-kapat{flex:none;width:30px;height:30px;border-radius:50%;color:var(--yazi2)}
+.yanit-hedef-kapat:hover{background:color-mix(in srgb,var(--vurgu) 10%,transparent);color:var(--vurgu)}
+
+/* ---- gecis-021: anket sonuç grafiği (yatay çubuk: yüzde + oy sayısı, kazanan vurgulu) ve Son Anketler ---- */
+.anket-sec.sonuc.grafik{display:block;min-height:0;padding:9px 12px 10px;border-radius:14px}
+.anket-ust{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.anket-ad{min-width:0;overflow-wrap:anywhere}
+.anket-yuzde{flex:none;font-size:13px;color:var(--yazi2);white-space:nowrap}
+.anket-yuzde b{font-size:15px;color:var(--yazi)}
+.anket-izgi{display:block;margin-top:7px;height:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--yazi) 12%,var(--zemin))}
+.anket-izgi .anket-bar{display:block;height:100%;width:var(--y,0%);border-radius:999px;background:var(--yazi2)}
+.anket-sec.sonuc.en{border-color:var(--vurgu)}
+.anket-sec.sonuc.en .anket-ad{font-weight:800}
+.anket-sec.sonuc.en .anket-izgi .anket-bar{background:var(--vurgu)}
+.anket.kucuk .anket-sec.sonuc.grafik{padding:6px 10px 8px}
+@keyframes anketDol{from{width:0}}
+@media (prefers-reduced-motion:no-preference){ .anket-izgi .anket-bar{animation:anketDol .8s cubic-bezier(.2,.8,.2,1) both} }
+.anket-grup{margin:18px 16px 4px;font-size:15px;font-weight:700;color:var(--yazi2)}
+.daha-sar{display:flex;justify-content:center;padding:18px 16px 24px}
