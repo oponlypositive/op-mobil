@@ -1,5 +1,6 @@
 // OP – Only Positive · tek sayfa uygulama (bağımlılıksız, sade X iskeleti)
 "use strict";
+// gecis-019: yazı serileri + çoklu kayıt listeleri + iç huzur kategorileri + Takip/Yakınımda düzeltmesi (bölümler "gecis-019" ile işaretli)
 const $ = (s, k = document) => k.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const guvenliUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "");
@@ -36,11 +37,12 @@ const sakla = { al(k, v) { try { const x = localStorage.getItem(k); return x ===
 // ---------- sabitler ----------
 const AVATARLAR = ["🌞", "🌻", "🐱", "🐶", "🦊", "🐼", "🐨", "🦄", "🐸", "🐙", "🦋", "🌈", "🍉", "🍓", "🚀", "⭐", "🎈", "🎨"];
 const RENKLER = ["#CDE7EC", "#F3E3B3", "#E6D5F2", "#D5ECD9", "#F6D5D0", "#D9DEE8"];
-const KATEGORI = { bilim: ["Bilim", "Science"], saglik: ["Sağlık", "Health"], doga: ["Doğa", "Nature"], hayvanlar: ["Hayvanlar", "Animals"], iyilik: ["İyilik", "Kindness"],
+const KATEGORI = { huzur: ["İç Huzur", "Inner Peace"], gelisim: ["Kişisel Gelişim", "Personal Growth"], yasam: ["Sağlıklı Yaşam", "Healthy Living"],   // gecis-019: iç huzur teması, Keşfet ve ilgi seçiminde ÖNDE
+  bilim: ["Bilim", "Science"], saglik: ["Sağlık", "Health"], doga: ["Doğa", "Nature"], hayvanlar: ["Hayvanlar", "Animals"], iyilik: ["İyilik", "Kindness"],
   sanat: ["Sanat", "Arts"], spor: ["Spor", "Sports"], teknoloji: ["Teknoloji", "Tech"], mahalle: ["Mahalle", "Neighborhood"],
   felsefe: ["Felsefe", "Philosophy"], edebiyat: ["Edebiyat", "Literature"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji", "Mythology"], gokbilim: ["Gökbilim", "Astronomy"],
   resim: ["Resim", "Paintings"], sohbet: ["Sorular", "Questions"], mutfak: ["Mutfak", "Kitchen"], oyun: ["Oyun", "Games"], tarih: ["Tarih", "History"] };   // sohbet kategorisi çipte "Sorular" (genel "sohbet" sözcüğüyle çakışmasın)
-const KAT_ACIKLAMA = { bilim: ["Keşifler ve buluşlar", "Discoveries and breakthroughs"], saglik: ["Sağlık ve iyileşme", "Health and recovery"], doga: ["Doğa ve çevre", "Nature and environment"],
+const KAT_ACIKLAMA = { huzur: ["Sakinlik, nefes ve dikkat", "Calm, breath and attention"], gelisim: ["Küçük alışkanlıklar ve öğrenme", "Small habits and learning"], yasam: ["Uyku, beslenme ve hareket", "Sleep, food and movement"], bilim: ["Keşifler ve buluşlar", "Discoveries and breakthroughs"], saglik: ["Sağlık ve iyileşme", "Health and recovery"], doga: ["Doğa ve çevre", "Nature and environment"],
   hayvanlar: ["Hayvanlar ve patili dostlar", "Animals and pets"], iyilik: ["Küçük ve büyük iyilikler", "Acts of kindness"], sanat: ["Sanat, müzik, tasarım", "Art, music, design"],
   spor: ["Spor başarıları ve güzel anlar", "Sports wins and great moments"], teknoloji: ["Teknoloji ve yenilikler", "Technology and innovation"], mahalle: ["Mahalle ve şehirlerden", "From neighborhoods and cities"],
   felsefe: ["Felsefe: düşünür sözleri", "Philosophy: thinkers' quotes"], edebiyat: ["Edebiyat alıntıları", "Literary quotes"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji ve eski anlatılar", "Mythology and old tales"], gokbilim: ["Gökbilim ve uzay", "Astronomy and space"] , resim: ["Ünlü tablolar ve öyküleri", "Famous paintings and their stories"], sohbet: ["Topluluğa küçük sorular", "Small questions for the community"], mutfak: ["Tarifler ve içecekler", "Recipes and drinks"], oyun: ["Nostaljik ve geleneksel oyunlar", "Nostalgic and traditional games"], tarih: ["Tarihten güzel anlar", "Lovely moments from history"] };
@@ -130,6 +132,26 @@ Object.assign(T.en, {
 });
 T.tr.bildirimMetin.alinti = "gönderini alıntıladı"; T.en.bildirimMetin.alinti = "quoted your post";
 T.tr.bildirimMetin.bahset = "senden bahsetti"; T.en.bildirimMetin.bahset = "mentioned you";   // @etiket (gecis-017)
+
+// gecis-019: yazı serileri + çoklu kayıt listeleri
+Object.assign(T.tr, { seriSekme: "Yazı serileri", gonderiSekme: "Gönderiler", seri: "Seri", yeniSeri: "Yeni seri", seriAd: "Seri adı", seriAciklama: "Açıklama (isteğe bağlı)", ustSeri: "Üst seri (isteğe bağlı)", ustYok: "Yok (ana seri)",
+  seriOlustur: "Oluştur", seriDuzenle: "Adı ve açıklamayı düzenle", seriSil: "Seriyi sil", seriSilSor: "Bu seri silinsin mi? Alt seriler de silinir; gönderilerin silinmez, yalnız seriden çıkar.", seriSilindi: "Seri silindi",
+  seriBos: "Henüz yazı serin yok. Gönderilerini bir seride toplayabilirsin.", seriBosBaskasi: "Henüz yazı serisi yok.", seriBosGonderi: "Bu seride henüz gönderi yok.", seriAltEkle: "Alt seri ekle",
+  seriyeEkle: "Seriye ekle", seridenCikar: "Seriden çıkar", seriEklendi: "Seriye eklendi", seriCikarildi: "Seriden çıkarıldı", seriSec: "Hangi seriye?", seriKaydedildi: "Seri kaydedildi",
+  seriGonderi: (n) => `${n} gönderi`, seriSayi: (n) => `${n} seri`, seriSira: (n) => (n ? `Sıra ${n}` : "Seri"), seriAra: (a) => `Seri: ${a}. Seriyi aç`, seriAltBaslik: "Alt seriler", seriGonderiler: "Gönderiler", seriPaylas: "Seriyi paylaş",
+  seriAdKisa: "Seri adı en az 2 karakter olmalı.", seriYolu: "Seri yolu", seriYokListe: "Henüz serin yok; aşağıdan ilkini oluştur.",
+  listeyeEkle: "Listeye ekle", tumu: "Tümü", yeniListe: "Yeni liste", listeAd: "Liste adı", listeOlustur: "Oluştur", listeBos: "Bu listede henüz gönderi yok. Bir gönderiyi kaydedip “Listeye ekle”ye dokun.",
+  listeAdlandir: "Yeniden adlandır", listeSil: "Listeyi sil", listeSilSor: "Bu liste silinsin mi? Gönderiler kaydedilenlerden çıkmaz.", listeSilindi: "Liste silindi", listeSecici: "Listeye ekle", listeAdKisa: "Liste adı yaz.", listeYok: "Henüz listen yok; aşağıdan oluştur.",
+  listeAdlandirildi: "Liste güncellendi", kayitListelerim: "Kayıt listeleri" });
+Object.assign(T.en, { seriSekme: "Series", gonderiSekme: "Posts", seri: "Series", yeniSeri: "New series", seriAd: "Series name", seriAciklama: "Description (optional)", ustSeri: "Parent series (optional)", ustYok: "None (top level)",
+  seriOlustur: "Create", seriDuzenle: "Edit name and description", seriSil: "Delete series", seriSilSor: "Delete this series? Sub-series are deleted too; your posts are NOT deleted, they just leave the series.", seriSilindi: "Series deleted",
+  seriBos: "You have no series yet. You can gather your posts in a series.", seriBosBaskasi: "No series yet.", seriBosGonderi: "No posts in this series yet.", seriAltEkle: "Add sub-series",
+  seriyeEkle: "Add to series", seridenCikar: "Remove from series", seriEklendi: "Added to the series", seriCikarildi: "Removed from the series", seriSec: "Which series?", seriKaydedildi: "Series saved",
+  seriGonderi: (n) => `${n} post${n === 1 ? "" : "s"}`, seriSayi: (n) => `${n} series`, seriSira: (n) => (n ? `No. ${n}` : "Series"), seriAra: (a) => `Series: ${a}. Open the series`, seriAltBaslik: "Sub-series", seriGonderiler: "Posts", seriPaylas: "Share series",
+  seriAdKisa: "The series name needs at least 2 characters.", seriYolu: "Series path", seriYokListe: "You have no series yet; create your first one below.",
+  listeyeEkle: "Add to list", tumu: "All", yeniListe: "New list", listeAd: "List name", listeOlustur: "Create", listeBos: "No posts in this list yet. Bookmark a post and tap “Add to list”.",
+  listeAdlandir: "Rename", listeSil: "Delete list", listeSilSor: "Delete this list? The posts stay in your bookmarks.", listeSilindi: "List deleted", listeSecici: "Add to list", listeAdKisa: "Write a list name.", listeYok: "You have no lists yet; create one below.",
+  listeAdlandirildi: "List updated", kayitListelerim: "Bookmark lists" });
 Object.assign(T.tr, { etiketOneri: "Hesap önerileri", botKuyruk: (ad) => `${ad} sorunu aldı; yanıtı biraz zaman alabilir.`, botGunluk: "Bugün OP hesaplarına en fazla 5 soru sorabilirsin; yarın yine bekleriz.",
   botYogun: (ad) => `${ad} şu an çok soru aldı; biraz sonra tekrar dener misin?`, botKonu: (ad) => `${ad} bir konuda en fazla 2 kez yanıt verir.`, botNot: "Bu bir OP içerik hesabıdır, yanıtları yapay zekâ yazar." });
 Object.assign(T.en, { etiketOneri: "Account suggestions", botKuyruk: (ad) => `${ad} got your question; the reply may take a little while.`, botGunluk: "You can ask OP accounts up to 5 questions a day; we'll be happy to see you again tomorrow.",
@@ -350,6 +372,12 @@ const IK = {   // satır içi çizgi ikonlar
   k_oyun: '<rect x="4" y="4" width="16" height="16" rx="3.500"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>',
   k_tarih: '<path d="M9 3h6"/><path d="M10 3.500c0 1.500-2.500 2.500-2.500 6 0 5 1.500 8 4.500 11.500 3-3.500 4.500-6.500 4.500-11.500 0-3.500-2.500-4.500-2.500-6"/><path d="M8 11h8"/>',
   k_genel: '<circle cx="12" cy="12" r="9"/><path d="M8.500 12.500l2.500 2.500 4.500-5"/>',
+  k_huzur: '<path d="M3 9c2.500-2 4.500-2 7 0s4.500 2 7 0c1.500-1.200 2.700-1.500 4-1.500"/><path d="M3 15c2.500-2 4.500-2 7 0s4.500 2 7 0c1.500-1.200 2.700-1.500 4-1.500"/>',
+  k_gelisim: '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.500 7-6.500 0 4-3 6.500-7 6.500z"/><path d="M12 15.500c0-3-2.200-5-5.500-5 0 3 2.200 5 5.500 5z"/>',
+  k_yasam: '<path d="M12 7.500c-1.500-1.500-4-1.800-5.500 0C4.500 10 5.500 15.500 8 18.500c1.200 1.400 2.500 1.600 4 .8 1.500.8 2.800.6 4-.8 2.500-3 3.500-8.500 1.500-11-1.500-1.800-4-1.500-5.500 0z"/><path d="M12 7.500c0-2 .8-3.500 2.500-4.500"/>',
+  tik: '<path d="M5 12.500l4.500 4.500L19 7.500"/>',
+  seri: '<path d="M12 3l9 4.500-9 4.500-9-4.500z"/><path d="M3 12l9 4.500 9-4.500"/><path d="M3 16.500l9 4.500 9-4.500"/>',
+  liste: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3.500 6h.01"/><path d="M3.500 12h.01"/><path d="M3.500 18h.01"/>',
   k_gokbilim: '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/><path d="M17 3v4"/><path d="M15 5h4"/>',
   editor: '<path d="M12 20h9"/><path d="M16.500 3.500a2.100 2.100 0 013 3L7 19l-4 1 1-4z"/>',
 };
@@ -434,7 +462,7 @@ function videoHtml(v, detay) {   // akış: sessiz otomatik oynatma + kendi dene
 }
 // görselsiz haber için OP tasarım kartı (yalnız CSS/SVG, dosya yok): 16:9, kategoriye göre sakin tek ton, çizgi ikon + etiket + başlık + OP logosu
 const HK_TON = { bilim: "petrol", teknoloji: "petrol", spor: "petrol", saglik: "yesil", doga: "yesil", hayvanlar: "yesil", iyilik: "altin", sanat: "altin", mahalle: "altin",
-  edebiyat: "altin", siir: "altin", felsefe: "derin", mitoloji: "derin", gokbilim: "derin", resim: "altin", sohbet: "petrol", mutfak: "altin", oyun: "yesil", tarih: "derin", genel: "petrol" };
+  edebiyat: "altin", siir: "altin", felsefe: "derin", mitoloji: "derin", gokbilim: "derin", resim: "altin", sohbet: "petrol", mutfak: "altin", oyun: "yesil", tarih: "derin", huzur: "petrol", gelisim: "altin", yasam: "yesil", genel: "petrol" };
 const HK_ALINTI = new Set(["felsefe", "edebiyat", "siir", "mitoloji"]);   // tırnaklı alıntı düzeni
 const yazarAdiMi = (x) => x.length <= 40 && x.split(/\s+/).length <= 5 && !/[.!?;:"“”,]/.test(x);
 function haberKartHtml(o, detay = false) {
@@ -568,7 +596,7 @@ function satirHtml(o) {
     <div class="satir-ic"><span class="sol" data-profil="${esc(y?.handle)}">${avatarHtml(y)}</span>
       <div class="govde"><div class="kim"><span class="ad" data-profil="${esc(y?.handle)}">${esc(y?.ad)}</span>${rozetHtml(y)}
         <span class="gri kisa" data-profil="${esc(y?.handle)}">@${esc(y?.handle)}</span><span class="gri zaman">· ${zamanYaz(o.zaman)}</span>${o.duzenlendi ? `<span class="gri duzenlendi">· ${t("duzenlendi")}</span>` : ""}${menuDug("gonderi", o.id, y, o)}</div>
-        ${metinHtml(o)}${anketHtml(o.id, o.anket)}${ekHtml(o)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${eylemHtml(o)}</div></div></article>`;
+        ${metinHtml(o)}${anketHtml(o.id, o.anket)}${ekHtml(o)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${seriSatiriHtml(o)}${eylemHtml(o)}</div></div></article>`;
 }
 function detayGonHtml(o) {
   const y = o.yazar, sayac = [[o.yanitSayisi, t("yanit")], [o.yaySayisi, t("yeniPay")], [o.alintiSayisi, t("alintilar"), 1], [o.begeniSayisi, t("begeni")], [o.goruntulenme, t("goruntulenme"), 0, 1]].filter(([n]) => n);
@@ -576,7 +604,7 @@ function detayGonHtml(o) {
   return `<article class="detay-gon" data-oge="${o.id}" data-gor="detay">
     <div class="detay-ust"><span data-profil="${esc(y?.handle)}">${avatarHtml(y)}</span>
       <div class="detay-kim" data-profil="${esc(y?.handle)}"><div class="ad">${esc(y?.ad)}${rozetHtml(y)}</div><div class="gri">@${esc(y?.handle)}</div></div>${menuDug("gonderi", o.id, y, o)}</div>
-    ${metinHtml(o, true)}${anketHtml(o.id, o.anket)}${ekHtml(o, true)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}
+    ${metinHtml(o, true)}${anketHtml(o.id, o.anket)}${ekHtml(o, true)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${seriSatiriHtml(o)}
     <div class="gri detay-zaman">${esc(zaman)}${o.sehir ? " · 📍" + esc(o.sehir) : ""}${o.duzenlendi ? " · " + esc(t("duzenlendi")) : ""}</div>
     ${sayac.length ? `<div class="sayilar">${sayac.map(([n, ad, dugme, kisa]) => dugme ? `<button class="sayac-dug" data-e="alintilar" data-id="${o.id}" aria-expanded="${!!document.querySelector("#alinti-bolum")}"><b>${n}</b> ${ad}</button>` : `<span><b>${kisa ? kisaSayi(n) : n}</b> ${ad}</span>`).join("")}</div>` : ""}${eylemHtml(o)}</article>`;
 }
@@ -629,6 +657,9 @@ function okunanlarAlta(l) {   // görülmeyenler başa, görülenler sona; iki g
   }
   return ust.concat(yeni, eski);
 }
+// gecis-019: "Takip" ve "Yakınımda"da kişinin KENDİ gönderisi görünmez (sunucu da süzer; bu savunma eski sunucuya karşı). Sayfalama imleci/bitiş HAM listeden hesaplanır, yalnız çizilecek liste süzülür.
+// "Senin İçin"deki okunanlar-alta / kendi-yeni-gönderi-üstte (okunanlarAlta) mantığıyla çelişmez: o yalnız Senin İçin'de kendi gönderi bulunduğunda çalışır.
+function kendiSusle(l) { return !G.kategori && D.ben && (D.sekme === "takip" || D.sekme === "yakin") ? l.filter(o => o.yazar?.handle !== D.ben.handle) : l; }
 async function akisSayfaCek(imlec) {
   // konu (kategori) sayfası sekmeden bağımsızdır: Takip/Yakınımda sekmesindeyken açılınca boş geliyordu ("Bilim 7" yazıp "burada bir şey yok" demesi)
   const q = new URLSearchParams({ sekme: G.kategori ? "senin" : D.sekme, sehir: G.kategori ? "" : (D.ben?.sehir || ""), kategori: G.kategori, sinir: SAYFA }); if (imlec) q.set("once", imlec);
@@ -642,7 +673,7 @@ async function akisIlkSayfalar() {   // ilk sayfa görülmüşlerle doluysa (≥
     bitti = sy.length < SAYFA;
     if (bitti || !kisisel || liste.filter(o => !gorulen.has(o.id)).length >= 10) break;
   }
-  return { ogeler: kisisel ? okunanlarAlta(liste) : liste, imlec, bitti, enYeni: zamanKarsilastir(liste, true), zaman: Date.now() };
+  return { ogeler: kisisel ? okunanlarAlta(kendiSusle(liste)) : liste, imlec, bitti, enYeni: zamanKarsilastir(liste, true), zaman: Date.now() };
 }
 function akisIcerikHtml(a) {
   const sat = a.ogeler.map(satirHtml), kart = G.kategori ? "" : onerilenHtml("akis");
@@ -676,7 +707,7 @@ async function arkaTazele(my, anahtar) {
     const sy = await akisSayfaCek(null);
     if (my !== D.cizim || !D.akis || D.akis.anahtar !== anahtar) return;
     const var_ = new Map(D.akis.ogeler.map(o => [o.id, o])); let yeni = 0;
-    for (const o of sy) { const e = var_.get(o.id); if (!e) yeni++; else if (sayacFarkli(e, o)) eylemYama({ id: o.id, begeniSayisi: o.begeniSayisi, yaySayisi: o.yaySayisi, yanitSayisi: o.yanitSayisi, alintiSayisi: o.alintiSayisi, goruntulenme: o.goruntulenme, begendimMi: o.begendimMi, yaydimMi: o.yaydimMi, kaydettimMi: o.kaydettimMi }); }
+    for (const o of kendiSusle(sy)) { const e = var_.get(o.id); if (!e) yeni++; else if (sayacFarkli(e, o)) eylemYama({ id: o.id, begeniSayisi: o.begeniSayisi, yaySayisi: o.yaySayisi, yanitSayisi: o.yanitSayisi, alintiSayisi: o.alintiSayisi, goruntulenme: o.goruntulenme, begendimMi: o.begendimMi, yaydimMi: o.yaydimMi, kaydettimMi: o.kaydettimMi }); }
     if (yeni) yeniHapGoster(yeni);
   } catch { /* sessiz */ }
 }
@@ -690,7 +721,7 @@ async function dahaYukle() {
   try {
     const sy = await akisSayfaCek(a.imlec);
     if (my !== D.cizim || D.akis !== a) return;
-    const var_ = new Set(a.ogeler.map(o => o.id)), taze = sy.filter(o => !var_.has(o.id));
+    const var_ = new Set(a.ogeler.map(o => o.id)), taze = kendiSusle(sy).filter(o => !var_.has(o.id));
     a.bitti = sy.length < SAYFA; if (sy.length) a.imlec = zamanKarsilastir(sy, false);
     const ekle = G.kategori ? taze : okunanlarAlta(taze);
     a.ogeler.push(...ekle);
@@ -754,21 +785,222 @@ async function bildirimCiz(my) {
       <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin"><b>${esc(b.kimden?.ad)}</b> ${bm[b.tur] || ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
       <div class="gri">${zamanYaz(b.zaman)}</div></div></div></div></div>`).join("") : bosHtml(t("bosBildirim"))));
 }
+// ---------- yazı serileri (gecis-019) ----------
+const profilSeriSekmesi = () => !!D.profilV && Array.isArray(D.profilV.seriler) && (D.profilV.benim || D.profilV.seriler.length > 0);
+function profilSekmeHtml() {
+  if (!profilSeriSekmesi()) return "";
+  const sec = G.psekme === "seri" ? "seri" : "gonderi", b = (id, ad) => `<button role="tab" class="psekme ${sec === id ? "secili" : ""}" aria-selected="${sec === id}" data-e="psekme" data-s="${id}"><span>${esc(t(ad))}</span></button>`;
+  return `<nav class="psekmeler" role="tablist">${b("gonderi", "gonderiSekme")}${b("seri", "seriSekme")}</nav>`;
+}
+function profilAltHtml() {
+  const p = D.profilV; if (!p) return "";
+  if (G.psekme === "seri" && profilSeriSekmesi()) return seriPanelHtml(p.seriler, p.benim);
+  return `<div class="profil-gonderiler">${p.gonderiler.length ? p.gonderiler.map(satirHtml).join("") : bosHtml(t("bosAkis"))}</div>`;
+}
+function profilAltYenile() {
+  const a = $(".profil-alt"); if (!a) return;
+  D.ogeler = G.psekme === "seri" ? [] : D.profilV.gonderiler;
+  const nav = $(".psekmeler"); if (nav) nav.outerHTML = profilSekmeHtml();
+  a.innerHTML = profilAltHtml();
+}
+function seriAgaci(liste) {   // düz liste (derinlik, sıra) → [{...seri, cocuklar}]
+  const harita = new Map(liste.map(x => [x.id, { ...x, cocuklar: [] }])), kok_ = [];
+  for (const x of harita.values()) { const u = x.ustId && harita.get(x.ustId); (u ? u.cocuklar : kok_).push(x); }
+  return kok_;
+}
+function seriSatirlariHtml(dugumler, derin = 0) {
+  return dugumler.map(x => `<button class="seri-oge" style="--d:${derin}" data-e="seri-ac" data-id="${esc(x.id)}">${ikon("seri", 22)}<span class="seri-ad"><b>${esc(x.ad)}</b>${x.aciklama ? `<span class="gri">${esc(x.aciklama)}</span>` : ""}</span>
+    <span class="gri seri-say">${esc(t("seriGonderi", x.toplam ?? x.sayi ?? 0))}</span>${ikon("sag", 18)}</button>` + seriSatirlariHtml(x.cocuklar || [], derin + 1)).join("");
+}
+function seriPanelHtml(seriler, benim) {
+  const ust = benim ? `<div class="seri-ust-sira"><span class="gri">${esc(t("seriSayi", seriler.length))}</span><button class="dug kucuk" data-e="seri-yeni">${ikon("yaz", 16)} ${esc(t("yeniSeri"))}</button></div>` : "";
+  return ust + (seriler.length ? `<div class="seri-agac">${seriSatirlariHtml(seriAgaci(seriler))}</div>` : bosHtml(t(benim ? "seriBos" : "seriBosBaskasi")));
+}
+function seriSatiriHtml(o) {   // gönderi kartında/detayda: "Seri: Ad › 3"; dokununca seri sayfası. Seri sayfasının kendisinde yalnız sıra rozeti
+  const x = o && o.seri; if (!x) return "";
+  const kendi = G.sayfa === "seri" && G.id === x.id, metin = kendi ? t("seriSira", x.sira) : `${t("seri")}: ${x.ad}${x.sira ? " › " + x.sira : ""}`;
+  return `<button class="seri-satir" data-e="seri-ac" data-id="${esc(x.id)}" aria-label="${esc(t("seriAra", x.ad))}">${ikon("seri", 15)}<span>${esc(metin)}</span></button>`;
+}
+async function seriCiz(my) {
+  kok().innerHTML = kabuk(iskelet, { geri: true });
+  const v = await api(`/api/seri/${encodeURIComponent(G.id)}`).catch(() => null);
+  if (my !== D.cizim) return;
+  if (!v) { kok().innerHTML = kabuk(bosHtml(t("yok")), { geri: true }); return; }
+  D.seri = v; D.ogeler = v.ogeler;
+  const x = v.seri, y = x.sahip, benim = !!D.ben && y?.handle === D.ben.handle;
+  const yol = [`<span class="seri-yol-oge" data-profil="${esc(y?.handle)}" role="link" tabindex="0">@${esc(y?.handle)}</span>`, ...(x.yol || []).map(u => `<button type="button" class="seri-yol-oge" data-e="seri-ac" data-id="${esc(u.id)}">${esc(u.ad)}</button>`)];
+  kok().innerHTML = kabuk(`<div class="seri-ust">
+      <nav class="seri-yol gri" aria-label="${esc(t("seriYolu"))}">${yol.join('<span aria-hidden="true"> › </span>')}</nav>
+      <div class="seri-baslik-sira"><h1 class="seri-baslik">${ikon("seri", 24)}<span>${esc(x.ad)}</span></h1>
+        <button class="ikon-dug" data-e="seri-paylas" data-id="${esc(x.id)}" aria-label="${esc(t("seriPaylas"))}">${ikon("paylas", 20)}</button>
+        ${benim ? `<button class="menu-dug" data-e="seri-menu" data-id="${esc(x.id)}" aria-label="${bt("menu")}">•••</button>` : ""}</div>
+      ${x.aciklama ? `<p class="bio seri-aciklama">${esc(x.aciklama)}</p>` : ""}
+      <div class="gri seri-meta"><span data-profil="${esc(y?.handle)}">${esc(y?.ad)}</span> · ${esc(t("seriGonderi", x.toplam ?? 0))}</div></div>` +
+    (v.altSeriler.length ? `<h2 class="seri-ara-baslik">${esc(t("seriAltBaslik"))}</h2><div class="seri-agac">${seriSatirlariHtml(v.altSeriler.map(c => ({ ...c, cocuklar: [] })))}</div>` : "") +
+    `<h2 class="seri-ara-baslik">${esc(t("seriGonderiler"))}</h2><div class="seri-gonderiler">${v.ogeler.length ? v.ogeler.map(satirHtml).join("") : bosHtml(t("seriBosGonderi"))}</div>`, { geri: true });
+}
+function seriMenuAc(id) {
+  const x = D.seri?.seri; if (!x || x.id !== id) return;
+  sheet(sheetUst(x.ad) + `<button class="liste-satir" data-e="seri-duzenle" data-id="${esc(id)}"><span class="ad">${esc(t("seriDuzenle"))}</span></button>
+    ${x.derinlik < 3 ? `<button class="liste-satir" data-e="seri-yeni" data-ust="${esc(id)}"><span class="ad">${esc(t("seriAltEkle"))}</span></button>` : ""}
+    <button class="liste-satir sil-satir" data-e="seri-sil-sor" data-id="${esc(id)}"><span class="ad">${esc(t("seriSil"))}</span></button>`);
+}
+const seriDuzListe = (liste) => { const o = []; const yur = (dg, derin) => dg.forEach(x => { o.push({ ...x, derin }); yur(x.cocuklar, derin + 1); }); yur(seriAgaci(liste), 0); return o; };   // ağaç sırasıyla düz liste (girintili seçici için)
+async function seriFormAc({ id = "", ustId = "", postId = "" } = {}) {   // id: yeniden adlandır · ustId: alt seri · postId: oluşturunca bu gönderiyi ekle
+  if (girisGerekli()) return;
+  let secenek = "", mevcut = null;
+  if (id) mevcut = D.seri?.seri?.id === id ? D.seri.seri : (D.profilV?.seriler || []).find(x => x.id === id) || null;
+  else if (!ustId) {
+    try { const v = await api(`/api/kullanici/${encodeURIComponent(D.ben.handle)}/seriler`); secenek = seriDuzListe(v.seriler.filter(x => x.derinlik < 3)).map(x => `<option value="${esc(x.id)}">${"— ".repeat(x.derin)}${esc(x.ad)}</option>`).join(""); } catch { /* seçici olmadan da oluşturulur */ }
+  }
+  sheet(sheetUst(t(id ? "seriDuzenle" : ustId ? "seriAltEkle" : "yeniSeri")) +
+    `<div class="alan"><label for="sr-ad">${esc(t("seriAd"))}</label><input id="sr-ad" maxlength="60" autocomplete="off" value="${esc(mevcut?.ad || "")}"></div>
+    <div class="alan"><label for="sr-ac">${esc(t("seriAciklama"))}</label><textarea id="sr-ac" maxlength="200" rows="3">${esc(mevcut?.aciklama || "")}</textarea></div>
+    ${secenek ? `<div class="alan"><label for="sr-ust">${esc(t("ustSeri"))}</label><select id="sr-ust"><option value="">${esc(t("ustYok"))}</option>${secenek}</select></div>` : ""}
+    <div id="ipucu"></div><button class="dug tam" data-e="seri-form-gonder" data-id="${esc(id)}" data-ust="${esc(ustId)}" data-post="${esc(postId)}">${esc(t(id ? "kaydet" : "seriOlustur"))}</button>`);
+  $("#sr-ad")?.focus({ preventScroll: true });
+}
+async function seriFormGonder(dugme) {
+  const f = dugme.closest(".sheet"), ad = $("#sr-ad", f).value.trim(), ac = $("#sr-ac", f).value.trim(), { id, ust, post } = dugme.dataset, ustId = ust || $("#sr-ust", f)?.value || "";
+  if ([...ad].length < 2) return ipucuYaz(t("seriAdKisa"));
+  dugme.disabled = true;
+  try {
+    const sn = id ? await api(`/api/seri/${encodeURIComponent(id)}/duzenle`, { ad, aciklama: ac }) : await api("/api/seri", { ad, aciklama: ac || null, ...(ustId ? { ustId } : {}) });
+    if (post) { const o = await api(`/api/oge/${encodeURIComponent(post)}/seri`, { seriId: sn.seri.id }); ogeGuncelle({ seri: null, ...o.oge }); }
+    sheetKapat(); tost(t(post ? "seriEklendi" : "seriKaydedildi"));
+    if (G.sayfa === "profil" || G.sayfa === "seri") ciz(false, true);
+  } catch (er) { dugme.disabled = false; if (er.durum === 401) return hataGoster(er); ipucuYaz(er.message); }
+}
+function seriSilSor(id) {
+  sheet(sheetUst(t("seriSil")) + `<p class="gri">${esc(t("seriSilSor"))}</p><button class="dug tam tehlike" data-e="seri-sil-evet" data-id="${esc(id)}">${esc(t("seriSil"))}</button><button class="dug ikincil tam" data-e="sheet-kapat">${t("vazgec")}</button>`);
+}
+async function seriSilEvet(id, dugme) {
+  dugme.disabled = true;
+  try { await api(`/api/seri/${encodeURIComponent(id)}`, null, "DELETE"); }
+  catch (er) { dugme.disabled = false; sheetKapat(); return hataGoster(er); }
+  sheetKapat(); tost(t("seriSilindi")); onbSil();
+  if (G.sayfa === "seri" && G.id === id) { if (yigin.length) return history.back(); return gotur({ sayfa: "profil", handle: D.ben.handle }, false); }
+  ciz(false, true);
+}
+async function seriSeciciAc(postId) {   // kendi gönderisini bir seriye ekle / taşı: seri seçici + "yeni seri"
+  if (girisGerekli()) return;
+  sheet(sheetUst(t("seriSec")) + `<div id="seri-sec-icerik">${iskelet}</div>`);
+  let v; try { v = await api(`/api/kullanici/${encodeURIComponent(D.ben.handle)}/seriler`); } catch (e) { sheetKapat(); return hataGoster(e); }
+  const o = ogeBul(postId), simdiki = o?.seri?.id, duz = seriDuzListe(v.seriler), kutu = $("#seri-sec-icerik");
+  if (!kutu) return;
+  kutu.innerHTML = (duz.length ? duz.map(x => `<button class="liste-satir seri-sec-satir" style="--d:${x.derin}" data-e="seri-ata" data-id="${esc(postId)}" data-s="${esc(x.id)}" aria-pressed="${x.id === simdiki}">${ikon("seri", 20)}<span class="ad">${esc(x.ad)}</span>${x.id === simdiki ? ikon("tik", 20) : ""}</button>`).join("") : `<p class="gri">${esc(t("seriYokListe"))}</p>`) +
+    `<button class="dug ikincil tam" data-e="seri-yeni" data-post="${esc(postId)}">${ikon("yaz", 16)} ${esc(t("yeniSeri"))}</button>`;
+}
+async function seriAta(postId, seriId, el) {   // seriId boş = seriden çıkar. `seri: null` + sunucu nesnesi: sunucu nesnesinde alan yoksa eski değer birleşimde kalmasın
+  if (el) el.disabled = true;
+  try { const v = await api(`/api/oge/${encodeURIComponent(postId)}/seri`, { seriId: seriId || null }); sheetKapat(); onbSil(); ogeGuncelle({ seri: null, ...v.oge }); tost(t(seriId ? "seriEklendi" : "seriCikarildi")); if (G.sayfa === "seri") ciz(false, true); }
+  catch (e) { if (el) el.disabled = false; sheetKapat(); hataGoster(e); }
+}
+function seriPaylas(id) {
+  const url = `${NATIF ? (YAPI.site || "https://onlypositive.org").replace(/\/$/, "") : location.origin}/#s=${id}`, ad = D.seri?.seri?.ad || "OP";
+  if (NATIF && window.OP_MOBIL?.paylas) { window.OP_MOBIL.paylas({ title: "OP", text: ad, url }).catch(() => {}); return; }
+  if (navigator.share) navigator.share({ title: "OP", text: ad, url }).catch(() => {});
+  else baglantiKopyala(url).then(() => tost(t("kopyalandi"))).catch(() => tost(url));
+}
+
+// ---------- çoklu kayıt listeleri (gecis-019; yazı serilerinden bağımsız, yalnız kişinin kendisi görür) ----------
+function listeIzgaraHtml(listeler, tumu) {
+  return `<div class="liste-izgara" role="list" aria-label="${esc(t("kayitListelerim"))}"><div class="liste-kart secili" role="listitem" aria-current="true">${ikon("kayit", 22, true)}<b>${esc(t("tumu"))}</b><span class="gri">${esc(t("seriGonderi", tumu))}</span></div>` +
+    listeler.map(l => `<button class="liste-kart" role="listitem" data-e="liste-ac" data-id="${esc(l.id)}">${ikon("liste", 22)}<b>${esc(l.ad)}</b><span class="gri">${esc(t("seriGonderi", l.sayi))}</span></button>`).join("") +
+    `<button class="liste-kart yeni" data-e="liste-yeni">${ikon("yaz", 22)}<b>${esc(t("yeniListe"))}</b></button></div>`;
+}
 async function kayitCiz(my) {
   const bas = `<h1 class="baslik">${t("kayitlar")}</h1>`;
   kok().innerHTML = kabuk(bas + iskelet, { geri: true });
-  const v = await api("/api/kayitlar").catch(() => ({ ogeler: [] }));
+  const [v, lv] = await Promise.all([api("/api/kayitlar").catch(() => ({ ogeler: [] })), api("/api/kayit-listeleri").catch(() => ({ listeler: [] }))]);
   if (my !== D.cizim) return;
-  D.ogeler = v.ogeler;
-  kok().innerHTML = kabuk(bas + (v.ogeler.length ? v.ogeler.map(satirHtml).join("") : bosHtml(t("bosKayit"))), { geri: true });
+  D.ogeler = v.ogeler; D.listeler = lv.listeler || [];
+  kok().innerHTML = kabuk(bas + (lv.listeler ? listeIzgaraHtml(lv.listeler, v.ogeler.length) : "") + (v.ogeler.length ? v.ogeler.map(satirHtml).join("") : bosHtml(t("bosKayit"))), { geri: true });
 }
+async function kayitListeCiz(my) {
+  kok().innerHTML = kabuk(iskelet, { geri: true });
+  const v = await api(`/api/kayit-listeleri/${encodeURIComponent(G.id)}`).catch(() => null);
+  if (my !== D.cizim) return;
+  if (!v) { kok().innerHTML = kabuk(bosHtml(t("yok")), { geri: true }); return; }
+  D.ogeler = v.ogeler; D.liste = v.liste;
+  kok().innerHTML = kabuk(`<div class="baslik-sira"><h1 class="baslik">${esc(v.liste.ad)}</h1><button class="menu-dug" data-e="liste-menu" data-id="${esc(v.liste.id)}" aria-label="${bt("menu")}">•••</button></div>` +
+    `<div class="gri seri-meta liste-meta">${esc(t("seriGonderi", v.ogeler.length))}</div>` + (v.ogeler.length ? v.ogeler.map(satirHtml).join("") : bosHtml(t("listeBos"))), { geri: true });
+}
+function listeMenuAc(id) {
+  const l = D.liste; if (!l || l.id !== id) return;
+  sheet(sheetUst(l.ad) + `<button class="liste-satir" data-e="liste-yeni" data-id="${esc(id)}" data-ad="${esc(l.ad)}"><span class="ad">${esc(t("listeAdlandir"))}</span></button>
+    <button class="liste-satir sil-satir" data-e="liste-sil-sor" data-id="${esc(id)}"><span class="ad">${esc(t("listeSil"))}</span></button>`);
+}
+function listeFormAc({ id = "", ad = "" } = {}) {   // id: yeniden adlandır
+  if (girisGerekli()) return;
+  sheet(sheetUst(t(id ? "listeAdlandir" : "yeniListe")) + `<div class="alan"><label for="ls-ad">${esc(t("listeAd"))}</label><input id="ls-ad" maxlength="40" autocomplete="off" value="${esc(ad)}"></div>
+    <div id="ipucu"></div><button class="dug tam" data-e="liste-form-gonder" data-id="${esc(id)}">${esc(t(id ? "kaydet" : "listeOlustur"))}</button>`);
+  const i = $("#ls-ad"); i?.focus({ preventScroll: true }); i?.select();
+}
+async function listeFormGonder(dugme) {
+  const ad = $("#ls-ad")?.value.trim() || "", id = dugme.dataset.id;
+  if (!ad) return ipucuYaz(t("listeAdKisa"));
+  dugme.disabled = true;
+  try { await (id ? api(`/api/kayit-listeleri/${encodeURIComponent(id)}/duzenle`, { ad }) : api("/api/kayit-listeleri", { ad })); }
+  catch (er) { dugme.disabled = false; if (er.status === 401 || er.durum === 401) return hataGoster(er); return ipucuYaz(er.message); }
+  sheetKapat(); if (id) tost(t("listeAdlandirildi")); ciz(false, true);
+}
+function listeSilSor(id) {
+  sheet(sheetUst(t("listeSil")) + `<p class="gri">${esc(t("listeSilSor"))}</p><button class="dug tam tehlike" data-e="liste-sil-evet" data-id="${esc(id)}">${esc(t("listeSil"))}</button><button class="dug ikincil tam" data-e="sheet-kapat">${t("vazgec")}</button>`);
+}
+async function listeSilEvet(id, dugme) {
+  dugme.disabled = true;
+  try { await api(`/api/kayit-listeleri/${encodeURIComponent(id)}`, null, "DELETE"); }
+  catch (er) { dugme.disabled = false; sheetKapat(); return hataGoster(er); }
+  sheetKapat(); tost(t("listeSilindi"));
+  if (G.sayfa === "kayit-liste") { if (yigin.length) return history.back(); return gotur({ sayfa: "kayit" }, false); }
+  ciz(false, true);
+}
+const listeSecSatir = (l, postId) => `<label class="onay liste-sec-satir"><input type="checkbox" data-e="liste-isaret" data-l="${esc(l.id)}" data-p="${esc(postId)}"${l.icinde ? " checked" : ""}><span><b>${esc(l.ad)}</b> <span class="gri">${esc(t("seriGonderi", l.sayi))}</span></span></label>`;
+async function listeSeciciAc(postId) {   // kaydet simgesine uzun basış ya da "Kaydedildi · Listeye ekle": mevcut listeler (onay kutulu, çoklu) + "Yeni liste"
+  if (girisGerekli()) return;
+  const s = sheet(sheetUst(t("listeSecici")) + `<div id="liste-sec-icerik">${iskelet}</div>`);
+  let v; try { v = await api(`/api/kayit-listeleri?post=${encodeURIComponent(postId)}`); } catch (e) { sheetKapat(); return hataGoster(e); }
+  const kutu = $("#liste-sec-icerik"); if (!kutu) return;
+  kutu.innerHTML = `<div class="liste-sec-liste">${(v.listeler || []).length ? v.listeler.map(l => listeSecSatir(l, postId)).join("") : `<p class="gri liste-sec-bos">${esc(t("listeYok"))}</p>`}</div>
+    <form class="liste-yeni-form" data-p="${esc(postId)}"><input class="liste-yeni-ad" maxlength="40" autocomplete="off" placeholder="${esc(t("yeniListe"))}" aria-label="${esc(t("listeAd"))}"><button class="dug kucuk" disabled>${ikon("yaz", 16)} ${esc(t("listeOlustur"))}</button></form><div id="ipucu"></div>`;
+  const ad = $(".liste-yeni-ad", kutu), form = $(".liste-yeni-form", kutu);
+  ad.addEventListener("input", () => { $("button", form).disabled = !ad.value.trim(); });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault(); const b = $("button", form), isim = ad.value.trim(); if (!isim) return; b.disabled = true;
+    try {
+      const r = await api("/api/kayit-listeleri", { ad: isim, postId });
+      $(".liste-sec-bos", kutu)?.remove(); $(".liste-sec-liste", kutu).insertAdjacentHTML("beforeend", listeSecSatir(r.liste, postId)); ad.value = ""; ipucuYaz("");
+      eylemYama({ id: postId, kaydettimMi: true });
+    } catch (er) { b.disabled = false; ipucuYaz(er.message); }
+  });
+  s.addEventListener("change", async (e) => {
+    const c = e.target.closest?.('input[data-e="liste-isaret"]'); if (!c) return;
+    const ekle = c.checked; c.disabled = true;
+    try { await api(`/api/kayit-listeleri/${encodeURIComponent(c.dataset.l)}/oge`, { postId: c.dataset.p, ekle }); if (ekle) eylemYama({ id: c.dataset.p, kaydettimMi: true }); }
+    catch (er) { c.checked = !ekle; ipucuYaz(er.message); }
+    c.disabled = false;
+  });
+}
+let uzunZ = 0, uzunTetik = false;   // kaydet simgesine uzun basış → liste seçici
+const uzunIptal = () => clearTimeout(uzunZ);
+document.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest?.(".eylem.kayit"); uzunIptal(); uzunTetik = false; if (!b || !b.dataset.id) return;
+  uzunZ = setTimeout(() => { if (!D.ben) return; uzunTetik = true; titrestir(); listeSeciciAc(b.dataset.id); }, 550);
+}, true);
+for (const olay of ["pointerup", "pointercancel", "pointerleave", "scroll"]) document.addEventListener(olay, uzunIptal, true);
+document.addEventListener("contextmenu", (e) => { if (e.target.closest?.(".eylem.kayit")) e.preventDefault(); });
+
 async function profilCiz(my) {
   const handle = G.handle || D.ben?.handle, benim = !!D.ben && handle === D.ben.handle;
   if (!handle) { girisIste(); return; }
-  const v = await api(`/api/kullanici/${encodeURIComponent(handle)}`).catch(() => null);
+  const [v, sv] = await Promise.all([api(`/api/kullanici/${encodeURIComponent(handle)}`).catch(() => null),
+    api(`/api/kullanici/${encodeURIComponent(handle)}/seriler`).catch(() => null)]);   // gecis-019: eski sunucuda uç yok → null → sekme gizli
   if (my !== D.cizim) return;
   if (!v) { kok().innerHTML = kabuk(bosHtml(t("yok")), { geri: yigin.length > 0 }); return; }
   const k = v.kullanici; D.ogeler = v.gonderiler;
+  D.profilV = { gonderiler: v.gonderiler, seriler: sv ? sv.seriler : null, benim };
+  if (G.psekme === "seri" && !profilSeriSekmesi()) G.psekme = "gonderi";
   const katildi = new Date(k.katilma).toLocaleDateString(D.dil === "en" ? "en-GB" : "tr-TR", { month: "long", year: "numeric" });
   const etiket = k.editor ? t("editor") : k.resmi ? t("resmi") : "";
   kok().innerHTML = kabuk(`<div class="profil-ust">${avatarHtml(k, "dev")}<div class="bosluk"></div>
@@ -780,7 +1012,7 @@ async function profilCiz(my) {
       ${k.bio ? `<p class="bio">${esc(k.bio)}</p>` : ""}
       <div class="gri meta">${k.sehir ? `<span>📍 ${esc(k.sehir)}</span>` : ""}<span>${esc(t("katildi", katildi))}</span></div>
       <div class="istatistik"><span><b>${k.takipSayisi}</b> ${t("takipSay")}</span><span><b>${k.takipci}</b> ${t("takipciSay")}</span></div></div>
-    <div class="profil-gonderiler">${v.gonderiler.length ? v.gonderiler.map(satirHtml).join("") : bosHtml(t("bosAkis"))}</div>`,
+    ${profilSekmeHtml()}<div class="profil-alt">${profilAltHtml()}</div>`,
     { geri: !benim || yigin.length > 0, fab: true });
 }
 function detayYaz(v) {
@@ -818,7 +1050,7 @@ async function detayCiz(my) {   // bilinen gönderi/yanıtlar ANINDA çizilir (l
 function ciz(basa = true, yen = false) {   // yen: aşağı çekip yenileme / yeniden yükle → iskelet gösterme, önbelleği kullanma
   const my = ++D.cizim; sheetKapat(); kok().onclick = kok().onkeydown = kok().onchange = null; yeniHapKapat();
   yanCiz(); veriYukle().then(() => { if (my === D.cizim) sagCiz(); });
-  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : detayCiz(my);
+  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
   if (basa) scrollTo(0, 0);
   return is.then(() => { if (!basa && my === D.cizim) scrollTo(0, G.scroll || 0); if (my === D.cizim && s === "akis") setTimeout(ilgiIlkKontrol, 400); });
 }
@@ -1372,7 +1604,7 @@ function etkilesim(tur, id) {   // İYİMSER: arayüz hemen değişir, ağ yanı
 function ogeBul(id) { return D.ogeler.find(x => x.id === id) || (D.detay?.oge.id === id ? D.detay.oge : null); }
 function kaydetDegistir(id) {
   const o = ogeBul(id), ac = !!o && !o.kaydettimMi, p = etkilesim("kaydet", id);
-  if (o) tost(t(ac ? "kaydedildi" : "kayitKalkti"));
+  if (o) { if (ac && D.ben) tostGeriAl(t("kaydedildi") + " ·", () => listeSeciciAc(id), t("listeyeEkle"), 5000); else tost(t(ac ? "kaydedildi" : "kayitKalkti")); }   // gecis-019: kaydetmek eskisi gibi; altta "Listeye ekle" kısayolu
   return p;
 }
 // marka logoları: simple-icons (CC0); yalnız "şurada paylaş" kısayolu olarak kullanılır
@@ -1487,7 +1719,28 @@ document.addEventListener("click", async e => {
     case "etiket": return gotur({ sayfa: "profil", handle: a.h }, true);   // @etiket bağlantısı
     case "alintilar": return alintilariAc(a.id);
     case "yanit": return gotur({ sayfa: "detay", id: a.id, odak: true }, true);
-    case "kaydet": if (girisGerekli()) return; return kaydetDegistir(a.id);
+    case "kaydet": if (uzunTetik) { uzunTetik = false; return; }   // uzun basış liste seçiciyi açtı: tıklama kaydetmesin
+      if (girisGerekli()) return; return kaydetDegistir(a.id);
+    // ---- gecis-019: yazı serileri + kayıt listeleri
+    case "psekme": G.psekme = a.s === "seri" ? "seri" : "gonderi"; return profilAltYenile();
+    case "seri-ac": sheetKapat(); return gotur({ sayfa: "seri", id: a.id }, true);
+    case "seri-yeni": sheetKapat(); return seriFormAc({ ustId: a.ust || "", postId: a.post || "" });
+    case "seri-duzenle": sheetKapat(); return seriFormAc({ id: a.id });
+    case "seri-form-gonder": return seriFormGonder(el);
+    case "seri-menu": return seriMenuAc(a.id);
+    case "seri-sil-sor": return seriSilSor(a.id);
+    case "seri-sil-evet": return seriSilEvet(a.id, el);
+    case "seri-paylas": return seriPaylas(a.id);
+    case "seri-sec": sheetKapat(); return seriSeciciAc(a.id);
+    case "seri-ata": return seriAta(a.id, a.s, el);
+    case "seri-cikar": sheetKapat(); return seriAta(a.id, "");
+    case "liste-ac": return gotur({ sayfa: "kayit-liste", id: a.id }, true);
+    case "liste-yeni": sheetKapat(); return listeFormAc({ id: a.id || "", ad: a.ad || "" });
+    case "liste-form-gonder": return listeFormGonder(el);
+    case "liste-menu": return listeMenuAc(a.id);
+    case "liste-sil-sor": return listeSilSor(a.id);
+    case "liste-sil-evet": return listeSilEvet(a.id, el);
+    case "liste-sec": sheetKapat(); return listeSeciciAc(a.id);
     case "devam": return gotur({ sayfa: "detay", id: a.id }, true);
     case "video-ses": return videoDokun(el);
     case "video-oynat": return videoOynatDuraklat(el.closest(".video-kap"));
@@ -1824,10 +2077,11 @@ async function baslaBulut() {
   setInterval(bildirimYokla, 20000);
   if (D.sifreYenileniyor) return;
   if (sifreDonus && D.oturum) return sifreYenileCiz();
-  const m = location.hash.match(/^#g=([a-z0-9-]+)$/);
+  const m = location.hash.match(/^#g=([a-z0-9-]+)$/), sm = location.hash.match(/^#s=([a-z0-9-]+)$/);
   if (m) G = { sayfa: "detay", kategori: "", handle: null, id: m[1], odak: false };   // paylaşılan bağlantı: girişsiz de açılır
+  else if (sm) G = { sayfa: "seri", kategori: "", handle: null, id: sm[1], odak: false };   // gecis-019: paylaşılan yazı serisi bağlantısı
   if (D.oturum && !ben) return profilGerek();
-  if (!D.oturum && !m) return karsilamaCiz(0);
+  if (!D.oturum && !m && !sm) return karsilamaCiz(0);
   ciz(true); bildirimYokla();
 }
 
@@ -1857,6 +2111,10 @@ function menuAc(a) {
   if (a.own === "1") {   // kendi içeriği: Düzenle (yalnız gönderi, 1 dk, geri sayımlı) + Sil
     const kalan = kalanSn(a.z);
     if (a.t === "gonderi" && kalan > 0) g += `<button class="liste-satir" data-e="duzenle" data-id="${esc(a.id)}" data-kz="${esc(a.z)}"><span class="ad">${esc(t("gonDuzenle"))} (<span class="kz-sure">${sureYaz(kalan)}</span>)</span></button>`;
+    if (a.t === "gonderi") {   // gecis-019: yazı serisi
+      g += `<button class="liste-satir" data-e="seri-sec" data-id="${esc(a.id)}"><span class="ad">${esc(t("seriyeEkle"))}</span></button>`;
+      if (ogeBul(a.id)?.seri) g += `<button class="liste-satir" data-e="seri-cikar" data-id="${esc(a.id)}"><span class="ad">${esc(t("seridenCikar"))}</span></button>`;
+    }
     g += `<button class="liste-satir sil-satir" data-e="sil-sor" data-t="${esc(a.t)}" data-id="${esc(a.id)}"><span class="ad">${esc(t("gonSil"))}</span></button>`;
     sheet(sheetUst(bt("menu")) + g); return;
   }
@@ -2018,6 +2276,7 @@ const menuOgeleri = (sira) => sira.filter(s => girisli() || s === "akis" || s ==
 function solSecili() {
   if (G.sayfa === "akis") return G.kategori ? "kesfet" : "akis";
   if (G.sayfa === "profil") return !G.handle || G.handle === D.ben?.handle ? "profil" : "";
+  if (G.sayfa === "kayit-liste") return "kayit";
   return ["kesfet", "bildirim", "kayit", "video"].includes(G.sayfa) ? G.sayfa : "";
 }
 const menuDugme = (s, sinif) => {
@@ -2229,10 +2488,10 @@ async function ilgiSec(k, v, el) {
   const ok = await ilgiKaydet({ ...(D.ben?.ilgi || {}), [k]: v });
   if (!ok) satir.querySelectorAll("[data-e='ilgi-sec']").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === ilgiDeger(k))));
 }
-function tostGeriAl(m, fn) {
+function tostGeriAl(m, fn, etiket = t("geriAl"), ms = 6000) {   // gecis-019: etiket/süre isteğe bağlı ("Kaydedildi · Listeye ekle")
   const e = document.createElement("div"); e.className = "tost"; e.setAttribute("role", "status"); e.append(m);
-  const b = document.createElement("button"); b.type = "button"; b.className = "tost-dug"; b.textContent = t("geriAl"); b.onclick = () => { e.remove(); fn(); }; e.append(b);
-  document.body.appendChild(e); setTimeout(() => e.remove(), 6000);
+  const b = document.createElement("button"); b.type = "button"; b.className = "tost-dug"; b.textContent = etiket; b.onclick = () => { e.remove(); fn(); }; e.append(b);
+  document.body.appendChild(e); setTimeout(() => e.remove(), ms);
 }
 async function ilgiAz(k) {   // "Bu konudan daha az göster": kategoriyi "Gösterme"ye çek; akıştaki o konu satırları hemen kalkar; Geri al
   sheetKapat(); if (!KATEGORI[k] || !D.ben) return;
@@ -2268,7 +2527,7 @@ const hareketAzalt2 = () => !!matchMedia?.("(prefers-reduced-motion: reduce)").m
   let p = null, yenileniyor = false;
   const ptrUygun = (e) => {
     if (yenileniyor || scrollY > 0 || document.querySelector(".sheet,.cekmece")) return false;
-    if (!["akis", "kesfet", "video", "profil", "bildirim"].includes(G.sayfa)) return false;
+    if (!["akis", "kesfet", "video", "profil", "bildirim", "kayit", "kayit-liste", "seri"].includes(G.sayfa)) return false;
     return !e.target.closest?.(".video-ilerleme,.oneri-sirit,textarea,input,select,.duz,.yz");
   };
   const tut = () => { if (!p || !p.aktif) return; p.kare = 0; const d = Math.min(MAKS, p.dy * 0.8); p.el.style.transform = `translate3d(0,${d}px,0)`; p.g.style.opacity = String(Math.min(1, d / 50)); p.g.style.transform = `rotate(${d * 4}deg)`; };
@@ -2368,8 +2627,9 @@ async function basla() {
       if (!D.ben) return karsilamaCiz(0);
     }
   }
-  const m = location.hash.match(/^#g=([a-z0-9-]+)$/);
+  const m = location.hash.match(/^#g=([a-z0-9-]+)$/), sm = location.hash.match(/^#s=([a-z0-9-]+)$/);
   if (m) G = { sayfa: "detay", kategori: "", handle: null, id: m[1], odak: false };
+  else if (sm) G = { sayfa: "seri", kategori: "", handle: null, id: sm[1], odak: false };   // gecis-019
   ciz(true); bildirimYokla(); setInterval(bildirimYokla, 20000);
 }
 if (!NATIF && "serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});   // mobil pakette SW yok: varlıklar paketin içinde
@@ -2392,5 +2652,6 @@ window.OP_UYG = {
   },
   bildir: (m) => tost(m),
   gonderiAc(id) { if (!/^[a-z0-9-]+$/.test(String(id))) return; gotur({ sayfa: "detay", id }, false); },
+  seriAc(id) { if (!/^[a-z0-9-]+$/.test(String(id))) return; gotur({ sayfa: "seri", id }, false); },   // gecis-019
 };
 basla();

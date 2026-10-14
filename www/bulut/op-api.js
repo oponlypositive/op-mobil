@@ -50,6 +50,11 @@ const M = {
   anket_bitti: ["Bu anket sona erdi.", "This poll has ended."],
   zaten_oy: ["Bu ankete zaten oy verdin.", "You already voted in this poll."],
   oturum_yok: ["Oturum süresi doldu, yeniden giriş yapar mısın?", "Your session has expired, please sign in again."],
+  // gecis-019: yazı serileri + kayıt listeleri
+  seri_ad: ["Seri adı 2-60 karakter olmalı.", "A series name must be 2-60 characters."], seri_limit: ["En çok 50 seri oluşturabilirsin.", "You can create up to 50 series."],
+  seri_var: ["Bu adla bir seri zaten var.", "You already have a series with that name."], seri_derinlik: ["Seriler en çok 3 düzey olabilir.", "Series can be at most 3 levels deep."],
+  liste_ad: ["Liste adı 1-40 karakter olmalı.", "A list name must be 1-40 characters."], liste_limit: ["En çok 100 liste oluşturabilirsin.", "You can create up to 100 lists."],
+  liste_var: ["Bu adla bir listen zaten var.", "You already have a list with that name."],
 };
 // Sunucunun (Edge Function) Türkçe iletileri → EN karşılık (tam eşleşme); eşleşmeyen sunucu iletisi olduğu gibi gösterilir.
 const SUNUCU_EN = {
@@ -60,6 +65,8 @@ const SUNUCU_EN = {
   "Kullanıcı adı 3-20 harf/rakam/_ olmalı.": "Your username must be 3-20 letters, numbers or _.",
   "Bu kullanıcı adı alınmış, başka bir tane dener misin?": "That username is taken, would you try another one?",
   "Silmeyi onaylaman gerekiyor.": "Please confirm the deletion.", "Bulunamadı": "Not found",
+  "Seri adı 2-60 karakter olmalı.": "A series name must be 2-60 characters.", "En çok 50 seri oluşturabilirsin.": "You can create up to 50 series.",
+  "Bu adla bir seri zaten var.": "You already have a series with that name.", "Seriler en çok 3 düzey olabilir.": "Series can be at most 3 levels deep.",
   "Düzenleme süresi doldu.": "The editing time is over.", "Haber gönderileri düzenlenemez.": "News posts can't be edited.",
   "Yalnız kendi gönderini düzenleyebilirsin.": "You can only edit your own posts.", "Haber gönderileri silinemez.": "News posts can't be deleted.",
   "Yalnız kendi içeriğini silebilirsin.": "You can only delete your own content.", "Silme isteği geçersiz.": "That delete request isn't valid.", "Şikâyet geçersiz.": "That report isn't valid.",
@@ -76,7 +83,7 @@ const SUNUCU_EN = {
 };
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
 function hataYap(mesaj, durum = 400, filtre = false, bekleSn = 0) { const e = new Error(mesaj || ileti("genel")); e.durum = durum; e.filtre = filtre; e.bekleSn = bekleSn; return e; }
-const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, anket_bitti: 409, zaten_oy: 409 };
+const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, anket_bitti: 409, zaten_oy: 409, seri_ad: 400, seri_limit: 409, seri_var: 409, seri_derinlik: 400, liste_ad: 400, liste_limit: 409, liste_var: 409 };
 function rpcHatasi(error) {
   const kod = String(error?.message || "").trim();
   if (M[kod] && DURUM[kod]) return hataYap(ileti(kod), DURUM[kod]);
@@ -165,6 +172,11 @@ export async function api(yol, govde, yontem) {
     if (!v) throw hataYap(ileti("bulunamadi"), 404);
     return ogeleriDuzelt(v);
   }
+  if (m === "GET" && (r = p.match(/^\/api\/kullanici\/([a-z0-9_]+)\/seriler$/))) {   // gecis-019: profil "Yazı serileri" sekmesi → { seriler } (düz liste; istemci ağaç kurar)
+    const v = await rpc("seri_listesi", { p_handle: r[1], p_dil: d });
+    if (!v) throw hataYap(ileti("bulunamadi"), 404);
+    return v;
+  }
   if (m === "POST" && (r = p.match(/^\/api\/kullanici\/([a-z0-9_]+)\/takip$/))) return rpc("takip_degistir", { p_handle: r[1] });
   if (m === "POST" && (r = p.match(/^\/api\/engelle\/([a-z0-9_]+)$/))) return rpc("engelle_degistir", { p_handle: r[1] });
   if (m === "GET" && p === "/api/engellenenler") return rpc("engellenenler", { p_dil: d });
@@ -202,6 +214,27 @@ export async function api(yol, govde, yontem) {
   if (m === "DELETE" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})$/))) return fonksiyon("gonderi-sil", { tur: "gonderi", id: r[1] });
   if (m === "DELETE" && (r = p.match(/^\/api\/yanit\/([0-9a-f-]{36})$/))) return fonksiyon("gonderi-sil", { tur: "yanit", id: r[1] });
   if (m === "GET" && p === "/api/kayitlar") return ogeleriDuzelt(await rpc("kayitlar", { p_dil: d }));
+  // ---- gecis-019: yazı serileri (ad süzgeci için yazma = seri-yaz Edge Function; okuma/silme/ekleme = RPC)
+  if (m === "GET" && (r = p.match(/^\/api\/seri\/([0-9a-f-]{36})$/))) {
+    const v = await rpc("seri_detay", { p_id: r[1], p_dil: d });
+    if (!v) throw hataYap(ileti("bulunamadi"), 404);
+    return ogeleriDuzelt(v);
+  }
+  if (m === "POST" && p === "/api/seri") { const b = govde || {}; return fonksiyon("seri-yaz", { islem: "olustur", ad: b.ad, aciklama: b.aciklama ?? null, ...(b.ustId ? { ustId: b.ustId } : {}) }); }
+  if (m === "POST" && (r = p.match(/^\/api\/seri\/([0-9a-f-]{36})\/duzenle$/))) { const b = govde || {}; return fonksiyon("seri-yaz", { islem: "adlandir", id: r[1], ad: b.ad, aciklama: b.aciklama ?? null }); }
+  if (m === "DELETE" && (r = p.match(/^\/api\/seri\/([0-9a-f-]{36})$/))) return rpc("seri_sil", { p_id: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})\/seri$/))) return ogeleriDuzelt(await rpc("seri_ekle_cikar", { p_post: r[1], p_seri: (govde || {}).seriId || null, p_dil: d }));
+  // ---- gecis-019: çoklu kayıt listeleri (yalnız kişinin kendisi görür)
+  if (m === "GET" && p === "/api/kayit-listeleri") return rpc("kayit_listeleri", { p_post: q.get("post") || null });
+  if (m === "POST" && p === "/api/kayit-listeleri") { const b = govde || {}; return rpc("kayit_liste_olustur", { p_ad: b.ad, p_post: b.postId || null }); }
+  if (m === "GET" && (r = p.match(/^\/api\/kayit-listeleri\/([0-9a-f-]{36})$/))) {
+    const v = await rpc("kayit_liste", { p_id: r[1], p_dil: d });
+    if (!v) throw hataYap(ileti("bulunamadi"), 404);
+    return ogeleriDuzelt(v);
+  }
+  if (m === "POST" && (r = p.match(/^\/api\/kayit-listeleri\/([0-9a-f-]{36})\/duzenle$/))) return rpc("kayit_liste_adlandir", { p_id: r[1], p_ad: (govde || {}).ad });
+  if (m === "DELETE" && (r = p.match(/^\/api\/kayit-listeleri\/([0-9a-f-]{36})$/))) return rpc("kayit_liste_sil", { p_id: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/kayit-listeleri\/([0-9a-f-]{36})\/oge$/))) return rpc("kayit_liste_ogesi", { p_liste: r[1], p_post: (govde || {}).postId, p_ekle: (govde || {}).ekle === true });
   if (m === "GET" && (r = p.match(/^\/api\/oge\/([0-9a-f-]{36})$/))) {
     const v = await rpc("oge_detay", { p_id: r[1], p_dil: d });
     if (!v) throw hataYap(ileti("bulunamadi"), 404);
