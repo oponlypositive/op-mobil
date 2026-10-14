@@ -672,3 +672,26 @@ button.anket-sec:hover{background:color-mix(in srgb,var(--vurgu) 10%,transparent
 .bahset-ad{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
 .bahset-takip{font-size:12px;flex:none}
 .bot-not{margin:8px 0 0;font-size:13px}
+
+/* ---- armasız skor kartı (maç sonucu haberi; gecis-018): .hk tonunu (petrol) ve tema değişkenlerini kullanır; arma/logo/kurum rengi yok ---- */
+.hk.skor{max-height:none;min-height:0;aspect-ratio:auto;justify-content:space-between;gap:10px;padding:12px 14px 10px}
+.hk.skor .hk-ust{min-width:0}
+.hk.skor .hk-et{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sk-sahne{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.sk-takim{min-width:0;text-align:center;font-size:clamp(13px,3.9vw,17px);font-weight:600;line-height:1.2;color:var(--et);overflow-wrap:anywhere;hyphens:auto}
+.sk-takim span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+.sk-takim.kazanan{font-weight:800;color:var(--yazi-k)}
+.sk-skor{display:flex;align-items:baseline;justify-content:center;gap:.18em;font-size:clamp(28px,9.4vw,42px);font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--yazi-k)}
+.sk-sayi{color:var(--et)}
+.sk-sayi.kazanan{color:var(--yazi-k)}
+.sk-skor.esit .sk-sayi{color:var(--yazi-k)}
+.sk-ayrac{color:var(--et);font-weight:600;font-size:.7em}
+.hk.skor.dikey .sk-sahne{grid-template-columns:minmax(0,1fr);justify-items:center;gap:4px}
+.hk.skor.dikey .sk-takim span{-webkit-line-clamp:2;line-clamp:2}
+.hk.skor.detay .sk-skor{font-size:clamp(32px,11vw,52px)}
+/* alıntı içinde: tek sıkı şerit (yoğunluk kuralı .alinti-kart .hk'yi gizler; skor kartı hariç) */
+.alinti-kart .hk.skor{display:flex;min-height:0;padding:8px 10px;gap:6px;margin-top:6px;border-radius:12px}
+.hk.skor.kucuk .hk-ust,.hk.skor.kucuk .hk-alt{display:none}
+.hk.skor.kucuk .sk-skor{font-size:clamp(22px,7vw,30px)}
+.hk.skor.kucuk .sk-takim{font-size:13px}
+@media (max-width:340px){.hk.skor{padding:10px 10px 8px}.sk-sahne{gap:4px}}

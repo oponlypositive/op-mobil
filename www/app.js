@@ -451,6 +451,20 @@ function haberKartHtml(o, detay = false) {
   return `<div class="hk ${alinti ? "alinti" : ""}" data-ton="${HK_TON[kat]}" data-kategori="${kat}" aria-hidden="true"><div class="hk-ust">${ikon("k_" + kat, 26)}<span class="hk-et">${esc(KATEGORI[kat]?.[di()] || "OP")}</span></div>
     <div class="hk-baslik">${esc(govde)}</div><div class="hk-alt"><span class="hk-yazar">${yazar ? "— " + esc(yazar) : ""}</span><img class="hk-logo" src="icons/op.svg" alt=""></div></div>`;
 }
+// ARMASIZ SKOR KARTI (gecis-018): maç SONUCU haberlerinde fotoğraf/video yoksa. İki takım adı + büyük skor (+ organizasyon · aşama); kulüp arması/logosu YOK, görsel dosyası YOK (yalnız CSS).
+// Kazanan taraf hafif vurgulu (daha koyu + kalın), beraberlikte vurgu yok. k = { tur:"skor", taraf1, taraf2, skor1, skor2, organizasyon?, asama? } (taraf1 <-> skor1 aynı takım)
+const skorKartiMi = (k) => !!k && k.tur === "skor" && typeof k.taraf1 === "string" && typeof k.taraf2 === "string" && Number.isInteger(k.skor1) && Number.isInteger(k.skor2);
+function skorKartHtml(k, { detay = false, kucuk = false } = {}) {
+  const w = k.skor1 > k.skor2 ? 1 : k.skor2 > k.skor1 ? 2 : 0, ust = [k.organizasyon, k.asama].filter(Boolean).join(" · ");
+  const etiket = `${k.taraf1} ${k.skor1}, ${k.taraf2} ${k.skor2}` + (ust ? ` (${ust})` : "");
+  const takim = (ad, n) => `<div class="sk-takim${w === n ? " kazanan" : ""}"><span>${esc(ad)}</span></div>`;
+  const sayi = (v, n) => `<span class="sk-sayi${w === n ? " kazanan" : ""}">${v}</span>`;
+  const dikey = Math.max(k.taraf1.length, k.taraf2.length) > 16;   // uzun takım adı: yan yana sığmaz → takım / skor / takım dikey dizilir (adlar 2 satıra kadar)
+  return `<div class="hk skor${dikey ? " dikey" : ""}${kucuk ? " kucuk" : ""}${detay ? " detay" : ""}" data-ton="petrol" data-kategori="spor" role="img" aria-label="${esc(etiket)}">
+    <div class="hk-ust" aria-hidden="true">${ikon("k_spor", 22)}<span class="hk-et">${esc(ust || KATEGORI.spor[di()])}</span></div>
+    <div class="sk-sahne" aria-hidden="true">${takim(k.taraf1, 1)}<div class="sk-skor${w === 0 ? " esit" : ""}">${sayi(k.skor1, 1)}<span class="sk-ayrac">–</span>${sayi(k.skor2, 2)}</div>${takim(k.taraf2, 2)}</div>
+    <div class="hk-alt" aria-hidden="true"><span></span><img class="hk-logo" src="icons/op.svg" alt=""></div></div>`;
+}
 function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görsel (yoksa OP tasarım kartı) + (haberde) lisans satırı + kaynak kartı
   let h = "";
   if (o.foto) h += `<img class="gorsel" src="${esc(o.foto)}" alt="" loading="lazy" decoding="async" data-e="foto-ac">`;
@@ -460,6 +474,7 @@ function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görse
     if (v && v.url) h += videoHtml(v, detay) + lisansSatiri(t("video"), v);
     else if (g && g.url) h += `<img class="gorsel" src="${esc(g.url)}" alt="" loading="lazy" decoding="async" data-e="foto-ac">` + lisansSatiri(t("foto"), g);
     else if (kartGorunur(o)) h += haberKartHtml(o, detay);
+    else if (skorKartiMi(o.kart)) h += skorKartHtml(o.kart, { detay });   // maç sonucu: armasız skor kartı (yalnız fotoğraf/video yoksa)
     const link = guvenliUrl(o.link);
     if (o.kategori !== "sohbet" || link) h += `<${link ? `a href="${esc(link)}" target="_blank" rel="noopener noreferrer"` : "div"} class="kaynak-kart"><span>${o.yer ? "📍 " + esc(o.yer) + " · " : ""}${t("kaynak")}: ${esc(o.kaynak)}</span>${link ? " ↗" : ""}</${link ? "a" : "div"}>`;
   }
@@ -540,6 +555,7 @@ function alintiKartHtml(a, onizleme = false) {
   if (a.video?.url) medya = onizleme ? `<span class="alinti-video-onizle" style="min-height:110px">${a.video.poster ? `<img src="${esc(a.video.poster)}" alt="">` : ""}${ikon("oynat", 30, true)}</span>` : videoHtml(a.video);
   else if (a.foto) medya = `<img class="gorsel" src="${esc(a.foto)}" alt="" loading="lazy">`;
   else if (a.haber && a.gorsel?.url) medya = `<img class="gorsel" src="${esc(a.gorsel.url)}" alt="" loading="lazy" decoding="async">`;   // görselsiz haberde tasarım kartı YOK (başlık zaten metinde)
+  else if (a.haber && skorKartiMi(a.kart)) medya = skorKartHtml(a.kart, { kucuk: true });   // yalnız skor kartı alıntıda da gösterilir (küçük)
   const kaynak = a.haber && a.kaynak ? `<div class="alinti-kaynak">${t("kaynak")}: ${esc(a.kaynak)}</div>` : "";
   const kimlik = onizleme ? `class="alinti-kart onizleme"` : `class="alinti-kart" data-e="alinti-ac" data-id="${esc(a.id)}" role="link" tabindex="0"`;
   return `<div ${kimlik} data-alinti="${esc(a.id)}"><div class="alinti-kim">${avatarHtml(y)}<span class="ad">${esc(y?.ad)}</span>${rozetHtml(y)}<span class="gri kisa">@${esc(y?.handle)}</span><span class="gri zaman">· ${zamanYaz(a.zaman)}</span></div>
