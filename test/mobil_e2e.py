@@ -5,6 +5,7 @@ NEYİ SINAMAZ: gerçek Capacitor yerel eklentileri, iOS/Android WebView'ları, �
 Çalıştır (kök: kuki-holding): PYTHONUTF8=1 .venv/Scripts/python.exe op/app/mobil/test/mobil_e2e.py   (önce: node op/app/mobil/hazirla.mjs)  -> görüntüler mobil/test/ekran/"""
 import json
 import re
+from datetime import datetime, timedelta, timezone
 import uuid
 import subprocess
 import sys
@@ -44,6 +45,9 @@ def senaryo(tarayici, cihaz, ad, platform):
     bulut.postlar.append({"id": str(uuid.uuid4()), "yazar": bulut.mehmet, "metin": "Güzel yazı: https://ornek-site.com/yazi?utm_source=x", "foto": None, "z": eb.simdi(0), "haber": False})
     bulut.postlar.append({"id": str(uuid.uuid4()), "yazar": bulut.mehmet, "metin": "Hangisi daha güzel?", "foto": None, "z": eb.simdi(0), "haber": False,
                           "anket": {"secenekler": [{"id": 1, "metin": "Deniz"}, {"id": 2, "metin": "Dağ"}], "bitis": eb.simdi(-1440), "oylar": {}}})
+    gunx = lambda n: (datetime.now(timezone.utc) + timedelta(hours=3, days=n)).date().isoformat()   # gecis-024: Yakınındaki Aktiviteler (kullanıcının şehri İstanbul)
+    bulut.etk_ekle(bulut.mehmet, "Park Konseri", "İstanbul", gunx(1), "konser", "Yıldız Parkı", saat="20:00")
+    bulut.etk_ekle(bulut.mehmet, "Işığın Tarihi", "İstanbul", gunx(0), "sergi", "Şehir Müzesi", bitis=gunx(60), ucretsiz=True)
     b.route(re.compile(r"^https://yixyvsspetwjatixfaki\.supabase\.co/.*"), bulut.yonlendir)
     sayfa_istekleri = []
     s = b.new_page()
@@ -226,6 +230,36 @@ def senaryo(tarayici, cihaz, ad, platform):
         s.wait_for_selector(".cekmece", timeout=4000)
         adim(f"{ad}: ana sekmede sol kenar kaydırması yan çekmeceyi açar (X gibi)", s.locator(".cekmece").count() == 1)
         s.keyboard.press("Escape"); s.wait_for_timeout(300)
+    # ===== 8b. gecis-024: SEKME KAYDIRMA (dokunma benzetimi: touchstart/move/end) + Yakınındaki Aktiviteler + yazma paneli yalnız Senin İçin =====
+    if yi.dokun_hazir(s):
+        s.evaluate("() => { D.sekme = 'senin'; ciz(true); }"); s.wait_for_selector(".sekmeler"); s.wait_for_timeout(700); s.evaluate("() => scrollTo(0, 0)")
+        w = s.evaluate("() => innerWidth"); sekme = lambda: s.evaluate("() => D.sekme")
+        ty = s.evaluate("() => { const r = document.querySelector('.sekmeler').getBoundingClientRect(); return r.top + r.height / 2; }")   # sekme çubuğu hizası: yatay kaydırılan iç öğe (öneri şeridi, Anlar) yok
+        sur = lambda x0, x1, y=ty: (s.evaluate("([a, b, y]) => { __dokun('touchstart', a, y); for (let i = 1; i <= 8; i++) __dokun('touchmove', a + (b - a) * i / 8, y + 3); __dokun('touchend', b, y + 3); }", [x0, x1, y]), s.wait_for_timeout(500))
+        adim(f"{ad}: Senin İçin'de yazma paneli (kısa satır) var; sekme göstergesi (.sekme-cizgi) var", s.locator(".yz-kisa").count() == 1 and s.locator(".sekme-cizgi").count() == 1)
+        sur(w - 40, 60)
+        adim(f"{ad}: sola kaydırma → Takip sekmesi; yazma paneli yok", sekme() == "takip" and s.locator(".yz-kisa, .yazkutu").count() == 0 and s.locator(".sekme.secili").get_attribute("data-s") == "takip")
+        sur(w - 40, 60); s.wait_for_selector("[data-aktivite]", timeout=6000)
+        adim(f"{ad}: sola kaydırma → Yakınımda: yazma paneli yok, yerinde 'Yakınındaki Aktiviteler' (rpc yakin_etkinlikler)", sekme() == "yakin" and s.locator("[data-aktivite] .akt-kart").count() == 2 and s.locator(".yz-kisa").count() == 0
+             and bulut.sayac("rpc", "yakin_etkinlikler") >= 1)
+        s.wait_for_timeout(300); foto("08b-yakinda-aktiviteler")
+        sur(40, w - 40)
+        adim(f"{ad}: sağa kaydırma → Takip; sol kenardan (6 px) başlayan hareket sekme değiştirmez", sekme() == "takip")
+        sur(6, w * 0.6)
+        adim(f"{ad}: sol kenar bölgesi hariç: kenardan başlayan sağa hareket sekme DEĞİŞTİRMEZ; mevcut kenar hareketi (yan çekmece) aynen çalışır", sekme() == "takip" and s.locator(".cekmece").count() == 1)
+        s.keyboard.press("Escape"); s.wait_for_timeout(300)
+        s.evaluate("() => { __dokun('touchstart', 200, 620); __dokun('touchmove', 200, 560); __dokun('touchmove', 205, 420); __dokun('touchend', 205, 420); }"); s.wait_for_timeout(400)
+        adim(f"{ad}: dikey kaydırma sekme değiştirmez", sekme() == "takip")
+        sur(40, w - 40); s.wait_for_timeout(300)
+        adim(f"{ad}: sağa kaydırma → Senin İçin; ilk sekmede sağa kaydırma geçiş yapmaz", sekme() == "senin")
+        sur(40, w - 40)
+        adim(f"{ad}: ilk sekmede sağa kaydırma değişmez", sekme() == "senin")
+        s.evaluate("() => { const l = document.querySelector('.an-liste'); const r = l.getBoundingClientRect(); __dokun('touchstart', r.right - 40, r.top + 30); for (let i = 1; i <= 8; i++) __dokun('touchmove', r.right - 40 - i * 30, r.top + 33); __dokun('touchend', r.right - 280, r.top + 33); }")
+        s.wait_for_timeout(500)
+        adim(f"{ad}: Anlar şeridi içinde başlayan yatay hareket sekme değiştirmez", sekme() == "senin")
+        adim(f"{ad}: Anlar şeridinde '+' en sağda (son öğe)", s.locator(".an-liste > li").last.locator(".an-ekle").count() == 1)
+        s.evaluate("() => { D.sekme = 'senin'; ciz(true); }"); s.wait_for_selector(".yz-kisa", timeout=6000); s.wait_for_timeout(400)
+
     yazi = s.evaluate("() => [...document.querySelectorAll('input,textarea,select')].filter(e => !['checkbox','radio','file','hidden'].includes(e.type)).map(e => parseFloat(getComputedStyle(e).fontSize))")
     adim(f"{ad}: akıştaki tüm yazı alanları ≥ 16 px", all(f >= 16 for f in yazi), str(yazi))
     s.click(".yz-kisa") if s.locator(".yz-kisa").count() else None

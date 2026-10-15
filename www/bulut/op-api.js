@@ -30,6 +30,7 @@ const M = {
   giris_gerek: ["Önce giriş yapman gerekiyor.", "Please sign in first."],
   bulunamadi: ["Bulunamadı", "Not found"],
   olmadi: ["Olmadı", "That didn't work"],
+  yetkisiz: ["Bu işlem için yetkin yok.", "You don't have permission for this."],
   cok_hizli: ["Biraz hızlısın ☁️ Birazdan tekrar dener misin?", "You're a bit fast ☁️ Please try again in a moment."],
   genel: ["Bir şeyler ters gitti, tekrar dener misin?", "Something went wrong, please try again."],
   ag: ["Bağlantı yok gibi görünüyor, tekrar dener misin?", "You seem to be offline, please try again."],
@@ -85,7 +86,7 @@ const SUNUCU_EN = {
 const FOTO_COK = ["En çok 4 fotoğraf eklenebilir.", "You can add up to 4 photos."];
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
 function hataYap(mesaj, durum = 400, filtre = false, bekleSn = 0) { const e = new Error(mesaj || ileti("genel")); e.durum = durum; e.filtre = filtre; e.bekleSn = bekleSn; return e; }
-const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, anket_bitti: 409, zaten_oy: 409, seri_ad: 400, seri_limit: 409, seri_var: 409, seri_derinlik: 400, liste_ad: 400, liste_limit: 409, liste_var: 409 };
+const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, yetkisiz: 403, anket_bitti: 409, zaten_oy: 409, seri_ad: 400, seri_limit: 409, seri_var: 409, seri_derinlik: 400, liste_ad: 400, liste_limit: 409, liste_var: 409 };
 function rpcHatasi(error) {
   const kod = String(error?.message || "").trim();
   if (M[kod] && DURUM[kod]) return hataYap(ileti(kod), DURUM[kod]);
@@ -104,7 +105,7 @@ async function fonksiyonHatasi(error) {   // FunctionsHttpError: gövde { hata, 
     const durum = r.status || 500;
     let mesaj = v.hata || ileti("genel");
     if (dil() === "en" && SUNUCU_EN[mesaj]) mesaj = SUNUCU_EN[mesaj];
-    if (durum === 429) mesaj = ileti("cok_hizli") + (v.bekleSn ? bekleMetni(v.bekleSn) : "");
+    if (durum === 429 && !v.etkinlikGunluk) mesaj = ileti("cok_hizli") + (v.bekleSn ? bekleMetni(v.bekleSn) : "");   // etkinlikGunluk: "günde en fazla 1 aktivite" ileti özel kalır
     return hataYap(mesaj, durum, !!v.filtre, Number(v.bekleSn) || 0);
   }
   return hataYap(ileti("ag"), 0);
@@ -136,7 +137,7 @@ export function ogeDuzelt(o) {
   return o;
 }
 export const FOTO_EN_COK = 4;   // gecis-021: gönderi başına en çok 4 fotoğraf (X gibi); video tek kalır
-const ogeleriDuzelt = (v) => { if (v?.ogeler) v.ogeler.forEach(ogeDuzelt); if (v?.gonderiler) v.gonderiler.forEach(ogeDuzelt); if (v?.oge) ogeDuzelt(v.oge); if (v?.gonderi) ogeDuzelt(v.gonderi); return v; };
+const ogeleriDuzelt = (v) => { if (v?.ogeler) v.ogeler.forEach(ogeDuzelt); if (v?.etkinlikler) v.etkinlikler.forEach(ogeDuzelt); if (v?.gonderiler) v.gonderiler.forEach(ogeDuzelt); if (v?.oge) ogeDuzelt(v.oge); if (v?.gonderi) ogeDuzelt(v.gonderi); return v; };
 
 // ---- fotoğraf yükleme (data URL → Storage `foto/<uid>/<uuid>.jpg`; istemcide zaten ≤1080 px JPEG ve ≤700 KB)
 export const FOTO_BAYT_SINIRI = 700 * 1024;
@@ -222,6 +223,28 @@ export async function api(yol, govde, yontem) {
     return ogeleriDuzelt(v);
   }
   if (m === "GET" && p === "/api/gundem") return rpc("gundem", { p_sinir: 10 });
+  // ---- gecis-024: YAKINDAKİ AKTİVİTELER (okuma anon da açık) + aktivite oluşturma (etkinlik-yaz) + onay akışı (yönetici RPC'leri sunucuda yetki ister)
+  if (m === "GET" && p === "/api/etkinlikler") return ogeleriDuzelt(await rpc("yakin_etkinlikler", { p_sehir: (q.get("sehir") || "").slice(0, 40), p_gun: Math.min(Math.max(Number(q.get("gun")) || 7, 1), 30), p_tur: q.get("tur") || null, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 10, 1), 50) }));
+  if (m === "GET" && p === "/api/katilacaklarim") return ogeleriDuzelt(await rpc("katilacaklarim", { p_sinir: 50 }));
+  if (m === "GET" && p === "/api/etkinlik/benim") return ogeleriDuzelt(await rpc("benim_etkinlikler", { p_sinir: 30 }));
+  if (m === "GET" && p === "/api/yonetici") { try { return { yonetici: (await rpc("yonetici_mi")) === true }; } catch { return { yonetici: false }; } }
+  if (m === "GET" && p === "/api/etkinlik/bekleyenler") return ogeleriDuzelt(await rpc("onay_bekleyen_etkinlikler", { p_dil: d, p_sinir: 50 }));
+  if (m === "POST" && p === "/api/etkinlik") {
+    const b = govde || {}; let fotoYol = null;
+    if (b.foto) fotoYol = await fotoYukle(b.foto);
+    try { return await fonksiyon("etkinlik-yaz", { islem: "olustur", etkinlik: b.etkinlik, ...(fotoYol ? { fotoYol } : {}) }); }
+    catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }
+  }
+  if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/duzenle$/))) {
+    const b = govde || {}; let fotoYol;
+    if (b.foto) fotoYol = await fotoYukle(b.foto); else if (b.fotoKaldir === true) fotoYol = null;
+    try { return await fonksiyon("etkinlik-yaz", { islem: "duzenle", id: r[1], etkinlik: b.etkinlik, ...(fotoYol !== undefined ? { fotoYol } : {}) }); }
+    catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }
+  }
+  if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/iptal$/))) return rpc("etkinlik_iptal", { p_post: r[1], p_iptal: (govde || {}).geriAl !== true });
+  if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/katil$/))) return rpc("etkinlik_katil_degistir", { p_post: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/onayla$/))) return rpc("etkinlik_onayla", { p_post: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/reddet$/))) return rpc("etkinlik_reddet", { p_post: r[1], p_neden: String((govde || {}).neden || "") });
   if (m === "GET" && p === "/api/onerilen") return ogeleriDuzelt(await rpc("onerilen", { p_dil: d, p_tum: q.get("tum") === "1" }));   // gecis-005-onerilen.sql; yoksa istemci kutuyu gizler
 
   if (m === "POST" && p === "/api/gonderi") {

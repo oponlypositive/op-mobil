@@ -670,7 +670,7 @@ function satirHtml(o) {
     <div class="satir-ic"><span class="sol" data-profil="${esc(y?.handle)}">${avatarHtml(y)}</span>
       <div class="govde"><div class="kim"><span class="ad" data-profil="${esc(y?.handle)}">${esc(y?.ad)}</span>${rozetHtml(y)}
         <span class="gri kisa" data-profil="${esc(y?.handle)}">@${esc(y?.handle)}</span><span class="gri zaman">· ${zamanYaz(o.zaman)}</span>${o.duzenlendi ? `<span class="gri duzenlendi">· ${t("duzenlendi")}</span>` : ""}${menuDug("gonderi", o.id, y, o)}</div>
-        ${metinHtml(o)}${anketHtml(o.id, o.anket)}${ekHtml(o)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${seriSatiriHtml(o)}${eylemHtml(o)}</div></div></article>`;
+        ${metinHtml(o)}${etkinlikKartHtml(o)}${anketHtml(o.id, o.anket)}${ekHtml(o)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${seriSatiriHtml(o)}${eylemHtml(o)}</div></div></article>`;
 }
 function detayGonHtml(o) {
   const y = o.yazar, sayac = [[o.yanitSayisi, t("yanit")], [o.yaySayisi, t("yeniPay")], [o.alintiSayisi, t("alintilar"), 1], [o.begeniSayisi, t("begeni")], [o.goruntulenme, t("goruntulenme"), 0, 1]].filter(([n]) => n);
@@ -678,7 +678,7 @@ function detayGonHtml(o) {
   return `<article class="detay-gon" data-oge="${o.id}" data-gor="detay">
     <div class="detay-ust"><span data-profil="${esc(y?.handle)}">${avatarHtml(y)}</span>
       <div class="detay-kim" data-profil="${esc(y?.handle)}"><div class="ad">${esc(y?.ad)}${rozetHtml(y)}</div><div class="gri">@${esc(y?.handle)}</div></div>${menuDug("gonderi", o.id, y, o)}</div>
-    ${metinHtml(o, true)}${anketHtml(o.id, o.anket)}${ekHtml(o, true)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${seriSatiriHtml(o)}
+    ${metinHtml(o, true)}${etkinlikKartHtml(o, true)}${anketHtml(o.id, o.anket)}${ekHtml(o, true)}${baglantiKartHtml(o)}${alintiKartHtml(o.alinti)}${seriSatiriHtml(o)}
     <div class="gri detay-zaman">${esc(zaman)}${o.sehir ? " · 📍" + esc(o.sehir) : ""}${o.duzenlendi ? " · " + esc(t("duzenlendi")) : ""}</div>
     ${sayac.length ? `<div class="sayilar">${sayac.map(([n, ad, dugme, kisa]) => dugme ? `<button class="sayac-dug" data-e="alintilar" data-id="${o.id}" aria-expanded="${!!document.querySelector("#alinti-bolum")}"><b>${n}</b> ${ad}</button>` : `<span><b>${kisa ? kisaSayi(n) : n}</b> ${ad}</span>`).join("")}</div>` : ""}${eylemHtml(o)}</article>`;
 }
@@ -751,7 +751,7 @@ function ustHtml(geri, sekmeler) {
       ${geri ? `<button class="ust-dug" data-e="geri" aria-label="${t("geri")}">${ikon("geri", 22)}</button>`
         : `<button class="ust-dug" data-e="cekmece" aria-haspopup="dialog" aria-label="${t("yanMenu")}">${avatarHtml(D.ben, "kucuk")}</button>`}
       <button class="logo" data-e="ust-yenile" aria-label="OP"><img src="icons/op.svg" alt="OP">${betaEtiket()}</button><span class="ust-dug" aria-hidden="true"></span></div>
-    ${sekmeler ? `<nav class="sekmeler" role="tablist">${["senin", "takip", "yakin"].map(s => `<button role="tab" aria-selected="${D.sekme === s}" class="sekme ${D.sekme === s ? "secili" : ""}" data-e="sekme" data-s="${s}"><span>${t(s)}</span></button>`).join("")}</nav>` : ""}</header>`;
+    ${sekmeler ? `<nav class="sekmeler" role="tablist" style="--i:${Math.max(0, ["senin", "takip", "yakin"].indexOf(D.sekme))}" aria-label="${esc(t("akKaydirAria"))}">${["senin", "takip", "yakin"].map(s => `<button role="tab" aria-selected="${D.sekme === s}" class="sekme ${D.sekme === s ? "secili" : ""}" data-e="sekme" data-s="${s}"><span>${t(s)}</span></button>`).join("")}<i class="sekme-cizgi" aria-hidden="true"></i></nav>` : ""}</header>`;
 }
 function altHtml() {
   const secili = (G.sayfa === "akis" && G.kategori) || G.sayfa === "ara" ? "kesfet" : G.sayfa === "profil" && G.handle === D.ben?.handle ? "profil" : G.sayfa;
@@ -760,7 +760,7 @@ function altHtml() {
 }
 const fabHtml = () => `<button class="fab" data-e="yaz" aria-label="${t("yeniGonderi")}">${ikon("yaz", 26)}</button>`;
 function kabuk(govde, { geri = false, sekmeler = false, alt = true, fab = true, ekstra = "" } = {}) {
-  return ustHtml(geri, sekmeler) + `<div class="icerik sayfa">${govde}</div>` + (alt ? altHtml() : "") + (fab ? fabHtml() : "") + ekstra;
+  return ustHtml(geri, sekmeler) + `<div class="icerik sayfa${sekmeler ? " sayfa-kaydir" : ""}">${govde}</div>` + (alt ? altHtml() : "") + (fab ? fabHtml() : "") + ekstra;
 }
 
 // ---------- sayfalar ----------
@@ -814,8 +814,8 @@ function akisIcerikHtml(a) {
 }
 async function akisCiz(my, yen) {
   const kat = G.kategori, geri = !!kat, bas = kat ? `<h1 class="baslik">${esc(KATEGORI[kat]?.[di()] || "OP")}</h1>` : "";
-  const secenek = { geri, sekmeler: !kat }, yz = kat ? "" : anSeritHtml() + betaSeritHtml() + yazKutuHtml();
-  const goster = (h) => { kok().innerHTML = kabuk(h, secenek); yazKur(); if (!kat) anSeritYukle(); };
+  const secenek = { geri, sekmeler: !kat }, yz = kat ? "" : anSeritHtml() + betaSeritHtml() + (D.sekme === "senin" ? yazKutuHtml() : D.sekme === "yakin" ? aktiviteBolumHtml() : "");
+  const goster = (h) => { kok().innerHTML = kabuk(h, secenek); yazKur(); if (!kat) { anSeritYukle(); if (D.sekme === "yakin") aktiviteYukle(); } };
   if (BULUT && !D.ben && D.sekme === "takip" && !kat) { goster(yz + bosHtml(bt("gezintiYok"), `<br><br><button class="dug" data-e="giris-ac">${bt("girisYap")}</button>`)); return; }
   if (D.sekme === "yakin" && !kat && !D.ben?.sehir) {
     goster(yz + bosHtml(t("sehirSec"), `<br><br><button class="dug" data-e="profil-duzenle">${t("duzenle")}</button>`)); return;
@@ -1016,10 +1016,10 @@ async function bildirimCiz(my) {
   const v = await api("/api/bildirimler?okundu=1").catch(() => ({ bildirimler: [] }));
   if (my !== D.cizim) return;
   D.okunmamis = 0;
-  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit", yorum_begen: "begen", yorum_yanit: "yanit", an_tepki: "begen" };
+  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit", yorum_begen: "begen", yorum_yanit: "yanit", an_tepki: "begen", etkinlik_onay: "takvim", etkinlik_red: "takvim" };
   kok().innerHTML = kabuk(`<h1 class="baslik">${t("bildirim")}</h1>` + (v.bildirimler.length ? v.bildirimler.map(b =>
     `<div class="satir bildirim ${b.okundu ? "" : "yeni"}" data-e="bil-ac" data-t="${esc(b.tur)}" data-h="${esc(b.tur === "takip" ? b.kimden?.handle : b.hedef)}"><div class="satir-ic"><span class="bil-ik">${ikon(tur[b.tur] || "begen", 22, b.tur === "begen")}</span>
-      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin"><b>${esc(b.kimden?.ad)}</b> ${bm[b.tur] || ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset" || b.tur === "yorum_begen" || b.tur === "yorum_yanit") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
+      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin">${b.tur.startsWith("etkinlik_") ? "" : `<b>${esc(b.kimden?.ad)}</b> `}${bm[b.tur] || ""}${b.tur === "etkinlik_red" && b.ek ? `: ${esc(T[D.dil]["akRedNeden_" + b.ek] || "")}` : ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset" || b.tur === "yorum_begen" || b.tur === "yorum_yanit") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
       <div class="gri">${zamanYaz(b.zaman)}</div></div></div></div></div>`).join("") : bosHtml(t("bosBildirim"))));
 }
 // ---------- yazı serileri (gecis-019) ----------
@@ -1231,8 +1231,8 @@ document.addEventListener("contextmenu", (e) => { if (e.target.closest?.(".eylem
 async function profilCiz(my) {
   const handle = G.handle || D.ben?.handle, benim = !!D.ben && handle === D.ben.handle;
   if (!handle) { girisIste(); return; }
-  const [v, sv] = await Promise.all([api(`/api/kullanici/${encodeURIComponent(handle)}`).catch(() => null),
-    api(`/api/kullanici/${encodeURIComponent(handle)}/seriler`).catch(() => null)]);   // gecis-019: eski sunucuda uç yok → null → sekme gizli
+  const [v, sv, eb] = await Promise.all([api(`/api/kullanici/${encodeURIComponent(handle)}`).catch(() => null),
+    api(`/api/kullanici/${encodeURIComponent(handle)}/seriler`).catch(() => null), benim ? api("/api/etkinlik/benim").catch(() => null) : null]);   // gecis-019: eski sunucuda uç yok → null → sekme gizli
   if (my !== D.cizim) return;
   if (!v) { kok().innerHTML = kabuk(bosHtml(t("yok")), { geri: yigin.length > 0 }); return; }
   const k = v.kullanici; D.ogeler = v.gonderiler;
@@ -1249,7 +1249,7 @@ async function profilCiz(my) {
       ${k.bio ? `<p class="bio">${esc(k.bio)}</p>` : ""}
       <div class="gri meta">${k.sehir ? `<span>📍 ${esc(k.sehir)}</span>` : ""}<span>${esc(t("katildi", katildi))}</span></div>
       <div class="istatistik"><span><b>${k.takipSayisi}</b> ${t("takipSay")}</span><span><b>${k.takipci}</b> ${t("takipciSay")}</span></div></div>
-    ${profilSekmeHtml()}<div class="profil-alt">${profilAltHtml()}</div>`,
+    ${benim && eb && eb.etkinlikler.length ? profilEtkinlikHtml(eb.etkinlikler) : ""}${profilSekmeHtml()}<div class="profil-alt">${profilAltHtml()}</div>`,
     { geri: !benim || yigin.length > 0, fab: true });
 }
 function detayYaz(v) {
@@ -1283,7 +1283,8 @@ async function detayCiz(my) {   // bilinen gönderi/yanıtlar ANINDA çizilir (l
 function ciz(basa = true, yen = false) {   // yen: aşağı çekip yenileme / yeniden yükle → iskelet gösterme, önbelleği kullanma
   const my = ++D.cizim; sheetKapat(); kok().onclick = kok().onkeydown = kok().onchange = null; yeniHapKapat();
   yanCiz(); veriYukle().then(() => { if (my === D.cizim) sagCiz(); });
-  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "ara" ? araCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "anketler" ? anketlerCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
+  if ((D.ben?.handle || "") !== D.yoneticiKim) { D.yoneticiKim = D.ben?.handle || ""; yoneticiYukle(); }   // gecis-024: "Onay bekleyenler" menüsü yalnız yöneticiye (asıl yetki sunucuda)
+  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "ara" ? araCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "anketler" ? anketlerCiz(my) : s === "aktiviteler" ? aktivitelerCiz(my) : s === "aktivitelerim" ? aktivitelerimCiz(my) : s === "onay" ? onayCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
   if (basa) scrollTo(0, 0);
   return is.then(() => { if (!basa && my === D.cizim) scrollTo(0, G.scroll || 0); if (my === D.cizim && s === "akis") setTimeout(ilgiIlkKontrol, 400); });
 }
@@ -1953,11 +1954,28 @@ document.addEventListener("click", async e => {
   }
   const a = el.dataset;
   switch (a.e) {
-    case "git": if (BULUT && !D.ben && (a.s === "bildirim" || a.s === "profil" || a.s === "kayit")) return girisIste();
+    case "git": if (BULUT && !D.ben && (a.s === "bildirim" || a.s === "profil" || a.s === "kayit" || a.s === "aktivitelerim" || a.s === "onay")) return girisIste();
       if (a.s === "akis" && G.sayfa === "akis" && !G.kategori && !document.querySelector(".sheet,.cekmece")) { if (scrollY > 80) { scrollTo({ top: 0, behavior: hareketAzalt() ? "auto" : "smooth" }); return; } return akisYenile(); }   // X gibi: aşağıdaysa en üste, tepedeyse yenile
       return gotur({ sayfa: a.s, handle: a.s === "profil" ? D.ben.handle : null }, false);
     case "geri": return yigin.length ? history.back() : gotur({ sayfa: "akis" }, false);
-    case "sekme": D.sekme = a.s; return ciz(true);
+    case "sekme": return sekmeGec(a.s, SEKME_SIRA.indexOf(a.s) > SEKME_SIRA.indexOf(D.sekme) ? "sol" : "sag");
+    case "aktivite-yeni": if (!D.ben) return BULUT ? (tost(t("akGirisGerek")), girisIste()) : null; sheetKapat(); return aktiviteFormAc();
+    case "etk-form-gonder": return aktiviteFormGonder(el);
+    case "etk-foto-sec": return $("#ek-foto")?.click();
+    case "etk-foto-kaldir": etkTaslak.foto = null; etkTaslak.fotoKaldir = true; return etkFotoYaz();
+    case "etk-duzenle": return etkDuzenleAc(a.id);
+    case "etk-iptal": return etkIptalSor(a.id, a.geri === "1");
+    case "etk-iptal-evet": return etkIptalEvet(a.id, false);
+    case "etk-katil": return etkKatil(el);
+    case "etk-ac": return gotur({ sayfa: "detay", id: a.id }, true);
+    case "aktiviteler-ac": return gotur({ sayfa: "aktiviteler" }, true);
+    case "akt-tur": G.tur = a.tur; return ciz(false, true);
+    case "sehir-sec": return sehirSeciciAc();
+    case "sehir-ata": return sehirAta(a.s);
+    case "sehir-konum": return sehirKonumdan(el);
+    case "onay-evet": return onayKarar(a.id, true, "", el);
+    case "onay-red": return onayRedAc(a.id);
+    case "onay-red-evet": return onayKarar(a.id, false, a.n, el);
     case "ust-yenile": yigin.length = 0; G = { sayfa: "akis", kategori: "", handle: null, id: null, odak: false }; return akisYenile();   // logo: en üste çık + yenile
     case "yeni-hap": scrollTo(0, 0); return akisYenile();
     case "foto-ac": return fotoTikla(el, e);
@@ -2019,7 +2037,7 @@ document.addEventListener("click", async e => {
     case "paylas-ig": return paylasIg(a.id, a.tur);
     case "paylas-diger": return paylasDiger(a.id);
     case "paylas-wa": return paylasWa(a.id);
-    case "bil-ac": return a.t === "an_tepki" ? anBenimAc() : a.t === "takip" ? gotur({ sayfa: "profil", handle: a.h }, true) : gotur({ sayfa: "detay", id: a.h }, true);
+    case "bil-ac": return a.t === "etkinlik_red" ? gotur({ sayfa: "aktivitelerim" }, true) : a.t === "an_tepki" ? anBenimAc() : a.t === "takip" ? gotur({ sayfa: "profil", handle: a.h }, true) : gotur({ sayfa: "detay", id: a.h }, true);
     case "yaz": if (girisGerekli()) return; return yazAc();
     case "foto-sil": taslak.fotolar.splice(a.i !== undefined ? +a.i : 0, a.i !== undefined ? 1 : taslak.fotolar.length); baglantiTara(); return yzGuncelle();
     // ---- gecis-021: yorum beğenisi + iç içe yanıt, Son Anketler
@@ -2513,14 +2531,18 @@ const anKalanYaz = (bitis) => {
 // ---- şerit
 function anSeritHtml() {
   if (!D.ben || G.kategori) return "";
-  const gr = anGruplar(), yuklendi = !!D.anlar;
-  const ekle = `<li><button type="button" class="an-oge an-ekle" data-e="an-ekle" aria-label="${esc(t("anEkle"))}"><span class="an-halka an-art">${ikon("yaz", 22)}</span><span class="an-ad">${esc(t("anEkleKisa"))}</span></button></li>`;
-  const ogeler = gr.map((g, i) => {
+  const gr = anGruplar().map((g, i) => ({ g, i })), yuklendi = !!D.anlar;
+  const ekleAria = esc(t("anEkle"));
+  const oge = ({ g, i }) => {
     const son = g.anlar[g.anlar.length - 1], ad = g.benim ? t("anBenim") : g.yazar.ad;
     const aria = g.benim ? t("anAriaBenim", g.anlar.length) : t("anAria", g.yazar.ad, g.hepsiGoruldu);
-    return `<li><button type="button" class="an-oge ${g.benim ? "benim" : g.hepsiGoruldu ? "goruldu" : "yeni"}" data-e="an-ac" data-g="${i}" aria-label="${esc(aria)}"><span class="an-halka">${g.benim ? avatarHtml(D.ben, "kucuk") : `<img src="${esc(fotoUrl(son.foto))}" alt="" loading="lazy" decoding="async">`}</span><span class="an-ad">${esc(ad)}</span></button></li>`;
-  }).join("");
-  return `<div class="an-serit" id="an-serit" role="region" aria-label="${esc(t("anlar"))}"><ul class="an-liste">${ekle}${ogeler}${yuklendi && !gr.length ? `<li class="an-davet">${esc(t("anDavet"))}</li>` : ""}</ul></div>`;
+    const dugme = `<button type="button" class="an-oge ${g.benim ? "benim" : g.hepsiGoruldu ? "goruldu" : "yeni"}" data-e="an-ac" data-g="${i}" aria-label="${esc(aria)}"><span class="an-halka">${g.benim ? avatarHtml(D.ben, "kucuk") : `<img src="${esc(fotoUrl(son.foto))}" alt="" loading="lazy" decoding="async">`}</span><span class="an-ad">${esc(ad)}</span></button>`;
+    return g.benim ? `<li class="an-sag an-benim-li">${dugme}<button type="button" class="an-ekle an-rozet" data-e="an-ekle" aria-label="${ekleAria}">${ikon("yaz", 12)}</button></li>` : `<li>${dugme}</li>`;
+  };
+  const digerleri = gr.filter(x => !x.g.benim).map(oge).join(""), benim = gr.filter(x => x.g.benim).map(oge).join("");
+  // X'in canlı yayın çubuğu gibi "+" EN SAĞDA (yapışkan: çok an olsa da görünür). Kendi aktif anın varsa kendi halkalı avatarın en sağdadır ve ekleme onun köşesindeki rozettir (DOM sırası = görsel sıra).
+  const ekle = benim ? "" : `<li class="an-sag"><button type="button" class="an-oge an-ekle" data-e="an-ekle" aria-label="${ekleAria}"><span class="an-halka an-art">${ikon("yaz", 22)}</span><span class="an-ad">${esc(t("anEkleKisa"))}</span></button></li>`;
+  return `<div class="an-serit" id="an-serit" role="region" aria-label="${esc(t("anlar"))}"><ul class="an-liste">${digerleri}${yuklendi && !gr.length ? `<li class="an-davet">${esc(t("anDavet"))}</li>` : ""}${benim}${ekle}</ul></div>`;
 }
 function anSeritCiz() {
   const e = $("#an-serit"); if (!e) return;
@@ -2815,17 +2837,18 @@ async function hesapSilSon(dugme) {
 
 // ---------- yan alanlar: sol menü (≥700 px), sağ sütun (≥1100 px), mobil çekmece, "İyi gündem" + "Kimi takip etmeli" (tek kod, her yerde aynı bileşen) ----------
 const girisli = () => !BULUT || !!D.ben;
-const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], anketler: ["anket", "sonAnketler"], bildirim: ["bildirim", "bildirim"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"] };
-const menuOgeleri = (sira) => sira.filter(s => girisli() || s === "akis" || s === "kesfet" || s === "video" || s === "anketler" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
+const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], anketler: ["anket", "sonAnketler"], bildirim: ["bildirim", "bildirim"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"], aktivite: ["takvim", "aktiviteOlustur"], onay: ["tik", "onayBekleyenler"] };
+const menuOgeleri = (sira) => sira.filter(s => s === "onay" ? !!D.yonetici : s === "aktivite" ? girisli() && !!D.ben : girisli() || s === "akis" || s === "kesfet" || s === "video" || s === "anketler" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
 function solSecili() {
   if (G.sayfa === "akis") return G.kategori ? "kesfet" : "akis";
   if (G.sayfa === "profil") return !G.handle || G.handle === D.ben?.handle ? "profil" : "";
   if (G.sayfa === "kayit-liste") return "kayit";
   if (G.sayfa === "ara") return "kesfet";
-  return ["kesfet", "bildirim", "kayit", "video", "anketler"].includes(G.sayfa) ? G.sayfa : "";
+  if (G.sayfa === "aktivitelerim") return "aktivite";
+  return ["kesfet", "bildirim", "kayit", "video", "anketler", "onay"].includes(G.sayfa) ? G.sayfa : "";
 }
 const menuDugme = (s, sinif) => {
-  const [ik, ad] = MENU_TANIM[s], sec = solSecili() === s, e = s === "ayarlar" ? 'data-e="ayarlar"' : `data-e="git" data-s="${s}"`;
+  const [ik, ad] = MENU_TANIM[s], sec = solSecili() === s, e = s === "ayarlar" ? 'data-e="ayarlar"' : s === "aktivite" ? 'data-e="aktivite-yeni"' : `data-e="git" data-s="${s}"`;
   return `<button class="${sinif} ${sec ? "secili" : ""}" ${e} aria-label="${t(ad)}" ${sec ? 'aria-current="page"' : ""}>${ikon(ik, 26)}<span class="sol-ad">${t(ad)}</span>${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}</button>`;
 };
 const yasalSatir = () => `<a href="/yasal/kosullar" target="_blank" rel="noopener">${t("kosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${t("gizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${t("cerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${t("kurallar")}</a> · <a href="/yasal/destek" target="_blank" rel="noopener">${t("destek")}</a>`;
@@ -2838,7 +2861,7 @@ function hesapKartHtml() {
 }
 function solHtml() {
   return `<div class="sol-ic"><div class="sol-ust"><button class="sol-logo" data-e="ust-yenile" aria-label="OP"><img src="icons/op.svg" alt="OP"></button>${betaEtiket()}</div>
-    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "anketler", "bildirim", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
+    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "anketler", "aktivite", "onay", "bildirim", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
     <button class="dug sol-yaz" data-e="yaz-sol" aria-label="${t("gonderiYayinla")}"><span class="yaz-ik">${ikon("yaz", 26)}</span><span class="yaz-ad">${t("gonderiYayinla")}</span></button>
     <div class="bosluk"></div>${hesapKartHtml()}</div>`;
 }
@@ -2906,7 +2929,7 @@ function cekmeceHtml() {
       <span class="cek-say gri">${typeof k.takipSayisi === "number" ? `<span><b>${k.takipSayisi}</b> ${t("takipSay")}</span> · <span><b>${k.takipci || 0}</b> ${t("takipciSay")}</span>` : ""}</span></button>`
     : `<div class="cek-misafir">${avatarHtml(null)}<button class="dug tam" data-e="giris-ac">${bt("girisYap")}</button><button class="dug ikincil tam" data-e="kayit-ac">${bt("kayitOl")}</button></div>`;
   return `<div class="cek-ust"><span class="cek-baslik">${t("yanMenu")}</span><button class="ust-dug" data-e="sheet-kapat" aria-label="${t("kapat")}">✕</button></div>${hesap}
-    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "kesfet", "video", "anketler", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
+    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "kesfet", "video", "anketler", "aktivite", "onay", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
       ${BULUT && k ? `<button class="cek-oge" data-e="cikis-yap"><span class="sol-ad">${bt("cikisYap")}</span></button>` : ""}</nav>
     <div class="bosluk"></div><div class="grup cek-tema" role="group" aria-label="${t("tema")}"><button class="dug kucuk ${tm === "acik" ? "" : "ikincil"}" data-e="tema" data-t="acik" aria-pressed="${tm === "acik"}">${t("acikTema")}</button>
       <button class="dug kucuk ${tm === "koyu" ? "" : "ikincil"}" data-e="tema" data-t="koyu" aria-pressed="${tm === "koyu"}">${t("koyuTema")}</button></div>
@@ -3088,6 +3111,351 @@ async function ilgiIlkBitir(kaydet) {
   if (secili.length) { await ilgiKaydet({ ...(D.ben?.ilgi || {}), ...Object.fromEntries(secili.map(k => [k, 2])) }); if (G.sayfa === "akis") akisYenile(); }
 }
 
+// ---------- gecis-024: YAKINDAKİ AKTİVİTELER + AKTİVİTE OLUŞTUR (onaylı) + SEKME KAYDIRMA ----------
+Object.assign(T.tr, {
+  aktiviteOlustur: "Aktivite oluştur", onayBekleyenler: "Onay bekleyenler", yakinAkt: "Yakınındaki Aktiviteler", akTumu: "Tümünü gör", akSehirSec: "Şehrini seç", akSehirNot: "Yakınındaki etkinlikleri göstermek için şehrini seç.",
+  akBos: "Bu hafta için henüz etkinlik bulamadık", akYakinSehir: (s) => `${s} için etkinlik bulunamadı; yakın şehirlerden öneriler`, akYukleniyor: "Etkinlikler yükleniyor", akUcretsiz: "Ücretsiz", akOpten: "OP'den", akTopluluk: "Topluluktan", akIptalli: "İptal edildi",
+  akTur_sergi: "Sergi", akTur_konser: "Konser", akTur_tiyatro: "Tiyatro", akTur_festival: "Festival", akTur_soylesi: "Söyleşi", akTur_atolye: "Atölye", akTur_spor: "Spor", akTur_diger: "Diğer", akTur_bulusma: "Buluşma / yürüyüş", akTurHepsi: "Tümü",
+  akKatil: "Katılacağım", akKatiliyor: "Katılıyorsun", akKatilimci: (n) => `${n} kişi katılıyor`, akInceleme: "İncelemede", akRed: "Yayınlanmadı", akYayinda: "Yayında", akRedNeden_uygunsuz: "Uygunsuz içerik", akRedNeden_eksik: "Eksik bilgi", akRedNeden_tekrar: "Tekrar eden etkinlik", akRedNeden_diger: "Diğer",
+  akAd: "Aktivite adı", akTur: "Tür", akSehir: "Şehir", akMekan: "Yer", akMekanNot: "Herkese açık bir yer yaz (park, kafe, müze, salon…). Ev adresi paylaşma.", akTarih: "Tarih", akSaat: "Saat (isteğe bağlı)", akBitis: "Bitiş tarihi (isteğe bağlı)", akUcretsizMi: "Ücretsiz", akAciklama: "Kısa açıklama",
+  akFoto: "Fotoğraf ekle", akFotoKaldir: "Fotoğrafı kaldır", akGonder: "İncelemeye gönder", akKaydet: "Kaydet ve yeniden incelemeye gönder", akGonderildi: "Etkinliğin incelemede, onaylanınca yayınlanacak", akDuzenleNot: "Düzenlersen etkinlik yeniden incelemeye girer.", akNot: "Etkinlikler yayınlanmadan önce incelenir. Din ve siyaset içeren etkinlikler yayınlanmaz.",
+  akDuzenle: "Düzenle", akIptalEt: "İptal et", akGeriAc: "Geri aç", akIptalSor: "Bu etkinlik iptal edilsin mi? Gönderi kalır, kart “İptal edildi” olarak görünür.", akVazgec: "Vazgeç", akIptalOldu: "Etkinlik iptal edildi", akGeriAcildi: "Etkinlik yeniden açıldı", akAdKisa: "Etkinliğe bir ad ver.", akTarihGerek: "Bir tarih seç.", akSehirGerek: "Bir şehir seç.",
+  akOnayla: "Onayla", akReddet: "Reddet", akRedSec: "Neden yayınlanmasın?", akOnaylandi: "Etkinlik yayınlandı", akReddedildi: "Etkinlik reddedildi", akBekleyenBos: "Onay bekleyen aktivite yok.", akAktivitelerim: "Aktivitelerim", akKatilacaklarim: "Katılacaklarım", akBosAktivitelerim: "Henüz aktivite oluşturmadın.", akBosKatil: "Katılacağın etkinlik yok.",
+  akKonum: "Konumumdan bul", akKonumYok: "Konum alınamadı ya da yakında OP şehri yok. Listeden seçebilirsin.", akKonumNot: "Konumun yalnız en yakın şehri bulmak için cihazında kullanılır; sunucuya gönderilmez, saklanmaz.", akSehirTamam: (s) => `Şehrin: ${s}`, akRedTemizle: "Reddedilen etkinlikler 7 gün sonra silinir.",
+  akGirisGerek: "Aktivite oluşturmak için giriş yapman gerekiyor.", akKaydirAria: "Sekmeler arasında geçmek için sağa ya da sola kaydır",
+});
+Object.assign(T.en, {
+  aktiviteOlustur: "Create activity", onayBekleyenler: "Pending approval", yakinAkt: "Activities near you", akTumu: "See all", akSehirSec: "Choose your city", akSehirNot: "Choose your city to see activities near you.",
+  akBos: "We couldn't find any activities for this week yet", akYakinSehir: (s) => `No activities found in ${s}; suggestions from nearby cities`, akYukleniyor: "Loading activities", akUcretsiz: "Free", akOpten: "From OP", akTopluluk: "Community", akIptalli: "Cancelled",
+  akTur_sergi: "Exhibition", akTur_konser: "Concert", akTur_tiyatro: "Theatre", akTur_festival: "Festival", akTur_soylesi: "Talk", akTur_atolye: "Workshop", akTur_spor: "Sports", akTur_diger: "Other", akTur_bulusma: "Meetup / walk", akTurHepsi: "All",
+  akKatil: "I'll join", akKatiliyor: "You're going", akKatilimci: (n) => `${n} going`, akInceleme: "Under review", akRed: "Not published", akYayinda: "Published", akRedNeden_uygunsuz: "Inappropriate content", akRedNeden_eksik: "Missing information", akRedNeden_tekrar: "Duplicate event", akRedNeden_diger: "Other",
+  akAd: "Activity name", akTur: "Type", akSehir: "City", akMekan: "Place", akMekanNot: "Write a public place (park, café, museum, hall…). Don't share a home address.", akTarih: "Date", akSaat: "Time (optional)", akBitis: "End date (optional)", akUcretsizMi: "Free", akAciklama: "Short description",
+  akFoto: "Add a photo", akFotoKaldir: "Remove photo", akGonder: "Send for review", akKaydet: "Save and send for review again", akGonderildi: "Your event is under review and will be published once approved", akDuzenleNot: "If you edit it, the event goes back to review.", akNot: "Events are reviewed before they are published. Events about religion or politics are not published.",
+  akDuzenle: "Edit", akIptalEt: "Cancel event", akGeriAc: "Reopen", akIptalSor: "Cancel this event? The post stays and the card shows “Cancelled”.", akVazgec: "Never mind", akIptalOldu: "Event cancelled", akGeriAcildi: "Event reopened", akAdKisa: "Give the event a name.", akTarihGerek: "Pick a date.", akSehirGerek: "Pick a city.",
+  akOnayla: "Approve", akReddet: "Reject", akRedSec: "Why isn't it published?", akOnaylandi: "Event published", akReddedildi: "Event rejected", akBekleyenBos: "No activities waiting for approval.", akAktivitelerim: "My activities", akKatilacaklarim: "Going to", akBosAktivitelerim: "You haven't created an activity yet.", akBosKatil: "You aren't going to any event.",
+  akKonum: "Find from my location", akKonumYok: "Couldn't get your location or no OP city is nearby. You can choose from the list.", akKonumNot: "Your location is only used on your device to find the nearest city; it is not sent to the server or stored.", akSehirTamam: (s) => `Your city: ${s}`, akRedTemizle: "Rejected events are deleted after 7 days.",
+  akGirisGerek: "Please sign in to create an activity.", akKaydirAria: "Swipe left or right to switch between tabs",
+});
+T.tr.bildirimMetin.etkinlik_onay = "Etkinliğin onaylandı ve yayınlandı"; T.en.bildirimMetin.etkinlik_onay = "Your event was approved and published";
+T.tr.bildirimMetin.etkinlik_red = "Etkinliğin yayınlanmadı"; T.en.bildirimMetin.etkinlik_red = "Your event was not published";
+Object.assign(IK, {
+  takvim: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/>',
+  konum: '<path d="M12 21s-6.500-5.600-6.500-11a6.500 6.500 0 0113 0c0 5.400-6.500 11-6.500 11z"/><circle cx="12" cy="10" r="2.300"/>',
+  etk_sergi: '<rect x="4" y="3.500" width="16" height="12" rx="1"/><path d="M9 20l1.500-4.500"/><path d="M15 20l-1.500-4.500"/>',
+  etk_konser: '<path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>',
+  etk_tiyatro: '<path d="M4 5h16v6a8 8 0 01-16 0z"/><path d="M8.500 10h.01"/><path d="M15.500 10h.01"/><path d="M9 15c1 1 5 1 6 0"/>',
+  etk_festival: '<path d="M12 3l2.200 5 5.300.5-4 3.600 1.200 5.300-4.700-2.700-4.700 2.700 1.200-5.300-4-3.600 5.300-.5z"/>',
+  etk_soylesi: '<path d="M4 5.500A2.500 2.500 0 016.500 3h11A2.500 2.500 0 0120 5.500v8a2.500 2.500 0 01-2.500 2.500H11l-4.500 4v-4H6.500A2.500 2.500 0 014 13.500z"/>',
+  etk_atolye: '<path d="M14.500 5.500l4 4"/><path d="M4 20l3.500-1 10-10-2.500-2.500-10 10z"/>',
+  etk_spor: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18"/><path d="M12 3c-3 3-3 15 0 18"/>',
+  etk_diger: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>',
+  etk_bulusma: '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3 20c0-3.300 2.700-6 6-6s6 2.700 6 6"/><path d="M16 14.200c2.800 0 5 2.100 5 5.800"/>',
+});
+const ETK_TURLER = ["sergi", "konser", "tiyatro", "festival", "soylesi", "atolye", "spor", "bulusma", "diger"];
+const ETK_SEHIRLER = SEHIRLER.filter(s => s !== "Diğer");
+const ETK_MERKEZ = { "İstanbul": [41.01, 28.98], "Ankara": [39.93, 32.86], "İzmir": [38.42, 27.14], "Bursa": [40.19, 29.06], "Antalya": [36.9, 30.69], "Adana": [37.0, 35.32], "Konya": [37.87, 32.48], "Gaziantep": [37.07, 37.38],
+  "Kocaeli": [40.77, 29.94], "Mersin": [36.8, 34.64], "Eskişehir": [39.78, 30.52], "Trabzon": [41.0, 39.72], "Samsun": [41.29, 36.33], "Muğla": [37.22, 28.36] };
+const etkLoc = () => (D.dil === "en" ? "en-GB" : "tr-TR");
+const etkTarihNesne = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+const etkTarihKisa = (s, gunlu) => { const d = etkTarihNesne(s); if (!d) return ""; return `${d.getDate()} ${d.toLocaleDateString(etkLoc(), { month: "short" }).replace(".", "")}${gunlu ? " · " + d.toLocaleDateString(etkLoc(), { weekday: "short" }) : ""}`; };
+function etkTarihYazi(e) {   // "17 Eki · Cum" · süren etkinlik: "17 Eki – 30 Kas"
+  const bas = etkTarihKisa(e.baslangic, !e.bitis || e.bitis === e.baslangic);
+  const yaz = e.bitis && e.bitis !== e.baslangic ? `${etkTarihKisa(e.baslangic)} – ${etkTarihKisa(e.bitis)}` : bas;
+  return yaz + (e.saat ? ` · ${e.saat}` : "");
+}
+const etkYerel = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const etkRozet = (e) => { const d = etkTarihNesne(e.baslangic); return d ? `<span class="etk-tarih" aria-hidden="true"><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString(etkLoc(), { month: "short" }).replace(".", ""))}</span></span>` : ""; };
+const etkBitti = (e) => { const b = etkTarihNesne(e.bitis || e.baslangic); const bugun = new Date(); bugun.setHours(0, 0, 0, 0); return !!b && b < bugun; };
+const etkTurHtml = (e) => `<span class="etk-tur">${ikon("etk_" + (IK["etk_" + e.tur] ? e.tur : "diger"), 15)}${esc(t("akTur_" + e.tur))}</span>`;
+const etkEtiketler = (e) => `${etkTurHtml(e)}${e.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${e.kullanici ? "topluluk" : "op"}">${esc(t(e.kullanici ? "akTopluluk" : "akOpten"))}</span>${e.iptal ? `<span class="etk-et iptal">${esc(t("akIptalli"))}</span>` : ""}`;
+const etkOnayRozeti = (e) => e.onay === "bekliyor" ? `<span class="etk-onay bekliyor">${esc(t("akInceleme"))}</span>` : e.onay === "reddedildi" ? `<span class="etk-onay red">${esc(t("akRed"))}${e.redNeden ? ": " + esc(t("akRedNeden_" + e.redNeden)) : ""}</span>` : "";
+function etkKatilHtml(id, e) {
+  if (e.iptal || etkBitti(e) || e.onay === "bekliyor" || e.onay === "reddedildi") return "";
+  return `<button type="button" class="dug kucuk etk-katil ${e.katiliyorMu ? "ikincil" : ""}" data-e="etk-katil" data-id="${esc(id)}" aria-pressed="${!!e.katiliyorMu}">${e.katiliyorMu ? esc(t("akKatiliyor")) : esc(t("akKatil"))}</button><span class="gri etk-say" data-etk-say="${esc(id)}">${e.katilimci ? esc(t("akKatilimci", e.katilimci)) : ""}</span>`;
+}
+function etkSahipHtml(o, e) {   // yalnız kendi kullanıcı etkinliğinde
+  if (!e.kullanici || !D.ben || o.yazar?.handle !== D.ben.handle) return "";
+  return `<span class="etk-sahip"><button type="button" class="dug kucuk ikincil" data-e="etk-duzenle" data-id="${esc(o.id)}">${esc(t("akDuzenle"))}</button><button type="button" class="dug kucuk ikincil" data-e="etk-iptal" data-id="${esc(o.id)}" data-geri="${e.iptal ? 1 : 0}">${esc(t(e.iptal ? "akGeriAc" : "akIptalEt"))}</button></span>`;
+}
+/** Gönderi kartında / detayda etkinlik kartı. o.etkinlik = { ad, sehir, mekan, baslangic, bitis, saat, tur, ucretsiz, kullanici, iptal, katilimci, katiliyorMu } */
+function etkinlikKartHtml(o, detay = false) {
+  const e = o.etkinlik; if (!e) return "";
+  const yer = [e.mekan, e.sehir].filter(Boolean).join(", ");
+  return `<div class="etk-kart ${e.iptal ? "iptal" : ""}" data-etk="${esc(o.id)}" role="group" aria-label="${esc(e.ad)}">${etkRozet(e)}
+    <div class="etk-bilgi"><div class="etk-ad">${esc(e.ad)}</div><div class="etk-alt gri">${esc(etkTarihYazi(e))}</div>${yer ? `<div class="etk-alt gri etk-yer">${ikon("konum", 13)} ${esc(yer)}</div>` : ""}
+    <div class="etk-et-sira">${etkEtiketler(e)}</div><div class="etk-eylem">${etkKatilHtml(o.id, e)}${etkSahipHtml(o, e)}</div></div></div>`;
+}
+// ---- şehir: profil şehri (profiles.sehir) · girişsizde cihazdaki seçim · "Diğer" = şehir yok
+const aktSehir = () => { const s = D.ben ? D.ben.sehir : sakla.al("op-akt-sehir", ""); return s && s !== "Diğer" && ETK_SEHIRLER.includes(s) ? s : ""; };
+function aktKartHtml(x) {
+  const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
+  return `<li role="listitem"><button type="button" class="akt-kart ${x.iptal ? "iptal" : ""}" data-e="etk-ac" data-id="${esc(x.id)}" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}`)}">
+    <span class="akt-ust-sira">${etkRozet(x)}<span class="akt-tur" title="${esc(t("akTur_" + x.tur))}">${ikon("etk_" + (IK["etk_" + x.tur] ? x.tur : "diger"), 20)}</span></span>
+    <span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}</span><span class="akt-yer gri">${yer ? esc(yer) : ""}</span>
+    <span class="akt-et-sira">${x.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${x.kullanici ? "topluluk" : "op"}">${esc(t(x.kullanici ? "akTopluluk" : "akOpten"))}</span></span></button></li>`;
+}
+function aktiviteGovdeHtml() {
+  const sehir = aktSehir();
+  if (!sehir) return `<div class="akt-bos"><p class="gri">${esc(t("akSehirNot"))}</p><button type="button" class="dug kucuk" data-e="sehir-sec">${ikon("konum", 16)} ${esc(t("akSehirSec"))}</button></div>`;
+  const a = D.akt;
+  if (!a || a.sehir !== sehir || !a.veri) return `<div class="akt-bos gri" role="status">${esc(t("akYukleniyor"))}…</div>`;
+  const l = a.veri.etkinlikler || [];
+  if (!l.length) return `<div class="akt-bos"><p class="gri">${esc(t("akBos"))}</p></div>`;
+  return `${a.veri.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : ""}<ul class="akt-sirit" role="list">${l.slice(0, 10).map(aktKartHtml).join("")}</ul>`;
+}
+function aktiviteBolumHtml() {
+  return `<section class="aktivite" data-aktivite aria-label="${esc(t("yakinAkt"))}"><div class="akt-ust"><h2>${esc(t("yakinAkt"))}</h2>${aktSehir() ? `<button type="button" class="akt-tumu" data-e="aktiviteler-ac">${esc(t("akTumu"))}</button>` : ""}</div>${aktiviteGovdeHtml()}</section>`;
+}
+async function aktiviteYukle(zorla) {
+  const sehir = aktSehir(); if (!sehir) return;
+  const a = D.akt;
+  if (!zorla && a && a.sehir === sehir && a.veri && Date.now() - a.z < 120000) return aktiviteYaz();
+  try { const veri = await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=7&sinir=10`); D.akt = { sehir, z: Date.now(), veri }; }
+  catch { D.akt = { sehir, z: Date.now(), veri: { etkinlikler: [], yakin: false } }; }
+  aktiviteYaz();
+}
+function aktiviteYaz() {
+  const e = document.querySelector("[data-aktivite]"); if (!e || D.sekme !== "yakin") return;
+  const k = document.createElement("div"); k.innerHTML = aktiviteBolumHtml(); const n = k.firstElementChild;
+  const eskiKay = e.querySelector(".akt-sirit")?.scrollLeft || 0; e.replaceWith(n); const l = n.querySelector(".akt-sirit"); if (l) l.scrollLeft = eskiKay;
+}
+// ---- şehir seçici (+ isteğe bağlı cihaz konumu: yalnız EN YAKIN ŞEHİR cihazda hesaplanır; koordinat sunucuya gitmez, saklanmaz)
+function sehirSeciciAc() {
+  sheet(sheetUst(t("akSehirSec")) + `<div class="akt-sehirler" role="group">${ETK_SEHIRLER.map(s => `<button type="button" class="dug ikincil kucuk" data-e="sehir-ata" data-s="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+    <button type="button" class="dug tam" data-e="sehir-konum">${ikon("konum", 18)} ${esc(t("akKonum"))}</button><p class="gri akt-konum-not">${esc(t("akKonumNot"))}</p><div id="ipucu"></div>`);
+}
+function enYakinSehir(lat, lon) {
+  let en = null, mesafe = Infinity;
+  for (const [s, [a, o]] of Object.entries(ETK_MERKEZ)) { const dy = (a - lat) * 111, dx = (o - lon) * 111 * Math.cos(lat * Math.PI / 180), m = Math.hypot(dx, dy); if (m < mesafe) { mesafe = m; en = s; } }
+  return mesafe <= 150 ? en : null;   // 150 km içinde OP şehri yoksa öneri yok
+}
+async function sehirAta(sehir) {
+  if (!ETK_SEHIRLER.includes(sehir)) return;
+  try {
+    if (D.ben) {
+      const v = await api("/api/kullanici", { ...D.ben, sehir, cihaz: D.cihaz, dil: D.dil });
+      D.ben = { ...D.ben, ...v.kullanici, sehir, ilgi: v.kullanici?.ilgi ?? D.ben.ilgi }; sakla.koy("op-ben", D.ben);
+    } else sakla.koy("op-akt-sehir", sehir);
+  } catch (e) { return ipucuYaz(e.message); }
+  D.akt = null; onbSil(); sheetKapat(); tost(t("akSehirTamam", sehir)); ciz(false, true);
+}
+function sehirKonumdan(dugme) {
+  if (!navigator.geolocation) return ipucuYaz(t("akKonumYok"));
+  dugme.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    (p) => { const s = enYakinSehir(p.coords.latitude, p.coords.longitude); dugme.disabled = false; if (s) sehirAta(s); else ipucuYaz(t("akKonumYok")); },
+    () => { dugme.disabled = false; ipucuYaz(t("akKonumYok")); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+}
+// ---- Tümünü gör (7 gün, türe göre süzgeç)
+async function aktivitelerCiz(my) {
+  const sehir = aktSehir(), tur = G.tur || "";
+  const cip = ["", ...ETK_TURLER].map(x => `<button type="button" class="akt-cip ${tur === x ? "secili" : ""}" data-e="akt-tur" data-tur="${x}" aria-pressed="${tur === x}">${esc(t(x ? "akTur_" + x : "akTurHepsi"))}</button>`).join("");
+  const bas = `<h1 class="baslik">${esc(t("yakinAkt"))}</h1><div class="akt-cipler" role="group" aria-label="${esc(t("akTur"))}">${cip}</div>`;
+  if (!sehir) { kok().innerHTML = kabuk(bas + `<div class="akt-bos">${aktiviteGovdeHtml()}</div>`, { geri: true, fab: false }); return; }
+  kok().innerHTML = kabuk(bas + iskelet, { geri: true, fab: false });
+  let v; try { v = await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=7&sinir=50${tur ? "&tur=" + tur : ""}`); } catch (e) { v = null; }
+  if (my !== D.cizim) return;
+  const l = v?.etkinlikler || [];
+  kok().innerHTML = kabuk(bas + (l.length ? (v.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : "") + `<ul class="akt-liste" role="list">${l.map(aktListeSatiri).join("")}</ul>` : bosHtml(t("akBos"))), { geri: true, fab: false });
+}
+function aktListeSatiri(x) {
+  const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
+  return `<li><button type="button" class="akt-satir" data-e="etk-ac" data-id="${esc(x.id)}">${etkRozet(x)}<span class="akt-satir-bilgi"><span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}${yer ? " · " + esc(yer) : ""}</span>
+    <span class="etk-et-sira">${etkEtiketler(x)}</span></span></button></li>`;
+}
+// ---- Aktivitelerim (incelemede / yayınlanmadı / yayında) + Katılacaklarım
+function etkSahipSatir(x) {
+  const acilir = x.onay === "onaylandi";
+  const ic = `${etkRozet(x)}<span class="akt-satir-bilgi"><span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}${x.sehir ? " · " + esc(x.sehir) : ""}</span><span class="etk-et-sira">${etkOnayRozeti(x)}${etkEtiketler(x)}</span></span>`;
+  return `<li class="akt-sahip-kart">${acilir ? `<button type="button" class="akt-satir" data-e="etk-ac" data-id="${esc(x.id)}">${ic}</button>` : `<div class="akt-satir">${ic}</div>`}
+    <div class="etk-eylem"><button type="button" class="dug kucuk ikincil" data-e="etk-duzenle" data-id="${esc(x.id)}">${esc(t("akDuzenle"))}</button><button type="button" class="dug kucuk ikincil" data-e="etk-iptal" data-id="${esc(x.id)}" data-geri="${x.iptal ? 1 : 0}">${esc(t(x.iptal ? "akGeriAc" : "akIptalEt"))}</button></div></li>`;
+}
+async function aktivitelerimCiz(my) {
+  if (!D.ben) { girisIste(); return; }
+  const [b, k] = await Promise.all([api("/api/etkinlik/benim").catch(() => ({ etkinlikler: [] })), api("/api/katilacaklarim").catch(() => ({ etkinlikler: [] }))]);
+  if (my !== D.cizim) return;
+  D.etkBenim = b.etkinlikler;
+  const l1 = b.etkinlikler, l2 = k.etkinlikler;
+  kok().innerHTML = kabuk(`<h1 class="baslik">${esc(t("akAktivitelerim"))}</h1>
+    <section class="akt-bolum"><h2>${esc(t("akAktivitelerim"))}</h2>${l1.length ? `<ul class="akt-liste" role="list">${l1.map(etkSahipSatir).join("")}</ul><p class="gri akt-not">${esc(t("akRedTemizle"))}</p>` : bosHtml(t("akBosAktivitelerim"))}</section>
+    <section class="akt-bolum"><h2>${esc(t("akKatilacaklarim"))}</h2>${l2.length ? `<ul class="akt-liste" role="list">${l2.map(aktListeSatiri).join("")}</ul>` : bosHtml(t("akBosKatil"))}</section>`, { geri: true, fab: false });
+}
+// profilde (yalnız kendi profilinde) incelemedeki / yayınlanmayan etkinlikler
+function profilEtkinlikHtml(liste) {
+  const l = (liste || []).filter(x => x.onay !== "onaylandi");
+  return `<div class="profil-akt"><button type="button" class="dug kucuk ikincil" data-e="git" data-s="aktivitelerim">${ikon("takvim", 16)} ${esc(t("akAktivitelerim"))}</button>${l.length ? `<ul class="akt-liste" role="list">${l.map(etkSahipSatir).join("")}</ul>` : ""}</div>`;
+}
+// ---- Aktivite oluştur / düzenle formu
+const etkTaslak = { foto: null, mevcutFoto: null, fotoKaldir: false };
+function etkNormalize(o) {   // gönderi nesnesi (etkinlik alt nesnesiyle) ya da düz liste öğesi → form değerleri
+  const e = o.etkinlik || o;
+  return { id: o.id, ad: e.ad, tur: e.tur, sehir: e.sehir, mekan: e.mekan || "", baslangic: e.baslangic, bitis: e.bitis || "", saat: e.saat || "", ucretsiz: !!e.ucretsiz, aciklama: e.aciklama || "", foto: o.foto || "" };
+}
+function aktiviteFormAc(duz) {
+  if (!D.ben) return girisIste();
+  const v = duz ? etkNormalize(duz) : { id: "", ad: "", tur: "sergi", sehir: aktSehir() || "", mekan: "", baslangic: "", bitis: "", saat: "", ucretsiz: false, aciklama: "", foto: "" };
+  Object.assign(etkTaslak, { foto: null, mevcutFoto: v.foto || null, fotoKaldir: false });
+  const bugun = new Date(), son = new Date(); son.setDate(son.getDate() + 60);
+  sheet(sheetUst(t(v.id ? "akDuzenle" : "aktiviteOlustur")) + `<div class="etk-form"><p class="gri akt-not">${esc(t("akNot"))}${v.id ? " " + esc(t("akDuzenleNot")) : ""}</p>
+    <div class="alan"><label for="ek-ad">${esc(t("akAd"))}</label><input id="ek-ad" maxlength="120" autocomplete="off" value="${esc(v.ad)}"></div>
+    <div class="alan"><label for="ek-tur">${esc(t("akTur"))}</label><select id="ek-tur">${ETK_TURLER.map(x => `<option value="${x}" ${v.tur === x ? "selected" : ""}>${esc(t("akTur_" + x))}</option>`).join("")}</select></div>
+    <div class="alan"><label for="ek-sehir">${esc(t("akSehir"))}</label><select id="ek-sehir"><option value="">—</option>${ETK_SEHIRLER.map(s => `<option ${v.sehir === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select></div>
+    <div class="alan"><label for="ek-mekan">${esc(t("akMekan"))}</label><input id="ek-mekan" maxlength="80" autocomplete="off" value="${esc(v.mekan)}" aria-describedby="ek-mekan-not"><p class="gri akt-not" id="ek-mekan-not">${esc(t("akMekanNot"))}</p></div>
+    <div class="alan"><label for="ek-tarih">${esc(t("akTarih"))}</label><input id="ek-tarih" type="date" min="${etkYerel(bugun)}" max="${etkYerel(son)}" value="${esc(v.baslangic)}"></div>
+    <div class="alan"><label for="ek-saat">${esc(t("akSaat"))}</label><input id="ek-saat" type="time" value="${esc(v.saat)}"></div>
+    <div class="alan"><label for="ek-bitis">${esc(t("akBitis"))}</label><input id="ek-bitis" type="date" min="${etkYerel(bugun)}" max="${etkYerel(son)}" value="${esc(v.bitis)}"></div>
+    <label class="etk-onay-kutu"><input id="ek-ucretsiz" type="checkbox" ${v.ucretsiz ? "checked" : ""}> ${esc(t("akUcretsizMi"))}</label>
+    <div class="alan"><label for="ek-aciklama">${esc(t("akAciklama"))}</label><textarea id="ek-aciklama" maxlength="280" rows="3">${esc(v.aciklama)}</textarea></div>
+    <div class="alan etk-foto-alan"><div id="ek-foto-onizle">${etkFotoOnizle()}</div><button type="button" class="dug kucuk ikincil" data-e="etk-foto-sec">${ikon("foto", 16)} ${esc(t("akFoto"))}</button><input type="file" accept="image/*" id="ek-foto" hidden></div>
+    <div id="ipucu"></div><button class="dug tam" data-e="etk-form-gonder" data-id="${esc(v.id)}">${esc(t(v.id ? "akKaydet" : "akGonder"))}</button></div>`);
+  const dosya = $("#ek-foto"); if (dosya) dosya.addEventListener("change", async () => { const f = dosya.files && dosya.files[0]; dosya.value = ""; if (!f) return; try { etkTaslak.foto = await fotoKucult(f); etkTaslak.fotoKaldir = false; etkFotoYaz(); } catch { ipucuYaz(t("hata")); } });
+  $("#ek-ad")?.focus({ preventScroll: true });
+}
+function etkFotoOnizle() {
+  const src = etkTaslak.foto || (!etkTaslak.fotoKaldir && etkTaslak.mevcutFoto ? fotoUrl(etkTaslak.mevcutFoto) : "");
+  return src ? `<div class="foto-onizle etk-foto"><img src="${esc(src)}" alt=""><button type="button" data-e="etk-foto-kaldir" aria-label="${esc(t("akFotoKaldir"))}">✕</button></div>` : "";
+}
+const etkFotoYaz = () => { const e = $("#ek-foto-onizle"); if (e) e.innerHTML = etkFotoOnizle(); };
+async function aktiviteFormGonder(dugme) {
+  const f = dugme.closest(".sheet"), id = dugme.dataset.id, g = (x) => $(x, f);
+  const etkinlik = { ad: g("#ek-ad").value.trim(), tur: g("#ek-tur").value, sehir: g("#ek-sehir").value, mekan: g("#ek-mekan").value.trim(), baslangic: g("#ek-tarih").value, ucretsiz: g("#ek-ucretsiz").checked, aciklama: g("#ek-aciklama").value.trim() };
+  if (g("#ek-saat").value) etkinlik.saat = g("#ek-saat").value;
+  if (g("#ek-bitis").value) etkinlik.bitis = g("#ek-bitis").value;
+  if ([...etkinlik.ad].length < 2) return ipucuYaz(t("akAdKisa"));
+  if (!etkinlik.sehir) return ipucuYaz(t("akSehirGerek"));
+  if (!etkinlik.baslangic) return ipucuYaz(t("akTarihGerek"));
+  dugme.disabled = true;
+  try {
+    const govde = { etkinlik, ...(etkTaslak.foto ? { foto: etkTaslak.foto } : {}), ...(!etkTaslak.foto && etkTaslak.fotoKaldir ? { fotoKaldir: true } : {}) };
+    await api(id ? `/api/etkinlik/${encodeURIComponent(id)}/duzenle` : "/api/etkinlik", govde);
+    sheetKapat(); D.akt = null; tost(t("akGonderildi"), 4200);
+    if (id && G.sayfa === "aktivitelerim") ciz(false, true); else gotur({ sayfa: "aktivitelerim" }, false);
+  } catch (er) { dugme.disabled = false; if (er.durum === 401) return hataGoster(er); ipucuYaz(er.message); }
+}
+function etkIptalSor(id, geri) {
+  if (geri) return etkIptalEvet(id, true);
+  sheet(sheetUst(t("akIptalEt")) + `<p>${esc(t("akIptalSor"))}</p><button class="dug tam" data-e="etk-iptal-evet" data-id="${esc(id)}">${esc(t("akIptalEt"))}</button><button class="dug ikincil tam" data-e="sheet-kapat">${esc(t("akVazgec"))}</button>`);
+}
+async function etkIptalEvet(id, geriAl) {
+  try { await api(`/api/etkinlik/${encodeURIComponent(id)}/iptal`, geriAl ? { geriAl: true } : {}); } catch (er) { return hataGoster(er); }
+  sheetKapat(); D.akt = null; onbSil(); tost(t(geriAl ? "akGeriAcildi" : "akIptalOldu")); ciz(false, true);
+}
+async function etkKatil(dugme) {
+  if (girisGerekli()) return;
+  const id = dugme.dataset.id; dugme.disabled = true;
+  try {
+    const v = await api(`/api/etkinlik/${encodeURIComponent(id)}/katil`, {});
+    const o = ogeBul(id); if (o?.etkinlik) { o.etkinlik.katiliyorMu = v.katiliyorMu; o.etkinlik.katilimci = v.katilimci; }
+    document.querySelectorAll(`.etk-katil[data-id="${CSS.escape(id)}"]`).forEach(b => { b.disabled = false; b.setAttribute("aria-pressed", String(v.katiliyorMu)); b.classList.toggle("ikincil", v.katiliyorMu); b.textContent = t(v.katiliyorMu ? "akKatiliyor" : "akKatil"); });
+    document.querySelectorAll(`[data-etk-say="${CSS.escape(id)}"]`).forEach(s => { s.textContent = v.katilimci ? t("akKatilimci", v.katilimci) : ""; });
+    D.akt = null;
+  } catch (er) { dugme.disabled = false; hataGoster(er); }
+}
+function etkDuzenleAc(id) {
+  const o = ogeBul(id) || (D.etkBenim || []).find(x => x.id === id);
+  if (o) return aktiviteFormAc(o);
+  api(`/api/etkinlik/benim`).then(v => { const x = v.etkinlikler.find(y => y.id === id); if (x) aktiviteFormAc(x); }).catch(hataGoster);
+}
+// ---- yönetici: Onay bekleyenler (sunucu yönetici RPC'lerinde yetkiyi ayrıca denetler; menüde gizleme yalnız kolaylıktır)
+async function onayCiz(my) {
+  let v; try { v = await api("/api/etkinlik/bekleyenler"); } catch (e) { v = null; }
+  if (my !== D.cizim) return;
+  if (!v) { kok().innerHTML = kabuk(`<h1 class="baslik">${esc(t("onayBekleyenler"))}</h1>` + bosHtml(t("yok")), { geri: true, fab: false }); return; }
+  D.onayListe = v.etkinlikler;
+  kok().innerHTML = kabuk(`<h1 class="baslik">${esc(t("onayBekleyenler"))}</h1>` + (v.etkinlikler.length ? `<ul class="akt-liste onay-liste" role="list">${v.etkinlikler.map(onayKartHtml).join("")}</ul>` : bosHtml(t("akBekleyenBos"))), { geri: true, fab: false });
+}
+function onayKartHtml(x) {
+  const y = x.yazar;
+  return `<li class="onay-kart" data-onay="${esc(x.id)}"><div class="onay-yazar gri">${avatarHtml(y, "kucuk")} <b>${esc(y?.ad)}</b> @${esc(y?.handle)}</div>
+    ${etkinlikKartHtml({ id: x.id, etkinlik: x, yazar: y })}${x.metin && x.metin !== x.ad ? `<p class="onay-metin">${esc(x.metin)}</p>` : ""}${x.foto ? `<img class="onay-foto" src="${esc(fotoUrl(x.foto))}" alt="" loading="lazy">` : ""}
+    <div class="etk-eylem"><button type="button" class="dug kucuk" data-e="onay-evet" data-id="${esc(x.id)}">${esc(t("akOnayla"))}</button><button type="button" class="dug kucuk ikincil" data-e="onay-red" data-id="${esc(x.id)}">${esc(t("akReddet"))}</button></div></li>`;
+}
+function onayRedAc(id) {
+  sheet(sheetUst(t("akRedSec")) + `<div class="onay-nedenler">${["uygunsuz", "eksik", "tekrar", "diger"].map(n => `<button type="button" class="dug ikincil tam" data-e="onay-red-evet" data-id="${esc(id)}" data-n="${n}">${esc(t("akRedNeden_" + n))}</button>`).join("")}</div>`);
+}
+async function onayKarar(id, onay, neden, dugme) {
+  if (dugme) dugme.disabled = true;
+  try { await api(`/api/etkinlik/${encodeURIComponent(id)}/${onay ? "onayla" : "reddet"}`, onay ? {} : { neden }); }
+  catch (er) { if (dugme) dugme.disabled = false; return hataGoster(er); }
+  sheetKapat(); tost(t(onay ? "akOnaylandi" : "akReddedildi")); document.querySelector(`[data-onay="${CSS.escape(id)}"]`)?.remove();
+  if (!document.querySelector(".onay-kart")) ciz(false, true);
+}
+async function yoneticiYukle() {
+  if (!D.ben) { D.yonetici = false; return; }
+  const once = D.yonetici; try { D.yonetici = (await api("/api/yonetici")).yonetici === true; } catch { D.yonetici = false; }
+  if (once !== D.yonetici) { solCiz(); const c = document.querySelector(".cekmece"); if (c) cekmeceAc(true); }
+}
+
+// ---------- SEKME KAYDIRMA (Senin İçin ⇄ Takip ⇄ Yakınımda; X gibi) ----------
+// Çakışma kuralları: (1) yalnız akış kökü (kategori sayfası, sheet/çekmece/tam ekran görüntüleyici yok); (2) sol kenar (≤24 px) HARİÇ → kenardan geri/çekmece hareketi bozulmaz; (3) yatay kaydırılan iç öğede (Anlar şeridi, Yakınındaki Aktiviteler dizisi,
+// "Kimi takip etmeli" şeridi, skor/puan kartları, taşan her yatay kaydırıcı, video çubuğu, giriş alanı) başlayan hareket sekme DEĞİŞTİRMEZ; (4) yön kilidi: 10 px sonrası yatay hareket dikeyin ≥1,5 katıysa yatay kilit (dikey kaydırma bozulmaz),
+// dikey baskınsa hareket bırakılır; (5) eşik ≥50 px YA DA hızlı fırlatma (≥28 px ve ≥0,35 px/ms); uçlarda (ilk/son sekme) lastik etkisi, geçiş yok; (6) touchmove NON-PASSIVE (yatay kilitliyken preventDefault) + `.sayfa-kaydir{touch-action:pan-y}` → iOS WebView'da
+// yatay kaydırmayı tarayıcı değil biz yönetiriz; (7) azaltılmış harekette içerik kaymaz/animasyon yok, geçiş anında yapılır. Her sekmenin dikey konumu D.sekmeKonum'da saklanır ve geri yüklenir.
+const SEKME_SIRA = ["senin", "takip", "yakin"];
+D.sekmeKonum = D.sekmeKonum || {};
+function sekmeGec(hedef, yon) {
+  if (!SEKME_SIRA.includes(hedef) || hedef === D.sekme) return;
+  D.sekmeKonum[D.sekme] = scrollY; D.sekme = hedef; G.scroll = D.sekmeKonum[hedef] || 0;
+  const k = kok(); if (!hareketAzalt2() && yon) { k.dataset.gecis = yon; setTimeout(() => { if (k.dataset.gecis === yon) delete k.dataset.gecis; }, 320); }
+  return ciz(false);
+}
+(function sekmeKaydirma() {
+  const KENAR = 24, ESIK = 50, HIZ = 0.35, HIZ_MIN = 28;
+  let s = null, mesgul = false;
+  const YATAY_SEC = ".an-liste,.oneri-sirit,.akt-sirit,.akt-cipler,.hk,.skor,.skorlar,.puan,table,.video-ilerleme,.video-kap[data-ilerle],input,textarea,select,[contenteditable],[data-yatay]";
+  const yatayIc = (hedef) => {
+    for (let n = hedef; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
+      if (n.matches(YATAY_SEC)) return true;
+      if (n.scrollWidth > n.clientWidth + 2) { const ox = getComputedStyle(n).overflowX; if (ox === "auto" || ox === "scroll") return true; }
+    }
+    return false;
+  };
+  const uygun = () => !mesgul && G.sayfa === "akis" && !G.kategori && !!document.querySelector(".sekmeler") && !document.querySelector(".sheet,.cekmece,.gor-gor,.an-gor,.perde,.hesap-menu:not([hidden])");
+  const cizgi = (f) => { const nav = s?.nav; if (nav) nav.style.setProperty("--i", String(Math.min(SEKME_SIRA.length - 1, Math.max(0, f)))); };
+  document.addEventListener("touchstart", (e) => {
+    s = null;
+    if (e.touches.length !== 1 || !uygun()) return;
+    const t0 = e.touches[0];
+    if (t0.clientX <= KENAR) return;                       // sol kenar: geri/çekmece hareketi
+    if (yatayIc(e.target)) return;                         // yatay kaydırılan iç öğe
+    const el = document.querySelector(".icerik"), nav = document.querySelector(".sekmeler");
+    if (!el || !nav) return;
+    s = { x: t0.clientX, y: t0.clientY, z: Date.now(), kilit: null, dx: 0, dy: 0, el, nav, idx: SEKME_SIRA.indexOf(D.sekme) };
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (!s) return;
+    if (e.touches.length !== 1) { sifirla(false); return; }
+    const t0 = e.touches[0], dx = t0.clientX - s.x, dy = t0.clientY - s.y; s.dx = dx; s.dy = dy;
+    if (s.kilit === null) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx) * 0.67) { s = null; return; }        // dikey baskın: dikey kaydırmaya bırak
+      if (Math.abs(dx) > 10 && Math.abs(dx) >= Math.abs(dy) * 1.5) { s.kilit = "x"; s.nav.classList.add("surukle"); } else return;
+    }
+    if (e.cancelable) e.preventDefault();                  // yatay kilit: tarayıcı kaydırmasın/geri-ileri yapmasın
+    const hedef = s.idx + (dx < 0 ? 1 : -1), gecerli = hedef >= 0 && hedef < SEKME_SIRA.length, etkin = gecerli ? dx : dx * 0.22;
+    if (!hareketAzalt2()) { s.el.style.willChange = "transform"; s.el.style.transform = `translate3d(${etkin}px,0,0)`; }
+    cizgi(s.idx - etkin / Math.max(1, innerWidth));
+  }, { passive: false });
+  function sifirla(animli) {
+    const q = s; s = null; if (!q) return;
+    q.nav.classList.remove("surukle"); q.nav.style.removeProperty("--i"); q.nav.style.setProperty("--i", String(q.idx));
+    if (animli && !hareketAzalt2()) { q.el.style.transition = "transform .18s ease-out"; q.el.style.transform = ""; setTimeout(() => { q.el.style.transition = ""; q.el.style.willChange = ""; }, 200); }
+    else { q.el.style.transition = ""; q.el.style.transform = ""; q.el.style.willChange = ""; }
+  }
+  function bitir() {
+    const q = s; if (!q || q.kilit !== "x") { s = null; return; }
+    const dt = Math.max(1, Date.now() - q.z), hedef = q.idx + (q.dx < 0 ? 1 : -1), gecerli = hedef >= 0 && hedef < SEKME_SIRA.length;
+    const yatay = Math.abs(q.dx) > Math.abs(q.dy) * 1.2, tamam = gecerli && yatay && (Math.abs(q.dx) >= ESIK || (Math.abs(q.dx) >= HIZ_MIN && Math.abs(q.dx) / dt >= HIZ));
+    if (!tamam) { sifirla(true); return; }
+    mesgul = true; s = null;
+    const yon = q.dx < 0 ? "sol" : "sag", gecis = () => { q.nav.classList.remove("surukle"); q.el.style.transition = ""; q.el.style.transform = ""; q.el.style.willChange = ""; mesgul = false; sekmeGec(SEKME_SIRA[hedef], yon); };
+    if (hareketAzalt2()) return gecis();
+    q.el.style.transition = "transform .14s ease-out"; q.el.style.transform = `translate3d(${q.dx < 0 ? -innerWidth : innerWidth}px,0,0)`;
+    cizgi(hedef); setTimeout(gecis, 150);
+  }
+  document.addEventListener("touchend", bitir, { passive: true });
+  document.addEventListener("touchcancel", () => { if (s) sifirla(true); }, { passive: true });
+})();
+
 // ---------- dokunma hareketleri: aşağı çekip yenile · kenardan kaydırarak geri ----------
 const hareketAzalt2 = () => !!matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 (function dokunmaHareketleri() {
@@ -3095,7 +3463,7 @@ const hareketAzalt2 = () => !!matchMedia?.("(prefers-reduced-motion: reduce)").m
   let p = null, yenileniyor = false;
   const ptrUygun = (e) => {
     if (yenileniyor || scrollY > 0 || document.querySelector(".sheet,.cekmece")) return false;
-    if (!["akis", "kesfet", "video", "profil", "bildirim", "kayit", "kayit-liste", "seri"].includes(G.sayfa)) return false;
+    if (!["akis", "kesfet", "video", "profil", "bildirim", "kayit", "kayit-liste", "seri", "aktiviteler", "aktivitelerim", "onay"].includes(G.sayfa)) return false;
     return !e.target.closest?.(".video-ilerleme,.oneri-sirit,textarea,input,select,.duz,.yz");
   };
   const tut = () => { if (!p || !p.aktif) return; p.kare = 0; const d = Math.min(MAKS, p.dy * 0.8); p.el.style.transform = `translate3d(0,${d}px,0)`; p.g.style.opacity = String(Math.min(1, d / 50)); p.g.style.transform = `rotate(${d * 4}deg)`; };
