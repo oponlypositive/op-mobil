@@ -1576,6 +1576,22 @@ function sikistir(c) {   // bulut: Storage kovası ≤700 KB JPEG kabul eder →
   }
   return cv.toDataURL("image/jpeg", 0.4);
 }
+// Aktivite görseli YATAY (sahip 2026-10-15): seçilen fotoğraf ortadan 16:9 kırpılır (en çok 1280x720), bulutta ≤700 KB JPEG.
+function yatayKirp(veri) {
+  return new Promise((coz, red) => {
+    const img = new Image();
+    img.onload = () => {
+      const oran = 16 / 9, w0 = img.naturalWidth, h0 = img.naturalHeight;
+      let sw = w0, sh = Math.round(w0 / oran);
+      if (sh > h0) { sh = h0; sw = Math.round(h0 * oran); }
+      const sx = Math.round((w0 - sw) / 2), sy = Math.round((h0 - sh) / 2);
+      const cv = document.createElement("canvas"); cv.width = Math.min(1280, sw); cv.height = Math.round(cv.width / oran);
+      cv.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      coz(BULUT ? sikistir(cv) : cv.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = red; img.src = veri;
+  });
+}
 function fotoKucult(dosya) {
   return new Promise((coz, red) => {
     const r = new FileReader(); r.onerror = red;
@@ -3308,7 +3324,7 @@ function aktiviteFormAc(duz) {
     <div class="alan"><label for="ek-aciklama">${esc(t("akAciklama"))}</label><textarea id="ek-aciklama" maxlength="280" rows="3">${esc(v.aciklama)}</textarea></div>
     <div class="alan etk-foto-alan"><div id="ek-foto-onizle">${etkFotoOnizle()}</div><button type="button" class="dug kucuk ikincil" data-e="etk-foto-sec">${ikon("foto", 16)} ${esc(t("akFoto"))}</button><input type="file" accept="image/*" id="ek-foto" hidden></div>
     <div id="ipucu"></div><button class="dug tam" data-e="etk-form-gonder" data-id="${esc(v.id)}">${esc(t(v.id ? "akKaydet" : "akGonder"))}</button></div>`);
-  const dosya = $("#ek-foto"); if (dosya) dosya.addEventListener("change", async () => { const f = dosya.files && dosya.files[0]; dosya.value = ""; if (!f) return; try { etkTaslak.foto = await fotoKucult(f); etkTaslak.fotoKaldir = false; etkFotoYaz(); } catch { ipucuYaz(t("hata")); } });
+  const dosya = $("#ek-foto"); if (dosya) dosya.addEventListener("change", async () => { const f = dosya.files && dosya.files[0]; dosya.value = ""; if (!f) return; try { etkTaslak.foto = await yatayKirp(await fotoKucult(f)); etkTaslak.fotoKaldir = false; etkFotoYaz(); } catch { ipucuYaz(t("hata")); } });
   $("#ek-ad")?.focus({ preventScroll: true });
 }
 function etkFotoOnizle() {
