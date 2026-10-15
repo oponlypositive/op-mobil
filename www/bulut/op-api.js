@@ -225,6 +225,8 @@ export async function api(yol, govde, yontem) {
   if (m === "GET" && p === "/api/gundem") return rpc("gundem", { p_sinir: 10 });
   // ---- gecis-024: YAKINDAKİ AKTİVİTELER (okuma anon da açık) + aktivite oluşturma (etkinlik-yaz) + onay akışı (yönetici RPC'leri sunucuda yetki ister)
   if (m === "GET" && p === "/api/etkinlikler") return ogeleriDuzelt(await rpc("yakin_etkinlikler", { p_sehir: (q.get("sehir") || "").slice(0, 40), p_gun: Math.min(Math.max(Number(q.get("gun")) || 7, 1), 30), p_tur: q.get("tur") || null, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 10, 1), 50) }));
+  // gecis-025: aday liste (tüm ülke, en çok 200, enlem/boylam dahil). Kullanıcının GPS konumu BURAYA GELMEZ; mesafe/sıralama cihazda yapılır. Yalnız profil şehri (zaten sunucuda) öncelik içindir.
+  if (m === "GET" && p === "/api/etkinlik-adaylari") return ogeleriDuzelt(await rpc("etkinlik_adaylari", { p_sehir: (q.get("sehir") || "").slice(0, 40), p_gun: Math.min(Math.max(Number(q.get("gun")) || 7, 1), 30), p_tur: q.get("tur") || null, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 200, 1), 200) }));
   if (m === "GET" && p === "/api/katilacaklarim") return ogeleriDuzelt(await rpc("katilacaklarim", { p_sinir: 50 }));
   if (m === "GET" && p === "/api/etkinlik/benim") return ogeleriDuzelt(await rpc("benim_etkinlikler", { p_sinir: 30 }));
   if (m === "GET" && p === "/api/yonetici") { try { return { yonetici: (await rpc("yonetici_mi")) === true }; } catch { return { yonetici: false }; } }

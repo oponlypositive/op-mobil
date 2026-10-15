@@ -41,6 +41,11 @@ if (hedef === "android") {
         </activity>`, "manifest intent-filter");
   }
   x = x.replace('android:allowBackup="true"', 'android:allowBackup="false"');
+  // konum izni (gecis-025, @capacitor/geolocation): yaklaşık konum yeter (Yakınındaki Aktiviteler); konum yalnız cihazda kalır, sunucuya gönderilmez
+  if (!x.includes("ACCESS_COARSE_LOCATION")) x = degistir(x, "</manifest>", `    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+</manifest>`, "manifest konum izni");
   fs.writeFileSync(mf, x);
 
   // 2) build.gradle: sürüm (CI) + imza (CI gizli değerleri; yoksa imzasız)
@@ -121,6 +126,15 @@ public class MainActivity extends BridgeActivity {
     // iPhone'a özel: yalnız dikey; armv7 yerine arm64
     p = p.replace(/<key>UISupportedInterfaceOrientations<\/key>\s*<array>[\s\S]*?<\/array>/, "<key>UISupportedInterfaceOrientations</key>\n\t<array>\n\t\t<string>UIInterfaceOrientationPortrait</string>\n\t</array>");
     p = p.replace("<string>armv7</string>", "<string>arm64</string>");
+    fs.writeFileSync(ip, p);
+  }
+  // 1b) konum izni açıklaması (gecis-025; App Store incelemesi bu metni okur): yalnız uygulama açıkken, yalnız cihazda
+  p = oku(ip);
+  if (!p.includes("NSLocationWhenInUseUsageDescription")) {
+    p = degistir(p, "</dict>\n</plist>", `\t<key>NSLocationWhenInUseUsageDescription</key>
+\t<string>Yakınındaki aktiviteleri göstermek için; konumun cihazında kalır. / To show activities near you; your location stays on your device.</string>
+</dict>
+</plist>`, "Info.plist konum");
     fs.writeFileSync(ip, p);
   }
   // 2) yalnız iPhone (iPad ekran görüntüsü/yerleşim yükü yok; iPad'de uyumluluk modunda açılır)

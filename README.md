@@ -30,3 +30,5 @@ Anahtarı ve şifreleri güvenli yerde yedekle; depoya KOYMA.
 ## Dönüş bağlantıları ve sunucu ayarları
 - E-posta doğrulama / şifre sıfırlama: `org.onlypositive.app://giris` ve `://sifre-yenile`. Supabase → Authentication → URL Configuration → Redirect URLs'e `org.onlypositive.app://**` eklenmeli. PKCE kodu uygulama içinde oturuma çevrilir.
 - Edge Function CORS: `IZINLI_ORIGINLER` = `https://onlypositive.org,https://<proje>.pages.dev,capacitor://localhost,https://localhost` (site ilk sırada kalsın).
+
+- **Konum (gecis-025)**: `@capacitor/geolocation` package.json/lock içinde (yerel taraf `cap sync` ile gelir); `src/mobil.js` çekirdek `registerPlugin("Geolocation")` ile `window.OP_MOBIL.konum()` sunar (web için `undefined` döner → `app.js` navigator.geolocation). `platform_ayar.mjs`: iOS `NSLocationWhenInUseUsageDescription` (TR/EN), Android `ACCESS_COARSE_LOCATION`/`ACCESS_FINE_LOCATION`. Konum yalnız cihazda kalır, sunucuya gitmez (bulut/MIMARI.md gecis-025).

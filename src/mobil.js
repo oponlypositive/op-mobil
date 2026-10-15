@@ -1,7 +1,7 @@
 // OP mobil köprüsü (Capacitor). mobil/hazirla.mjs bunu esbuild ile www/mobil.js olarak paketler; index.html'de yapilandirma.js'ten SONRA, app.js'ten ÖNCE yüklenir.
 // Görev: platform işareti (OP_YAPI.platform = ios|android), dış bağlantılar sistem/uygulama içi tarayıcıda, yerel paylaşım, Android geri tuşu,
 // e-posta/derin bağlantı dönüşü, durum çubuğu stili, klavye, açılış ekranını kapatma. Web sürümünde bu dosya YOKTUR.
-import { Capacitor, SystemBars, SystemBarsStyle } from "@capacitor/core";
+import { Capacitor, SystemBars, SystemBarsStyle, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 import { Share } from "@capacitor/share";
@@ -28,8 +28,22 @@ const tarayicidaAc = (url) => {
   Browser.open({ url }).catch(() => { location.href = url; }).finally(() => { aciliyor = false; });
 };
 
+// Konum (gecis-025): resmî @capacitor/geolocation eklentisinin yerel tarafı (package.json'da; `cap sync` kurar). JS tarafı çekirdek registerPlugin ile bağlanır.
+// GİZLİLİK: konum yalnız bellekte tutulur, hiçbir ağ isteğine girmez (mesafe/sıralama app.js'te cihazda).
+const Geolocation = registerPlugin("Geolocation");
 window.OP_MOBIL = {
   platform,
+  /** Cihaz konumu { enlem, boylam } | null (izin verilmedi / alınamadı). Yalnız gerçek mobilde; web için app.js navigator.geolocation kullanır. */
+  async konum() {
+    if (!gercek) return undefined;   // web / deneme platformu: app.js navigator.geolocation kullanır
+    try {
+      let iz = await Geolocation.checkPermissions();
+      if (iz.location !== "granted" && iz.coarseLocation !== "granted") iz = await Geolocation.requestPermissions({ permissions: ["location"] });
+      if (iz.location !== "granted" && iz.coarseLocation !== "granted") return null;
+      const p = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+      return { enlem: p.coords.latitude, boylam: p.coords.longitude };
+    } catch { return null; }
+  },
   /** Yerel paylaşım sayfası (iOS/Android sistem paylaşımı). */
   async paylas({ title, text, url }) {
     if (gercek) return Share.share({ title, text, url, dialogTitle: title });

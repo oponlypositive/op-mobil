@@ -1016,3 +1016,30 @@ body.an-acik{overflow:hidden}
 .onay-metin{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .onay-foto{display:block;max-width:100%;max-height:260px;border-radius:12px;margin:6px 0;object-fit:cover}
 .onay-nedenler{display:flex;flex-direction:column;gap:8px;padding-bottom:8px}
+
+/* ---- gecis-025: konum — mesafe, yol tarifi, harita (yalnız tema jetonları) */
+.akt-sirit>li{display:flex}
+.akt-kap{display:flex;flex-direction:column;gap:6px;width:172px}
+.akt-kap .akt-kart{width:100%;flex:1}
+.akt-mesafe{font-size:13px;font-weight:700;color:var(--vurgu);overflow-wrap:anywhere}
+.etk-yol{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;text-decoration:none}
+.akt-yol-sira{padding:0 16px 12px;margin-top:0}
+.akt-konum-sira{padding:4px 16px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.akt-bos-dugmeler{display:flex;flex-wrap:wrap;gap:8px}
+.akt-satir-bilgi .akt-mesafe{margin-top:2px}
+.etk-konum{display:flex;flex-direction:column;gap:8px}
+.etk-ara-sira{display:flex;gap:8px;align-items:center}
+.etk-ara-sira input{flex:1;min-width:0}
+.etk-ara-liste{list-style:none;margin:0;padding:0;border:1px solid var(--cizgi);border-radius:12px;background:var(--yukselt);max-height:220px;overflow:auto}
+.etk-ara-liste[hidden]{display:none}
+.etk-ara-liste li+li{border-top:1px solid var(--cizgi)}
+.etk-ara-sonuc{display:block;width:100%;padding:10px 12px;text-align:left;color:var(--yazi)}
+.etk-ara-bos{padding:10px 12px;font-size:14px}
+.etk-harita-sec{position:relative;width:100%;height:260px;border:1px solid var(--cizgi);border-radius:12px;overflow:hidden;background:var(--yuzey);touch-action:none}
+.etk-harita-sec .maplibregl-canvas{outline:none}
+.etk-harita{position:relative;width:100%;height:180px;margin:8px 0;border:1px solid var(--cizgi);border-radius:12px;overflow:hidden;background:var(--yuzey)}
+.etk-harita-yukle,.etk-harita-yok{margin:0;padding:12px;font-size:14px}
+.etk-konum-durum{margin:0;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.etk-igne{color:var(--vurgu);line-height:0;cursor:grab}
+.etk-harita .maplibregl-ctrl-attrib,.etk-harita-sec .maplibregl-ctrl-attrib{font-size:11px;color:var(--yazi2);background:var(--yukselt)}
+.etk-harita .maplibregl-ctrl-attrib a,.etk-harita-sec .maplibregl-ctrl-attrib a{color:var(--yazi2)}

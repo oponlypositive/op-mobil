@@ -1303,7 +1303,7 @@ function sheet(html) {
   document.body.append(p, s); return s;
 }
 function sheetKapat(yeniAcilis) {   // yeniAcilis: sheet() yeni bir pencere açmadan önce çağırır (taslaktaki alıntı korunur)
-  etiketKapat();
+  etiketKapat(); if (typeof etkHaritaTemizle === "function") etkHaritaTemizle();
   const cek = document.querySelector(".cekmece"), geri = D.odakGeri;
   document.querySelectorAll(".perde,.sheet,.cekmece").forEach(e => e.remove());
   if (!yeniAcilis && taslak.alinti) { taslak.alinti = null; yzGuncelle(); }   // alıntı penceresi kapandı/iptal: vazgeçildi
@@ -1989,6 +1989,9 @@ document.addEventListener("click", async e => {
     case "sehir-sec": return sehirSeciciAc();
     case "sehir-ata": return sehirAta(a.s);
     case "sehir-konum": return sehirKonumdan(el);
+    case "akt-konum": return aktKonumKullan(el);
+    case "etk-konum-merkez": return etkKonumMerkez(el);
+    case "etk-ara-sec": return etkAraSec(Number(a.i));
     case "onay-evet": return onayKarar(a.id, true, "", el);
     case "onay-red": return onayRedAc(a.id);
     case "onay-red-evet": return onayKarar(a.id, false, a.n, el);
@@ -3139,6 +3142,11 @@ Object.assign(T.tr, {
   akOnayla: "Onayla", akReddet: "Reddet", akRedSec: "Neden yayınlanmasın?", akOnaylandi: "Etkinlik yayınlandı", akReddedildi: "Etkinlik reddedildi", akBekleyenBos: "Onay bekleyen aktivite yok.", akAktivitelerim: "Aktivitelerim", akKatilacaklarim: "Katılacaklarım", akBosAktivitelerim: "Henüz aktivite oluşturmadın.", akBosKatil: "Katılacağın etkinlik yok.",
   akKonum: "Konumumdan bul", akKonumYok: "Konum alınamadı ya da yakında OP şehri yok. Listeden seçebilirsin.", akKonumNot: "Konumun yalnız en yakın şehri bulmak için cihazında kullanılır; sunucuya gönderilmez, saklanmaz.", akSehirTamam: (s) => `Şehrin: ${s}`, akRedTemizle: "Reddedilen etkinlikler 7 gün sonra silinir.",
   akGirisGerek: "Aktivite oluşturmak için giriş yapman gerekiyor.", akKaydirAria: "Sekmeler arasında geçmek için sağa ya da sola kaydır",
+  akMerkez: "≈ şehir merkezi", akYol: "Yol tarifi", akKonumKullan: "Konumunu kullanarak en yakınları gör", akKonumGizli: "Konumun yalnız cihazında kalır; sunucuya gönderilmez, saklanmaz.", akKonumaGore: "Konumuna en yakın etkinlikler",
+  akKonumYok2: "Konum alınamadı ya da izin verilmedi; şehre göre gösteriliyor.", akKonumBaslik: "Konum (zorunlu)", akKonumYardim: "Haritaya dokunarak iğneyi etkinliğin yapılacağı yere koy ya da mekân/adres ara. Konum herkese açıktır: herkese açık bir mekân seç, ev adresi paylaşma.",
+  akAraYer: "Mekân ya da adres ara", akKonumKullan2: "Konumumu kullan", akHarita: "Harita", akHaritaYukleniyor: "Harita yükleniyor", akHaritaYok: "Harita yüklenemedi. Yine de mekân arayarak ya da “Konumumu kullan” ile konumu belirleyebilirsin.",
+  akIgneTamam: "Konum seçildi", akIgneYok: "Haritaya dokunarak iğneyi koy (zorunlu).", akKonumTr: "Konum Türkiye sınırları içinde olmalı.", akKonumGerek: "Haritadan net bir konum seç.", akAraBos: "Sonuç bulunamadı", akAraHata: "Arama şu an yapılamadı",
+  akHaritaMerkez: "Harita konumuna taşındı. İğneyi etkinliğin yapılacağı mekâna koy.", akKonumIgne: "Konumun etkinlik yeri olarak ayarlandı ve herkese açık olacak. Doğru mekân değilse arama yap.",
 });
 Object.assign(T.en, {
   aktiviteOlustur: "Create activity", onayBekleyenler: "Pending approval", yakinAkt: "Activities near you", akTumu: "See all", akSehirSec: "Choose your city", akSehirNot: "Choose your city to see activities near you.",
@@ -3151,6 +3159,11 @@ Object.assign(T.en, {
   akOnayla: "Approve", akReddet: "Reject", akRedSec: "Why isn't it published?", akOnaylandi: "Event published", akReddedildi: "Event rejected", akBekleyenBos: "No activities waiting for approval.", akAktivitelerim: "My activities", akKatilacaklarim: "Going to", akBosAktivitelerim: "You haven't created an activity yet.", akBosKatil: "You aren't going to any event.",
   akKonum: "Find from my location", akKonumYok: "Couldn't get your location or no OP city is nearby. You can choose from the list.", akKonumNot: "Your location is only used on your device to find the nearest city; it is not sent to the server or stored.", akSehirTamam: (s) => `Your city: ${s}`, akRedTemizle: "Rejected events are deleted after 7 days.",
   akGirisGerek: "Please sign in to create an activity.", akKaydirAria: "Swipe left or right to switch between tabs",
+  akMerkez: "≈ city centre", akYol: "Directions", akKonumKullan: "Use my location to see the nearest", akKonumGizli: "Your location stays on your device; it is not sent to the server or stored.", akKonumaGore: "Activities nearest to your location",
+  akKonumYok2: "Couldn't get your location or permission was not given; showing by city.", akKonumBaslik: "Location (required)", akKonumYardim: "Tap the map to drop the pin where the activity takes place, or search for a place/address. The location is public: choose a public venue, don't share a home address.",
+  akAraYer: "Search a place or address", akKonumKullan2: "Use my location", akHarita: "Map", akHaritaYukleniyor: "Loading map", akHaritaYok: "The map could not be loaded. You can still search for a place or use “Use my location”.",
+  akIgneTamam: "Location selected", akIgneYok: "Tap the map to drop the pin (required).", akKonumTr: "The location must be inside Türkiye.", akKonumGerek: "Pick an exact location on the map.", akAraBos: "No results", akAraHata: "Search is unavailable right now",
+  akHaritaMerkez: "Map moved to your location. Drop the pin on the venue of the activity.", akKonumIgne: "Your location was set as the activity place and will be public. Search if it isn't the right venue.",
 });
 T.tr.bildirimMetin.etkinlik_onay = "Etkinliğin onaylandı ve yayınlandı"; T.en.bildirimMetin.etkinlik_onay = "Your event was approved and published";
 T.tr.bildirimMetin.etkinlik_red = "Etkinliğin yayınlanmadı"; T.en.bildirimMetin.etkinlik_red = "Your event was not published";
@@ -3171,6 +3184,117 @@ const ETK_TURLER = ["sergi", "konser", "tiyatro", "festival", "soylesi", "atolye
 const ETK_SEHIRLER = SEHIRLER.filter(s => s !== "Diğer");
 const ETK_MERKEZ = { "İstanbul": [41.01, 28.98], "Ankara": [39.93, 32.86], "İzmir": [38.42, 27.14], "Bursa": [40.19, 29.06], "Antalya": [36.9, 30.69], "Adana": [37.0, 35.32], "Konya": [37.87, 32.48], "Gaziantep": [37.07, 37.38],
   "Kocaeli": [40.77, 29.94], "Mersin": [36.8, 34.64], "Eskişehir": [39.78, 30.52], "Trabzon": [41.0, 39.72], "Samsun": [41.29, 36.33], "Muğla": [37.22, 28.36] };
+// ---- gecis-025: KONUM — GPS'e en yakın aktivite. GİZLİLİK: kullanıcının konumu YALNIZ bellekte (en çok 10 dk) tutulur; hiçbir API isteğine, depoya (localStorage/IndexedDB) ya da kayda GİRMEZ.
+// Sunucu yalnız etkinlik adaylarını verir (/api/etkinlik-adaylari); mesafe ve sıralama bu cihazda (haversine) yapılır.
+const IL_MERKEZ = {
+  "Adana": [37, 35.32], "Adıyaman": [37.76, 38.28], "Afyonkarahisar": [38.76, 30.54], "Ağrı": [39.72, 43.05], "Aksaray": [38.37, 34.03],
+  "Amasya": [40.65, 35.83], "Ankara": [39.93, 32.86], "Antalya": [36.9, 30.69], "Ardahan": [41.11, 42.7], "Artvin": [41.18, 41.82],
+  "Aydın": [37.85, 27.85], "Balıkesir": [39.65, 27.89], "Bartın": [41.64, 32.34], "Batman": [37.88, 41.13], "Bayburt": [40.26, 40.23],
+  "Bilecik": [40.14, 29.98], "Bingöl": [38.88, 40.5], "Bitlis": [38.4, 42.11], "Bolu": [40.73, 31.61], "Burdur": [37.72, 30.29],
+  "Bursa": [40.19, 29.06], "Çanakkale": [40.15, 26.41], "Çankırı": [40.6, 33.62], "Çorum": [40.55, 34.95], "Denizli": [37.78, 29.09],
+  "Diyarbakır": [37.91, 40.24], "Düzce": [40.84, 31.16], "Edirne": [41.68, 26.56], "Elazığ": [38.67, 39.22], "Erzincan": [39.75, 39.49],
+  "Erzurum": [39.9, 41.27], "Eskişehir": [39.78, 30.52], "Gaziantep": [37.07, 37.38], "Giresun": [40.91, 38.39], "Gümüşhane": [40.46, 39.48],
+  "Hakkari": [37.58, 43.74], "Hatay": [36.4, 36.35], "Iğdır": [39.92, 44.04], "Isparta": [37.76, 30.55], "İstanbul": [41.01, 28.98],
+  "İzmir": [38.42, 27.14], "Kahramanmaraş": [37.58, 36.94], "Karabük": [41.2, 32.63], "Karaman": [37.18, 33.23], "Kars": [40.6, 43.1],
+  "Kastamonu": [41.38, 33.78], "Kayseri": [38.72, 35.49], "Kırıkkale": [39.85, 33.52], "Kırklareli": [41.74, 27.23], "Kırşehir": [39.15, 34.17],
+  "Kilis": [36.72, 37.12], "Kocaeli": [40.77, 29.94], "Konya": [37.87, 32.48], "Kütahya": [39.42, 29.98], "Malatya": [38.35, 38.31],
+  "Manisa": [38.61, 27.43], "Mardin": [37.31, 40.74], "Mersin": [36.8, 34.64], "Muğla": [37.22, 28.36], "Muş": [38.74, 41.49],
+  "Nevşehir": [38.62, 34.71], "Niğde": [37.97, 34.68], "Ordu": [40.98, 37.88], "Osmaniye": [37.07, 36.25], "Rize": [41.02, 40.52],
+  "Sakarya": [40.69, 30.44], "Samsun": [41.29, 36.33], "Siirt": [37.93, 41.94], "Sinop": [42.03, 35.15], "Sivas": [39.75, 37.02],
+  "Şanlıurfa": [37.16, 38.79], "Şırnak": [37.52, 42.46], "Tekirdağ": [40.98, 27.51], "Tokat": [40.31, 36.55], "Trabzon": [41, 39.72],
+  "Tunceli": [39.11, 39.55], "Uşak": [38.68, 29.41], "Van": [38.49, 43.38], "Yalova": [40.65, 29.27], "Yozgat": [39.82, 34.81],
+  "Zonguldak": [41.46, 31.8],
+};
+const ETK_ILLER = Object.keys(IL_MERKEZ);
+const TR_KUTU = { enlemMin: 35.8, enlemMax: 42.2, boylamMin: 25.6, boylamMax: 44.9 };
+const ilKatla = (s) => String(s ?? "").replace(/[İIıŞşĞğÜüÖöÇçÂâÎîÛû]/g, c => ({ İ: "i", I: "i", ı: "i", Ş: "s", ş: "s", Ğ: "g", ğ: "g", Ü: "u", ü: "u", Ö: "o", ö: "o", Ç: "c", ç: "c", Â: "a", â: "a", Î: "i", î: "i", Û: "u", û: "u" })[c]).toLowerCase().trim();
+const IL_KATLI = new Map(ETK_ILLER.map(a => [ilKatla(a), a]));
+const ilBulJs = (s) => IL_KATLI.get(ilKatla(s).replace(/\s+(province|ili|il)$/, "")) || null;
+const kutuIcinde = (la, lo) => Number.isFinite(la) && Number.isFinite(lo) && la >= TR_KUTU.enlemMin && la <= TR_KUTU.enlemMax && lo >= TR_KUTU.boylamMin && lo <= TR_KUTU.boylamMax;
+function enYakinIl(la, lo) {
+  let en = null, mesafe = Infinity;
+  for (const [a, [x, y]] of Object.entries(IL_MERKEZ)) { const m = Math.hypot((y - lo) * Math.cos(la * Math.PI / 180), x - la) * 111.2; if (m < mesafe) { mesafe = m; en = a; } }
+  return en;
+}
+const hav = (a1, o1, a2, o2) => {   // haversine, km
+  const r = Math.PI / 180, dA = (a2 - a1) * r, dO = (o2 - o1) * r, h = Math.sin(dA / 2) ** 2 + Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin(dO / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+const KONUM = { v: null, z: 0 };   // { enlem, boylam } | null — yalnız bellek, 10 dk
+const konumGecerli = () => (KONUM.v && Date.now() - KONUM.z < 600000 ? KONUM.v : null);
+const konumUnut = () => { KONUM.v = null; KONUM.z = 0; };
+/** Cihaz konumu { enlem, boylam } | null. Mobil: Capacitor Geolocation (OP_MOBIL.konum); web: navigator.geolocation. İzin yoksa null. */
+async function cihazKonumu(zorla) {
+  const g = konumGecerli(); if (g && !zorla) return g;
+  let k;
+  if (window.OP_MOBIL?.konum) k = await window.OP_MOBIL.konum();   // gerçek mobilde { enlem, boylam } | null; mobil değilse undefined
+  if (k === undefined) {
+    k = await new Promise(coz => {
+      if (!navigator.geolocation) return coz(null);
+      try { navigator.geolocation.getCurrentPosition(p => coz({ enlem: p.coords.latitude, boylam: p.coords.longitude }), () => coz(null), { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }); } catch { coz(null); }
+    });
+  }
+  if (k && kutuIcinde(k.enlem, k.boylam)) { KONUM.v = { enlem: k.enlem, boylam: k.boylam }; KONUM.z = Date.now(); return KONUM.v; }
+  if (k) { konumUnut(); return null; }
+  return null;
+}
+function mesafeYazi(km) {
+  const loc = D.dil === "en" ? "en-GB" : "tr-TR";
+  if (km < 1) return `${Math.max(10, Math.round(km * 100) * 10)} m`;
+  if (km < 10) return `${km.toLocaleString(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+  return `${Math.round(km).toLocaleString(loc)} km`;
+}
+const etkMesafe = (x) => { const k = konumGecerli(); return k && typeof x.enlem === "number" && typeof x.boylam === "number" ? hav(k.enlem, k.boylam, x.enlem, x.boylam) : null; };
+function etkMesafeHtml(x) {
+  const km = etkMesafe(x); if (km === null) return "";
+  const m = mesafeYazi(km);
+  return `<span class="akt-mesafe">${x.konumKesin === false ? `${esc(t("akMerkez"))} · ${esc(m)}` : esc(m)}</span>`;
+}
+/** Yol tarifi: iOS = Apple Haritalar (yerelde maps://, iOS Safari'de https://maps.apple.com), Android yerel = geo:, web/diğer = Google Maps. */
+function etkYolUrl(x) {
+  if (typeof x.enlem !== "number" || typeof x.boylam !== "number") return "";
+  const ll = `${x.enlem},${x.boylam}`, p = window.OP_YAPI?.platform, ios = p === "ios" || (!p && /iPhone|iPad|iPod/.test(navigator.userAgent));
+  if (p === "ios") return `maps://?daddr=${ll}&dirflg=d`;
+  if (ios) return `https://maps.apple.com/?daddr=${ll}&dirflg=d`;
+  if (p === "android") return `geo:${ll}?q=${ll}(${encodeURIComponent(String(x.ad || "").slice(0, 60))})`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${ll}`;
+}
+function etkYolHtml(x) {
+  const u = etkYolUrl(x); if (!u) return "";
+  return `<a class="dug kucuk ikincil etk-yol" href="${esc(u)}"${/^https?:/.test(u) ? ' target="_blank" rel="noopener noreferrer"' : ""} aria-label="${esc(t("akYol") + ": " + x.ad)}">${ikon("konum", 15)} ${esc(t("akYol"))}</a>`;
+}
+// ---- harita (MapLibre GL JS, vendor/ altında SABİT sürüm 5.24.0; CDN yok) + OpenFreeMap karoları + Photon arama. Yalnız gerektiğinde yüklenir.
+const HARITA_STIL = "https://tiles.openfreemap.org/styles/liberty", PHOTON = "https://photon.komoot.io";
+const HARITA_ATIF = "© OpenStreetMap katkıcıları, OpenFreeMap";
+let haritaSoz = null;
+function haritaYukle() {
+  if (window.maplibregl) return Promise.resolve(window.maplibregl);
+  if (haritaSoz) return haritaSoz;
+  haritaSoz = new Promise((coz, red) => {
+    const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "vendor/maplibre-gl.css"; document.head.appendChild(css);
+    const s = document.createElement("script"); s.src = "vendor/maplibre-gl-csp.js";
+    s.onload = () => { try { window.maplibregl.setWorkerUrl(new URL("vendor/maplibre-gl-csp-worker.js", document.baseURI).href); coz(window.maplibregl); } catch (e) { haritaSoz = null; red(e); } };
+    s.onerror = () => { haritaSoz = null; css.remove(); s.remove(); red(new Error("maplibre")); };
+    document.head.appendChild(s);
+  });
+  return haritaSoz;
+}
+let photonSon = 0;   // Photon: saniyede en çok 1 istek (tüm arama + ters geokodlama istekleri tek sırada)
+async function photonGet(yol, parametre) {
+  const bekle = Math.max(0, photonSon + 1000 - Date.now()); photonSon = Date.now() + bekle;
+  if (bekle) await new Promise(r => setTimeout(r, bekle));
+  const r = await fetch(`${PHOTON}${yol}?${new URLSearchParams(parametre)}`, { headers: { Accept: "application/json" }, credentials: "omit", referrerPolicy: "strict-origin-when-cross-origin" });
+  if (!r.ok) throw new Error("photon " + r.status);
+  return r.json();
+}
+/** Photon özelliği → { ad, ilce, il, enlem, boylam } (yalnız Türkiye) */
+function photonOge(f) {
+  const p = f?.properties || {}, c = f?.geometry?.coordinates;
+  if (!c || (p.countrycode && p.countrycode !== "TR")) return null;
+  const enlem = Number(c[1]), boylam = Number(c[0]); if (!kutuIcinde(enlem, boylam)) return null;
+  const sokak = [p.street, p.housenumber].filter(Boolean).join(" ");
+  return { ad: String(p.name || sokak || "").slice(0, 80), poi: !!p.name, ilce: p.district || p.locality || "", il: ilBulJs(p.state) || ilBulJs(p.city) || enYakinIl(enlem, boylam), enlem, boylam };
+}
 const etkLoc = () => (D.dil === "en" ? "en-GB" : "tr-TR");
 const etkTarihNesne = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
 const etkTarihKisa = (s, gunlu) => { const d = etkTarihNesne(s); if (!d) return ""; return `${d.getDate()} ${d.toLocaleDateString(etkLoc(), { month: "short" }).replace(".", "")}${gunlu ? " · " + d.toLocaleDateString(etkLoc(), { weekday: "short" }) : ""}`; };
@@ -3197,38 +3321,66 @@ function etkSahipHtml(o, e) {   // yalnız kendi kullanıcı etkinliğinde
 function etkinlikKartHtml(o, detay = false) {
   const e = o.etkinlik; if (!e) return "";
   const yer = [e.mekan, e.sehir].filter(Boolean).join(", ");
+  const harita = detay && e.konumKesin === true && typeof e.enlem === "number" && typeof e.boylam === "number" ? `<div class="etk-harita" data-lat="${e.enlem}" data-lng="${e.boylam}" role="img" aria-label="${esc(t("akHarita") + ": " + (yer || e.ad))}"></div>` : "";
   return `<div class="etk-kart ${e.iptal ? "iptal" : ""}" data-etk="${esc(o.id)}" role="group" aria-label="${esc(e.ad)}">${etkRozet(e)}
-    <div class="etk-bilgi"><div class="etk-ad">${esc(e.ad)}</div><div class="etk-alt gri">${esc(etkTarihYazi(e))}</div>${yer ? `<div class="etk-alt gri etk-yer">${ikon("konum", 13)} ${esc(yer)}</div>` : ""}
-    <div class="etk-et-sira">${etkEtiketler(e)}</div><div class="etk-eylem">${etkKatilHtml(o.id, e)}${etkSahipHtml(o, e)}</div></div></div>`;
+    <div class="etk-bilgi"><div class="etk-ad">${esc(e.ad)}</div><div class="etk-alt gri">${esc(etkTarihYazi(e))}</div>${yer ? `<div class="etk-alt gri etk-yer">${ikon("konum", 13)} ${esc(yer)}</div>` : ""}${etkMesafeHtml(e)}
+    <div class="etk-et-sira">${etkEtiketler(e)}</div>${harita}<div class="etk-eylem">${etkKatilHtml(o.id, e)}${etkSahipHtml(o, e)}${etkYolHtml(e)}</div></div></div>`;
 }
 // ---- şehir: profil şehri (profiles.sehir) · girişsizde cihazdaki seçim · "Diğer" = şehir yok
 const aktSehir = () => { const s = D.ben ? D.ben.sehir : sakla.al("op-akt-sehir", ""); return s && s !== "Diğer" && ETK_SEHIRLER.includes(s) ? s : ""; };
 function aktKartHtml(x) {
   const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
-  return `<li role="listitem"><button type="button" class="akt-kart ${x.iptal ? "iptal" : ""}" data-e="etk-ac" data-id="${esc(x.id)}" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}`)}">
+  return `<li role="listitem"><div class="akt-kap"><button type="button" class="akt-kart ${x.iptal ? "iptal" : ""}" data-e="etk-ac" data-id="${esc(x.id)}" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}`)}">
     <span class="akt-ust-sira">${etkRozet(x)}<span class="akt-tur" title="${esc(t("akTur_" + x.tur))}">${ikon("etk_" + (IK["etk_" + x.tur] ? x.tur : "diger"), 20)}</span></span>
-    <span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}</span><span class="akt-yer gri">${yer ? esc(yer) : ""}</span>
-    <span class="akt-et-sira">${x.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${x.kullanici ? "topluluk" : "op"}">${esc(t(x.kullanici ? "akTopluluk" : "akOpten"))}</span></span></button></li>`;
+    <span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}</span><span class="akt-yer gri">${yer ? esc(yer) : ""}</span>${etkMesafeHtml(x)}
+    <span class="akt-et-sira">${x.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${x.kullanici ? "topluluk" : "op"}">${esc(t(x.kullanici ? "akTopluluk" : "akOpten"))}</span></span></button>${etkYolHtml(x)}</div></li>`;
 }
-function aktiviteGovdeHtml() {
-  const sehir = aktSehir();
-  if (!sehir) return `<div class="akt-bos"><p class="gri">${esc(t("akSehirNot"))}</p><button type="button" class="dug kucuk" data-e="sehir-sec">${ikon("konum", 16)} ${esc(t("akSehirSec"))}</button></div>`;
-  const a = D.akt;
-  if (!a || a.sehir !== sehir || !a.veri) return `<div class="akt-bos gri" role="status">${esc(t("akYukleniyor"))}…</div>`;
+/** Gösterilecek liste: konum varsa (cihazda) mesafeye göre en yakın, yoksa sunucu (şehir) sırası. */
+function aktListe(a, sinir) {
+  if (!a || !a.veri) return [];
   const l = a.veri.etkinlikler || [];
-  if (!l.length) return `<div class="akt-bos"><p class="gri">${esc(t("akBos"))}</p></div>`;
-  return `${a.veri.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : ""}<ul class="akt-sirit" role="list">${l.slice(0, 10).map(aktKartHtml).join("")}</ul>`;
+  if (a.mod === "gps" && konumGecerli()) {
+    return l.map((x, i) => ({ x, i, km: etkMesafe(x) })).sort((p, q) => (p.km === null) - (q.km === null) || (p.km ?? 0) - (q.km ?? 0) || p.i - q.i).slice(0, sinir).map(p => p.x);
+  }
+  return l.slice(0, sinir);
+}
+const aktKonumDugmeHtml = () => `<div class="akt-konum-sira"><button type="button" class="dug kucuk ikincil" data-e="akt-konum">${ikon("konum", 16)} ${esc(t("akKonumKullan"))}</button><p class="gri akt-konum-not">${esc(t("akKonumGizli"))}</p></div>`;
+function aktiviteGovdeHtml() {
+  const sehir = aktSehir(), a = D.akt, gps = !!konumGecerli();
+  if (!sehir && !gps) return `<div class="akt-bos"><p class="gri">${esc(t("akSehirNot"))}</p><div class="akt-bos-dugmeler"><button type="button" class="dug kucuk" data-e="akt-konum">${ikon("konum", 16)} ${esc(t("akKonumKullan"))}</button><button type="button" class="dug kucuk ikincil" data-e="sehir-sec">${esc(t("akSehirSec"))}</button></div><p class="gri akt-konum-not">${esc(t("akKonumGizli"))}</p>${D.konumHata ? `<p class="gri akt-konum-not" role="status">${esc(t("akKonumYok2"))}</p>` : ""}</div>`;
+  if (!a || !a.veri) return `<div class="akt-bos gri" role="status">${esc(t("akYukleniyor"))}…</div>`;
+  const l = aktListe(a, 10);
+  if (!l.length) return `<div class="akt-bos"><p class="gri">${esc(t("akBos"))}</p>${gps ? "" : aktKonumDugmeHtml()}</div>`;
+  return `${gps ? `<p class="gri akt-yakin">${esc(t("akKonumaGore"))}</p>` : a.veri.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : ""}<ul class="akt-sirit" role="list">${l.map(aktKartHtml).join("")}</ul>${gps ? "" : aktKonumDugmeHtml()}${!gps && D.konumHata ? `<p class="gri akt-konum-not akt-yakin" role="status">${esc(t("akKonumYok2"))}</p>` : ""}`;
 }
 function aktiviteBolumHtml() {
-  return `<section class="aktivite" data-aktivite aria-label="${esc(t("yakinAkt"))}"><div class="akt-ust"><h2>${esc(t("yakinAkt"))}</h2>${aktSehir() ? `<button type="button" class="akt-tumu" data-e="aktiviteler-ac">${esc(t("akTumu"))}</button>` : ""}</div>${aktiviteGovdeHtml()}</section>`;
+  const gorunur = aktSehir() || konumGecerli();
+  return `<section class="aktivite" data-aktivite aria-label="${esc(t("yakinAkt"))}"><div class="akt-ust"><h2>${esc(t("yakinAkt"))}</h2>${gorunur ? `<button type="button" class="akt-tumu" data-e="aktiviteler-ac">${esc(t("akTumu"))}</button>` : ""}</div>${aktiviteGovdeHtml()}</section>`;
+}
+/** Etkinlik adayları (tüm ülke, ≤200, enlem/boylam dahil; GPS isteğe GİRMEZ) ya da konum yoksa şehir listesi (eski davranış). */
+async function aktiviteVeri(sehir, gps, tur, sinir) {
+  if (gps) return { mod: "gps", veri: await api(`/api/etkinlik-adaylari?sehir=${encodeURIComponent(sehir || "")}&gun=7&sinir=200${tur ? "&tur=" + tur : ""}`) };
+  return { mod: "sehir", veri: await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=7&sinir=${sinir}${tur ? "&tur=" + tur : ""}`) };
 }
 async function aktiviteYukle(zorla) {
-  const sehir = aktSehir(); if (!sehir) return;
-  const a = D.akt;
-  if (!zorla && a && a.sehir === sehir && a.veri && Date.now() - a.z < 120000) return aktiviteYaz();
-  try { const veri = await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=7&sinir=10`); D.akt = { sehir, z: Date.now(), veri }; }
-  catch { D.akt = { sehir, z: Date.now(), veri: { etkinlikler: [], yakin: false } }; }
+  const sehir = aktSehir();
+  // konum daha önce kullanıldıysa (yalnız "açık" işareti saklanır, koordinat DEĞİL) sessizce yeniden dene; bu oturumda bir kez
+  if (!konumGecerli() && !D.konumDenendi && sakla.al("op-konum-acik", false)) { D.konumDenendi = true; await cihazKonumu(false); D.konumHata = !konumGecerli(); }
+  const gps = !!konumGecerli(), a = D.akt;
+  if (!gps && !sehir) return aktiviteYaz();
+  if (!zorla && a && a.sehir === sehir && a.mod === (gps ? "gps" : "sehir") && a.veri && Date.now() - a.z < 120000) return aktiviteYaz();
+  try { D.akt = { sehir, z: Date.now(), ...(await aktiviteVeri(sehir, gps, "", 10)) }; }
+  catch { D.akt = { sehir, z: Date.now(), mod: gps ? "gps" : "sehir", veri: { etkinlikler: [], yakin: false } }; }
   aktiviteYaz();
+}
+async function aktKonumKullan(dugme) {
+  if (dugme) dugme.disabled = true;
+  const k = await cihazKonumu(true);
+  if (dugme) dugme.disabled = false;
+  D.konumHata = !k; D.konumDenendi = true;
+  if (k) sakla.koy("op-konum-acik", true);
+  if (G.sayfa === "aktiviteler") return ciz(false, true);
+  D.akt = null; aktiviteYaz(); aktiviteYukle(true);
 }
 function aktiviteYaz() {
   const e = document.querySelector("[data-aktivite]"); if (!e || D.sekme !== "yakin") return;
@@ -3256,28 +3408,32 @@ async function sehirAta(sehir) {
   D.akt = null; onbSil(); sheetKapat(); tost(t("akSehirTamam", sehir)); ciz(false, true);
 }
 function sehirKonumdan(dugme) {
-  if (!navigator.geolocation) return ipucuYaz(t("akKonumYok"));
   dugme.disabled = true;
-  navigator.geolocation.getCurrentPosition(
-    (p) => { const s = enYakinSehir(p.coords.latitude, p.coords.longitude); dugme.disabled = false; if (s) sehirAta(s); else ipucuYaz(t("akKonumYok")); },
-    () => { dugme.disabled = false; ipucuYaz(t("akKonumYok")); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+  cihazKonumu(true).then(k => {
+    dugme.disabled = false;
+    const s = k ? enYakinSehir(k.enlem, k.boylam) : null;   // yalnız cihazda hesaplanır; koordinat sunucuya gitmez, saklanmaz
+    konumUnut();   // şehir bulunduktan sonra konum bellekte tutulmaz (şehir sıralaması korunur)
+    if (s) sehirAta(s); else ipucuYaz(t("akKonumYok"));
+  });
 }
-// ---- Tümünü gör (7 gün, türe göre süzgeç)
+// ---- Tümünü gör (7 gün, türe göre süzgeç; konum varsa en yakın sıralı)
 async function aktivitelerCiz(my) {
   const sehir = aktSehir(), tur = G.tur || "";
   const cip = ["", ...ETK_TURLER].map(x => `<button type="button" class="akt-cip ${tur === x ? "secili" : ""}" data-e="akt-tur" data-tur="${x}" aria-pressed="${tur === x}">${esc(t(x ? "akTur_" + x : "akTurHepsi"))}</button>`).join("");
   const bas = `<h1 class="baslik">${esc(t("yakinAkt"))}</h1><div class="akt-cipler" role="group" aria-label="${esc(t("akTur"))}">${cip}</div>`;
-  if (!sehir) { kok().innerHTML = kabuk(bas + `<div class="akt-bos">${aktiviteGovdeHtml()}</div>`, { geri: true, fab: false }); return; }
+  const gps = !!konumGecerli();
+  if (!sehir && !gps) { kok().innerHTML = kabuk(bas + `<div class="akt-bos">${aktiviteGovdeHtml()}</div>`, { geri: true, fab: false }); return; }
   kok().innerHTML = kabuk(bas + iskelet, { geri: true, fab: false });
-  let v; try { v = await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=7&sinir=50${tur ? "&tur=" + tur : ""}`); } catch (e) { v = null; }
+  let v; try { v = await aktiviteVeri(sehir, gps, tur, 50); } catch (e) { v = null; }
   if (my !== D.cizim) return;
-  const l = v?.etkinlikler || [];
-  kok().innerHTML = kabuk(bas + (l.length ? (v.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : "") + `<ul class="akt-liste" role="list">${l.map(aktListeSatiri).join("")}</ul>` : bosHtml(t("akBos"))), { geri: true, fab: false });
+  const l = v ? aktListe({ mod: v.mod, veri: v.veri }, 50) : [];
+  const not = gps ? `<p class="gri akt-yakin">${esc(t("akKonumaGore"))}</p>` : v?.veri?.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : "";
+  kok().innerHTML = kabuk(bas + (l.length ? not + `<ul class="akt-liste" role="list">${l.map(aktListeSatiri).join("")}</ul>` : bosHtml(t("akBos"))) + (gps ? "" : aktKonumDugmeHtml()), { geri: true, fab: false });
 }
 function aktListeSatiri(x) {
   const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
   return `<li><button type="button" class="akt-satir" data-e="etk-ac" data-id="${esc(x.id)}">${etkRozet(x)}<span class="akt-satir-bilgi"><span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}${yer ? " · " + esc(yer) : ""}</span>
-    <span class="etk-et-sira">${etkEtiketler(x)}</span></span></button></li>`;
+    ${etkMesafeHtml(x)}<span class="etk-et-sira">${etkEtiketler(x)}</span></span></button>${etkYolHtml(x) ? `<div class="etk-eylem akt-yol-sira">${etkYolHtml(x)}</div>` : ""}</li>`;
 }
 // ---- Aktivitelerim (incelemede / yayınlanmadı / yayında) + Katılacaklarım
 function etkSahipSatir(x) {
@@ -3301,21 +3457,32 @@ function profilEtkinlikHtml(liste) {
   const l = (liste || []).filter(x => x.onay !== "onaylandi");
   return `<div class="profil-akt"><button type="button" class="dug kucuk ikincil" data-e="git" data-s="aktivitelerim">${ikon("takvim", 16)} ${esc(t("akAktivitelerim"))}</button>${l.length ? `<ul class="akt-liste" role="list">${l.map(etkSahipSatir).join("")}</ul>` : ""}</div>`;
 }
-// ---- Aktivite oluştur / düzenle formu
-const etkTaslak = { foto: null, mevcutFoto: null, fotoKaldir: false };
+// ---- Aktivite oluştur / düzenle formu (gecis-025: haritadan NET KONUM zorunlu)
+const etkTaslak = { foto: null, mevcutFoto: null, fotoKaldir: false, konum: null, harita: null, igne: null, mekanOtomatik: false, sehirOtomatik: false, sira: 0, sonuclar: [], haritaYok: false };
 function etkNormalize(o) {   // gönderi nesnesi (etkinlik alt nesnesiyle) ya da düz liste öğesi → form değerleri
   const e = o.etkinlik || o;
-  return { id: o.id, ad: e.ad, tur: e.tur, sehir: e.sehir, mekan: e.mekan || "", baslangic: e.baslangic, bitis: e.bitis || "", saat: e.saat || "", ucretsiz: !!e.ucretsiz, aciklama: e.aciklama || "", foto: o.foto || "" };
+  return { id: o.id, ad: e.ad, tur: e.tur, sehir: e.sehir, mekan: e.mekan || "", baslangic: e.baslangic, bitis: e.bitis || "", saat: e.saat || "", ucretsiz: !!e.ucretsiz, aciklama: e.aciklama || "", foto: o.foto || "",
+    konum: e.konumKesin === true && typeof e.enlem === "number" && typeof e.boylam === "number" ? { enlem: e.enlem, boylam: e.boylam, kesin: true } : null };
+}
+function etkHaritaTemizle() {
+  try { etkTaslak.harita?.remove(); etkTaslak.harita = null; etkTaslak.igne = null; } catch { /* sheet zaten kalktı */ }
 }
 function aktiviteFormAc(duz) {
   if (!D.ben) return girisIste();
-  const v = duz ? etkNormalize(duz) : { id: "", ad: "", tur: "sergi", sehir: aktSehir() || "", mekan: "", baslangic: "", bitis: "", saat: "", ucretsiz: false, aciklama: "", foto: "" };
-  Object.assign(etkTaslak, { foto: null, mevcutFoto: v.foto || null, fotoKaldir: false });
+  const v = duz ? etkNormalize(duz) : { id: "", ad: "", tur: "sergi", sehir: ETK_ILLER.includes(aktSehir()) ? aktSehir() : "", mekan: "", baslangic: "", bitis: "", saat: "", ucretsiz: false, aciklama: "", foto: "", konum: null };
+  etkHaritaTemizle();
+  Object.assign(etkTaslak, { foto: null, mevcutFoto: v.foto || null, fotoKaldir: false, konum: v.konum, mekanOtomatik: false, sehirOtomatik: !v.sehir, sira: 0, sonuclar: [], haritaYok: false });
   const bugun = new Date(), son = new Date(); son.setDate(son.getDate() + 60);
   sheet(sheetUst(t(v.id ? "akDuzenle" : "aktiviteOlustur")) + `<div class="etk-form"><p class="gri akt-not">${esc(t("akNot"))}${v.id ? " " + esc(t("akDuzenleNot")) : ""}</p>
     <div class="alan"><label for="ek-ad">${esc(t("akAd"))}</label><input id="ek-ad" maxlength="120" autocomplete="off" value="${esc(v.ad)}"></div>
     <div class="alan"><label for="ek-tur">${esc(t("akTur"))}</label><select id="ek-tur">${ETK_TURLER.map(x => `<option value="${x}" ${v.tur === x ? "selected" : ""}>${esc(t("akTur_" + x))}</option>`).join("")}</select></div>
-    <div class="alan"><label for="ek-sehir">${esc(t("akSehir"))}</label><select id="ek-sehir"><option value="">—</option>${ETK_SEHIRLER.map(s => `<option ${v.sehir === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select></div>
+    <div class="alan etk-konum" role="group" aria-labelledby="ek-konum-baslik"><label id="ek-konum-baslik" for="ek-ara">${esc(t("akKonumBaslik"))}</label>
+      <p class="gri akt-not" id="ek-konum-yardim">${esc(t("akKonumYardim"))}</p>
+      <div class="etk-ara-sira"><input id="ek-ara" type="search" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ek-ara-liste" aria-describedby="ek-konum-yardim" placeholder="${esc(t("akAraYer"))}"><button type="button" class="dug kucuk ikincil" data-e="etk-konum-merkez">${ikon("konum", 16)} ${esc(t("akKonumKullan2"))}</button></div>
+      <ul id="ek-ara-liste" class="etk-ara-liste" role="listbox" hidden></ul>
+      <div id="ek-harita" class="etk-harita-sec" role="application" aria-label="${esc(t("akHarita"))}"><p class="gri etk-harita-yukle" role="status">${esc(t("akHaritaYukleniyor"))}…</p></div>
+      <p id="ek-konum-durum" class="etk-konum-durum" role="status" aria-live="polite">${etkKonumDurumYazi()}</p></div>
+    <div class="alan"><label for="ek-sehir">${esc(t("akSehir"))}</label><select id="ek-sehir"><option value="">—</option>${ETK_ILLER.map(s => `<option ${v.sehir === s ? "selected" : ""}>${esc(s)}</option>`).join("")}</select></div>
     <div class="alan"><label for="ek-mekan">${esc(t("akMekan"))}</label><input id="ek-mekan" maxlength="80" autocomplete="off" value="${esc(v.mekan)}" aria-describedby="ek-mekan-not"><p class="gri akt-not" id="ek-mekan-not">${esc(t("akMekanNot"))}</p></div>
     <div class="alan"><label for="ek-tarih">${esc(t("akTarih"))}</label><input id="ek-tarih" type="date" min="${etkYerel(bugun)}" max="${etkYerel(son)}" value="${esc(v.baslangic)}"></div>
     <div class="alan"><label for="ek-saat">${esc(t("akSaat"))}</label><input id="ek-saat" type="time" value="${esc(v.saat)}"></div>
@@ -3325,7 +3492,103 @@ function aktiviteFormAc(duz) {
     <div class="alan etk-foto-alan"><div id="ek-foto-onizle">${etkFotoOnizle()}</div><button type="button" class="dug kucuk ikincil" data-e="etk-foto-sec">${ikon("foto", 16)} ${esc(t("akFoto"))}</button><input type="file" accept="image/*" id="ek-foto" hidden></div>
     <div id="ipucu"></div><button class="dug tam" data-e="etk-form-gonder" data-id="${esc(v.id)}">${esc(t(v.id ? "akKaydet" : "akGonder"))}</button></div>`);
   const dosya = $("#ek-foto"); if (dosya) dosya.addEventListener("change", async () => { const f = dosya.files && dosya.files[0]; dosya.value = ""; if (!f) return; try { etkTaslak.foto = await yatayKirp(await fotoKucult(f)); etkTaslak.fotoKaldir = false; etkFotoYaz(); } catch { ipucuYaz(t("hata")); } });
+  $("#ek-mekan")?.addEventListener("input", () => { etkTaslak.mekanOtomatik = false; });
+  $("#ek-sehir")?.addEventListener("change", () => { etkTaslak.sehirOtomatik = false; });
+  etkAraKur();
+  etkHaritaKur();
   $("#ek-ad")?.focus({ preventScroll: true });
+}
+const etkKonumDurumYazi = () => etkTaslak.konum ? `${ikon("konum", 15)} ${esc(t("akIgneTamam"))} <span class="gri">(${esc(etkTaslak.konum.enlem.toFixed(5))}, ${esc(etkTaslak.konum.boylam.toFixed(5))})</span>` : `<span class="gri">${esc(t("akIgneYok"))}</span>`;
+const etkKonumDurumYaz = () => { const e = $("#ek-konum-durum"); if (e) e.innerHTML = etkKonumDurumYazi(); };
+function etkIgneEl() {
+  const d = document.createElement("div"); d.className = "etk-igne";
+  d.innerHTML = '<svg width="34" height="44" viewBox="0 0 24 30" aria-hidden="true"><path d="M12 29s9-8.100 9-17a9 9 0 10-18 0c0 8.900 9 17 9 17z" fill="currentColor" stroke="var(--yuzey)" stroke-width="1.500"/><circle cx="12" cy="12" r="3.400" fill="var(--yuzey)"/></svg>';
+  return d;
+}
+async function etkHaritaKur() {
+  const kap = $("#ek-harita"); if (!kap) return;
+  const yok = () => { etkHaritaTemizle(); etkTaslak.haritaYok = true; const k = $("#ek-harita"); if (k) k.innerHTML = `<p class="gri etk-harita-yok" role="status">${esc(t("akHaritaYok"))}</p>`; };
+  let ml; try { ml = await haritaYukle(); } catch { return yok(); }
+  if (!kap.isConnected) return;
+  const il = $("#ek-sehir")?.value, mer = etkTaslak.konum ? [etkTaslak.konum.boylam, etkTaslak.konum.enlem] : il && IL_MERKEZ[il] ? [IL_MERKEZ[il][1], IL_MERKEZ[il][0]] : [35.2, 39.0];
+  let map; try {
+    kap.innerHTML = "";
+    map = new ml.Map({ container: kap, style: HARITA_STIL, center: mer, zoom: etkTaslak.konum ? 16 : il ? 11 : 5, attributionControl: false, dragRotate: false, pitchWithRotate: false, maxBounds: [[24, 34.5], [46.5, 43.5]] });
+    map.touchZoomRotate?.disableRotation?.();
+  } catch { return yok(); }
+  etkTaslak.harita = map;
+  map.addControl(new ml.AttributionControl({ compact: false, customAttribution: HARITA_ATIF }));
+  map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
+  let yuklendi = false; const zaman = setTimeout(() => { if (!yuklendi) yok(); }, 15000);
+  map.on("load", () => { yuklendi = true; clearTimeout(zaman); map.resize(); });
+  map.on("error", () => { if (!yuklendi) { clearTimeout(zaman); yok(); } });
+  map.on("click", (e) => etkIgneKoy(e.lngLat.lat, e.lngLat.lng));
+  if (etkTaslak.konum) etkIgneCiz();
+  setTimeout(() => { try { map.resize(); } catch { /* kapandı */ } }, 350);
+}
+function etkIgneCiz() {
+  const map = etkTaslak.harita, k = etkTaslak.konum; if (!map || !k || !window.maplibregl) return;
+  if (!etkTaslak.igne) {
+    etkTaslak.igne = new window.maplibregl.Marker({ element: etkIgneEl(), draggable: true, anchor: "bottom" }).setLngLat([k.boylam, k.enlem]).addTo(map);
+    etkTaslak.igne.on("dragend", () => { const p = etkTaslak.igne.getLngLat(); etkIgneKoy(p.lat, p.lng); });
+  } else etkTaslak.igne.setLngLat([k.boylam, k.enlem]);
+}
+/** İğneyi koy: konum zorunlu alanı doldurur; şehir (81 il) ve yer adı önerilir (ters geokodlama, 1 istek/sn). Yalnız etkinliğin KENDİ noktası — kullanıcının GPS'i değil. */
+async function etkIgneKoy(enlem, boylam, o = {}) {
+  enlem = Math.round(enlem * 1e5) / 1e5; boylam = Math.round(boylam * 1e5) / 1e5;
+  if (!kutuIcinde(enlem, boylam)) return ipucuYaz(t("akKonumTr"));
+  ipucuYaz("");
+  etkTaslak.konum = { enlem, boylam, kesin: true }; etkIgneCiz(); etkKonumDurumYaz();
+  if (o.harita && etkTaslak.harita) etkTaslak.harita.flyTo({ center: [boylam, enlem], zoom: Math.max(etkTaslak.harita.getZoom(), 16) });
+  const sel = $("#ek-sehir"), hizli = enYakinIl(enlem, boylam);
+  if (sel && (!sel.value || etkTaslak.sehirOtomatik) && hizli) { sel.value = hizli; etkTaslak.sehirOtomatik = true; }
+  if (o.atlaTers) return;
+  const sira = ++etkTaslak.sira;
+  try {
+    const r = await photonGet("/reverse", { lat: String(enlem), lon: String(boylam), limit: "1" });
+    if (sira !== etkTaslak.sira || !$("#ek-sehir")) return;
+    const f = photonOge(r.features?.[0]); if (!f) return;
+    const s2 = $("#ek-sehir"); if (s2 && f.il && etkTaslak.sehirOtomatik) s2.value = f.il;
+    const m = $("#ek-mekan"); if (m && f.poi && f.ad && (!m.value.trim() || etkTaslak.mekanOtomatik)) { m.value = f.ad.slice(0, 80); etkTaslak.mekanOtomatik = true; }   // yalnız mekân ADI önerilir (ev adresi değil)
+  } catch { /* geokodlama yoksa il hızlı hesapla dolu; yer adını kullanıcı yazar */ }
+}
+// ---- mekân/adres arama (Photon): 400 ms bekleme, en az 3 harf, saniyede en çok 1 istek, yalnız Türkiye
+function etkAraKur() {
+  const g = $("#ek-ara"), liste = $("#ek-ara-liste"); if (!g || !liste) return;
+  let zaman = 0, son = "";
+  const kapat = () => { liste.hidden = true; liste.innerHTML = ""; g.setAttribute("aria-expanded", "false"); };
+  g.addEventListener("input", () => {
+    clearTimeout(zaman); const q = g.value.trim();
+    if ([...q].length < 3) { son = ""; return kapat(); }
+    zaman = setTimeout(async () => {
+      if (q === son) return; son = q;
+      const il = $("#ek-sehir")?.value, mer = il && IL_MERKEZ[il];   // arama yönü yalnız SEÇİLEN ŞEHİR (cihaz konumu DEĞİL)
+      let r; try { r = await photonGet("/api/", { q, limit: "6", bbox: `${TR_KUTU.boylamMin},${TR_KUTU.enlemMin},${TR_KUTU.boylamMax},${TR_KUTU.enlemMax}`, ...(mer ? { lat: String(mer[0]), lon: String(mer[1]) } : {}) }); }
+      catch { liste.hidden = false; liste.innerHTML = `<li class="gri etk-ara-bos">${esc(t("akAraHata"))}</li>`; return; }
+      if (g.value.trim() !== q || !g.isConnected) return;
+      const l = (r.features || []).map(photonOge).filter(Boolean);
+      etkTaslak.sonuclar = l;
+      liste.hidden = false; g.setAttribute("aria-expanded", "true");
+      liste.innerHTML = l.length ? l.map((f, i) => `<li role="option"><button type="button" class="etk-ara-sonuc" data-e="etk-ara-sec" data-i="${i}"><b>${esc(f.ad || f.ilce || f.il)}</b><span class="gri"> ${esc([f.ilce, f.il].filter(Boolean).join(", "))}</span></button></li>`).join("") : `<li class="gri etk-ara-bos">${esc(t("akAraBos"))}</li>`;
+    }, 400);
+  });
+  g.addEventListener("keydown", (e) => { if (e.key === "Escape" && !liste.hidden) { e.stopPropagation(); kapat(); } });
+}
+function etkAraSec(i) {
+  const f = etkTaslak.sonuclar[i]; if (!f) return;
+  const liste = $("#ek-ara-liste"); if (liste) { liste.hidden = true; liste.innerHTML = ""; }
+  $("#ek-ara")?.setAttribute("aria-expanded", "false");
+  const sel = $("#ek-sehir"); if (sel && f.il) { sel.value = f.il; etkTaslak.sehirOtomatik = true; }
+  const m = $("#ek-mekan"); if (m && f.ad && f.poi) { m.value = f.ad.slice(0, 80); etkTaslak.mekanOtomatik = true; }
+  etkIgneKoy(f.enlem, f.boylam, { harita: true, atlaTers: true });   // geokodlanmış mekân noktası = kesin konum
+}
+/** "Konumumu kullan": YALNIZ haritayı merkezler; iğneyi kullanıcı mekâna koyar. Harita yoksa konum iğne olarak ayarlanır (herkese açık olacağı belirtilir). */
+async function etkKonumMerkez(dugme) {
+  dugme.disabled = true; const k = await cihazKonumu(true); dugme.disabled = false;
+  if (!k) return ipucuYaz(t("akKonumYok2"));
+  ipucuYaz("");
+  if (etkTaslak.harita) { etkTaslak.harita.flyTo({ center: [k.boylam, k.enlem], zoom: 16 }); const d = $("#ek-konum-durum"); if (d) d.innerHTML = `<span class="gri">${esc(t("akHaritaMerkez"))}</span>`; return; }
+  etkIgneKoy(k.enlem, k.boylam, {}); tost(t("akKonumIgne"), 4200);
 }
 function etkFotoOnizle() {
   const src = etkTaslak.foto || (!etkTaslak.fotoKaldir && etkTaslak.mevcutFoto ? fotoUrl(etkTaslak.mevcutFoto) : "");
@@ -3338,8 +3601,10 @@ async function aktiviteFormGonder(dugme) {
   if (g("#ek-saat").value) etkinlik.saat = g("#ek-saat").value;
   if (g("#ek-bitis").value) etkinlik.bitis = g("#ek-bitis").value;
   if ([...etkinlik.ad].length < 2) return ipucuYaz(t("akAdKisa"));
+  if (!etkTaslak.konum) return ipucuYaz(t("akKonumGerek"));
   if (!etkinlik.sehir) return ipucuYaz(t("akSehirGerek"));
   if (!etkinlik.baslangic) return ipucuYaz(t("akTarihGerek"));
+  etkinlik.konum = { enlem: etkTaslak.konum.enlem, boylam: etkTaslak.konum.boylam, kesin: true };
   dugme.disabled = true;
   try {
     const govde = { etkinlik, ...(etkTaslak.foto ? { foto: etkTaslak.foto } : {}), ...(!etkTaslak.foto && etkTaslak.fotoKaldir ? { fotoKaldir: true } : {}) };
@@ -3348,6 +3613,29 @@ async function aktiviteFormGonder(dugme) {
     if (id && G.sayfa === "aktivitelerim") ciz(false, true); else gotur({ sayfa: "aktivitelerim" }, false);
   } catch (er) { dugme.disabled = false; if (er.durum === 401) return hataGoster(er); ipucuYaz(er.message); }
 }
+// ---- statik harita önizlemesi (etkinlik detayı + yönetici Onay bekleyenler): etkileşimsiz, yalnız kesin konumda; yüklenemezse metin
+async function etkHaritaOnizle(kap) {
+  kap.dataset.hazir = "1";
+  const la = Number(kap.dataset.lat), lo = Number(kap.dataset.lng);
+  const yok = () => { kap.innerHTML = `<span class="gri etk-harita-yok">${esc(t("akHaritaYok"))}</span>`; };
+  if (!kutuIcinde(la, lo)) return yok();
+  let ml; try { ml = await haritaYukle(); } catch { return yok(); }
+  if (!kap.isConnected) return;
+  try {
+    kap.innerHTML = "";
+    const map = new ml.Map({ container: kap, style: HARITA_STIL, center: [lo, la], zoom: 15, interactive: false, attributionControl: false, fadeDuration: 0 });
+    map.addControl(new ml.AttributionControl({ compact: false, customAttribution: HARITA_ATIF }));
+    new ml.Marker({ element: etkIgneEl(), anchor: "bottom" }).setLngLat([lo, la]).addTo(map);
+    let ok = false; const z = setTimeout(() => { if (!ok) { try { map.remove(); } catch { /* */ } yok(); } }, 15000);
+    map.on("load", () => { ok = true; clearTimeout(z); });
+    map.on("error", () => { if (!ok) { clearTimeout(z); try { map.remove(); } catch { /* */ } yok(); } });
+  } catch { yok(); }
+}
+let haritaTaraBekle = false;
+new MutationObserver(() => {
+  if (haritaTaraBekle) return; haritaTaraBekle = true;
+  requestAnimationFrame(() => { haritaTaraBekle = false; document.querySelectorAll(".etk-harita:not([data-hazir])").forEach(etkHaritaOnizle); });
+}).observe(document.documentElement, { childList: true, subtree: true });
 function etkIptalSor(id, geri) {
   if (geri) return etkIptalEvet(id, true);
   sheet(sheetUst(t("akIptalEt")) + `<p>${esc(t("akIptalSor"))}</p><button class="dug tam" data-e="etk-iptal-evet" data-id="${esc(id)}">${esc(t("akIptalEt"))}</button><button class="dug ikincil tam" data-e="sheet-kapat">${esc(t("akVazgec"))}</button>`);
@@ -3383,7 +3671,7 @@ async function onayCiz(my) {
 function onayKartHtml(x) {
   const y = x.yazar;
   return `<li class="onay-kart" data-onay="${esc(x.id)}"><div class="onay-yazar gri">${avatarHtml(y, "kucuk")} <b>${esc(y?.ad)}</b> @${esc(y?.handle)}</div>
-    ${etkinlikKartHtml({ id: x.id, etkinlik: x, yazar: y })}${x.metin && x.metin !== x.ad ? `<p class="onay-metin">${esc(x.metin)}</p>` : ""}${x.foto ? `<img class="onay-foto" src="${esc(fotoUrl(x.foto))}" alt="" loading="lazy">` : ""}
+    ${etkinlikKartHtml({ id: x.id, etkinlik: x, yazar: y }, true)}${x.metin && x.metin !== x.ad ? `<p class="onay-metin">${esc(x.metin)}</p>` : ""}${x.foto ? `<img class="onay-foto" src="${esc(fotoUrl(x.foto))}" alt="" loading="lazy">` : ""}
     <div class="etk-eylem"><button type="button" class="dug kucuk" data-e="onay-evet" data-id="${esc(x.id)}">${esc(t("akOnayla"))}</button><button type="button" class="dug kucuk ikincil" data-e="onay-red" data-id="${esc(x.id)}">${esc(t("akReddet"))}</button></div></li>`;
 }
 function onayRedAc(id) {
