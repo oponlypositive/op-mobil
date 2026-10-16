@@ -137,6 +137,17 @@ public class MainActivity extends BridgeActivity {
 </plist>`, "Info.plist konum");
     fs.writeFileSync(ip, p);
   }
+  // 1c) Apple ITMS-90683 (2026-10-16, yapı 29): konum eklentisi "Always" API'sine referans verdiği için bu anahtar da ZORUNLU.
+  //     Uygulama yalnız "kullanırken" izni ister; metin bunu açıkça söyler.
+  p = oku(ip);
+  for (const anahtar of ["NSLocationAlwaysAndWhenInUseUsageDescription", "NSLocationAlwaysUsageDescription"]) {
+    if (p.includes(anahtar)) continue;
+    p = degistir(p, "</dict>\n</plist>", `\t<key>${anahtar}</key>
+\t<string>OP konumunu yalnız uygulama açıkken, yakınındaki aktiviteleri göstermek için kullanır; arka planda konum izlenmez ve konumun cihazında kalır. / OP uses your location only while the app is open, to show activities near you; it is never tracked in the background and stays on your device.</string>
+</dict>
+</plist>`, "Info.plist konum (always)");
+  }
+  fs.writeFileSync(ip, p);
   // 2) yalnız iPhone (iPad ekran görüntüsü/yerleşim yükü yok; iPad'de uyumluluk modunda açılır)
   const pb = path.join(I, "App.xcodeproj", "project.pbxproj");
   let b = oku(pb);
