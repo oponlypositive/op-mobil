@@ -42,13 +42,13 @@ const AVATARLAR = ["🌞", "🌻", "🐱", "🐶", "🦊", "🐼", "🐨", "🦄
 const RENKLER = ["#CDE7EC", "#F3E3B3", "#E6D5F2", "#D5ECD9", "#F6D5D0", "#D9DEE8"];
 const KATEGORI = { huzur: ["İç Huzur", "Inner Peace"], gelisim: ["Kişisel Gelişim", "Personal Growth"], yasam: ["Sağlıklı Yaşam", "Healthy Living"], psikoloji: ["Psikoloji", "Psychology"],   // gecis-019: iç huzur teması, Keşfet ve ilgi seçiminde ÖNDE
   bilim: ["Bilim", "Science"], saglik: ["Sağlık", "Health"], doga: ["Doğa", "Nature"], hayvanlar: ["Hayvanlar", "Animals"], iyilik: ["İyilik", "Kindness"],
-  sanat: ["Sanat", "Arts"], spor: ["Spor", "Sports"], teknoloji: ["Teknoloji", "Tech"], mahalle: ["Mahalle", "Neighborhood"],
-  felsefe: ["Felsefe", "Philosophy"], edebiyat: ["Edebiyat", "Literature"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji", "Mythology"], gokbilim: ["Gökbilim", "Astronomy"],
+  sanat: ["Sanat", "Arts"], spor: ["Spor", "Sports"], mahalle: ["Mahalle", "Neighborhood"],
+  felsefe: ["Felsefe", "Philosophy"], edebiyat: ["Edebiyat", "Literature"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji", "Mythology"], gokbilim: ["Astronomi", "Astronomy"], astroloji: ["Astroloji", "Astrology"],
   resim: ["Resim", "Paintings"], sohbet: ["Sorular", "Questions"], mutfak: ["Mutfak", "Kitchen"], oyun: ["Oyun", "Games"], tarih: ["Tarih", "History"] };   // sohbet kategorisi çipte "Sorular" (genel "sohbet" sözcüğüyle çakışmasın)
 const KAT_ACIKLAMA = { huzur: ["Sakinlik, nefes ve dikkat", "Calm, breath and attention"], gelisim: ["Küçük alışkanlıklar ve öğrenme", "Small habits and learning"], yasam: ["Uyku, beslenme ve hareket", "Sleep, food and movement"], psikoloji: ["Duygu, düşünce ve davranışı anlamak", "Understanding feelings, thoughts and behavior"], bilim: ["Keşifler ve buluşlar", "Discoveries and breakthroughs"], saglik: ["Sağlık ve iyileşme", "Health and recovery"], doga: ["Doğa ve çevre", "Nature and environment"],
   hayvanlar: ["Hayvanlar ve patili dostlar", "Animals and pets"], iyilik: ["Küçük ve büyük iyilikler", "Acts of kindness"], sanat: ["Sanat, müzik, tasarım", "Art, music, design"],
-  spor: ["Spor başarıları ve güzel anlar", "Sports wins and great moments"], teknoloji: ["Teknoloji ve yenilikler", "Technology and innovation"], mahalle: ["Mahalle ve şehirlerden", "From neighborhoods and cities"],
-  felsefe: ["Felsefe: düşünür sözleri", "Philosophy: thinkers' quotes"], edebiyat: ["Edebiyat alıntıları", "Literary quotes"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji ve eski anlatılar", "Mythology and old tales"], gokbilim: ["Gökbilim ve uzay", "Astronomy and space"] , resim: ["Ünlü tablolar ve öyküleri", "Famous paintings and their stories"], sohbet: ["Topluluğa küçük sorular", "Small questions for the community"], mutfak: ["Tarifler ve içecekler", "Recipes and drinks"], oyun: ["Nostaljik ve geleneksel oyunlar", "Nostalgic and traditional games"], tarih: ["Tarihten güzel anlar", "Lovely moments from history"] };
+  spor: ["Spor başarıları ve güzel anlar", "Sports wins and great moments"], mahalle: ["Mahalle ve şehirlerden", "From neighborhoods and cities"],
+  felsefe: ["Felsefe: düşünür sözleri", "Philosophy: thinkers' quotes"], edebiyat: ["Edebiyat alıntıları", "Literary quotes"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji ve eski anlatılar", "Mythology and old tales"], gokbilim: ["Astronomi ve uzay", "Astronomy and space"], astroloji: ["Burçlar, takımyıldız mitleri ve astrolojinin tarihi", "Zodiac signs, constellation myths and the history of astrology"], resim: ["Ünlü tablolar ve öyküleri", "Famous paintings and their stories"], sohbet: ["Topluluğa küçük sorular", "Small questions for the community"], mutfak: ["Tarifler ve içecekler", "Recipes and drinks"], oyun: ["Nostaljik ve geleneksel oyunlar", "Nostalgic and traditional games"], tarih: ["Tarihten güzel anlar", "Lovely moments from history"] };
 // Alt konular (ör. spor dalları, kadın/erkek ligleri, kişisel gelişim) için yer: { spor: [["kadin-sporlari", ["Kadın sporları", "Women's sports"]], ...] }. Haber hattı `alt_konu` etiketi üretince doldurulur; bkz. rapor.
 const ILGI_ALT = {};
 // Hazır (henüz bağlı değil; haber hattı `alt_konu` üretip sunucu "kategori.alt" anahtarını kabul edince ILGI_ALT'a taşınır): resim → manzara, portre, naturmort, gunluk-yasam, soyut, hayvan; sohbet → hava-yer, gunun-sorusu, kultur, oneri
@@ -68,7 +68,7 @@ const T = {
     senin: "Senin İçin",    takip: "Takip", yakin: "Yakınımda", ana: "Ana Sayfa", kesfet: "Keşfet", bildirim: "Bildirimler", profil: "Profil",
     yeniGonderi: "Yeni gönderi", ne: "Bugün iyi olan ne?", paylas: "Paylaş", yanitYaz: "Yanıtını yaz", yanitla: "Yanıtla", yeniden: "Yeniden paylaş", begen: "Beğen",
     gonderi: "Gönderi", yenidenDedi: "yeniden paylaştı", bosAkis: "Henüz burada bir şey yok.", bosTakip: "Takip ettiklerinin gönderileri burada görünür.",
-    bosBildirim: "Henüz bildirim yok.", bosYanit: "Henüz yanıt yok.", kaynak: "Kaynak", foto: "Fotoğraf", devami: "Devamını göster", video: "Video", sesAc: "Sesi aç", sesKapat: "Sesi kapat", oynat: "Oynat", ayarlar: "Ayarlar", tema: "Tema", oto: "Otomatik",
+    bosBildirim: "Henüz bildirim yok.", bosYanit: "Henüz yanıt yok.", kaynak: "Kaynak", eglenceAmacli: "Eğlence amaçlıdır", foto: "Fotoğraf", devami: "Devamını göster", video: "Video", sesAc: "Sesi aç", sesKapat: "Sesi kapat", oynat: "Oynat", ayarlar: "Ayarlar", tema: "Tema", oto: "Otomatik",
     acik: "Açık", koyu: "Koyu", dil: "Dil", cikis: "Profili bu cihazdan sil", duzenle: "Profili düzenle", kaydet: "Kaydet", geri: "Geri", kapat: "Kapat",
     takipEt: "Takip et", takipte: "Takipte", takipSay: "Takip", takipciSay: "Takipçi", editor: "OP editörü", resmi: "Resmi hesap", haber: "sohbet",
     sehir: "Şehrin", sehirSec: "Yakınındakileri görmek için şehrini seç.", yanit: "Yanıt", yeniPay: "Yeniden paylaşım", begeni: "Beğeni",
@@ -90,7 +90,7 @@ const T = {
     senin: "For You",    takip: "Following", yakin: "Nearby", ana: "Home", kesfet: "Explore", bildirim: "Notifications", profil: "Profile",
     yeniGonderi: "New post", ne: "What's good today?", paylas: "Post", yanitYaz: "Post your reply", yanitla: "Reply", yeniden: "Repost", begen: "Like",
     gonderi: "Post", yenidenDedi: "reposted", bosAkis: "Nothing here yet.", bosTakip: "Posts from people you follow show up here.",
-    bosBildirim: "No notifications yet.", bosYanit: "No replies yet.", kaynak: "Source", foto: "Photo", devami: "Show more", video: "Video", sesAc: "Turn sound on", sesKapat: "Turn sound off", oynat: "Play", ayarlar: "Settings", tema: "Theme", oto: "Auto",
+    bosBildirim: "No notifications yet.", bosYanit: "No replies yet.", kaynak: "Source", eglenceAmacli: "For entertainment only", foto: "Photo", devami: "Show more", video: "Video", sesAc: "Turn sound on", sesKapat: "Turn sound off", oynat: "Play", ayarlar: "Settings", tema: "Theme", oto: "Auto",
     acik: "Light", koyu: "Dark", dil: "Language", cikis: "Remove profile from this device", duzenle: "Edit profile", kaydet: "Save", geri: "Back", kapat: "Close",
     takipEt: "Follow", takipte: "Following", takipSay: "Following", takipciSay: "Followers", editor: "OP editor", resmi: "Official account", haber: "conversations",
     sehir: "Your city", sehirSec: "Pick your city to see what's nearby.", yanit: "Replies", yeniPay: "Reposts", begeni: "Likes",
@@ -380,7 +380,6 @@ const IK = {   // satır içi çizgi ikonlar
   k_iyilik: '<path d="M12 11s-3.2-2-3.2-4.4A2.1 2.1 0 0112 5.5a2.1 2.1 0 013.2 1.1C15.2 9 12 11 12 11z"/><path d="M3 15l3.5-1.5c1.5-.6 3-.2 4.5.5l2.5 1.5h3a1.5 1.5 0 010 3h-6"/><path d="M3 13.5v6"/>',
   k_sanat: '<path d="M12 3a9 9 0 100 18c1.4 0 2-1 1.5-2.2-.5-1.2.2-2.3 1.5-2.3H17a4 4 0 004-4c0-5-4-9.5-9-9.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
   k_spor: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 002.8 3.8"/><path d="M16 6h2.5a2.5 2.5 0 01-2.8 3.8"/><path d="M12 13v4"/><path d="M9 20h6"/><path d="M10 17h4v3"/>',
-  k_teknoloji: '<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/>',
   k_mahalle: '<path d="M3 20v-9l5-4 5 4v9"/><path d="M13 20v-7l4-3 4 3v7"/><path d="M2 20h20"/><path d="M7 20v-4h2v4"/>',
   k_felsefe: '<path d="M12 4L4 9h16z"/><path d="M5 9h14"/><path d="M7 9v8"/><path d="M12 9v8"/><path d="M17 9v8"/><path d="M4 20h16"/>',
   k_edebiyat: '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v16H6.5A2.5 2.5 0 004 21.5z"/><path d="M4 19V5.5"/><path d="M8.5 7.5H16"/>',
@@ -399,7 +398,8 @@ const IK = {   // satır içi çizgi ikonlar
   tik: '<path d="M5 12.500l4.500 4.500L19 7.500"/>',
   seri: '<path d="M12 3l9 4.500-9 4.500-9-4.500z"/><path d="M3 12l9 4.500 9-4.500"/><path d="M3 16.500l9 4.500 9-4.500"/>',
   liste: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3.500 6h.01"/><path d="M3.500 12h.01"/><path d="M3.500 18h.01"/>',
-  k_gokbilim: '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/><path d="M17 3v4"/><path d="M15 5h4"/>',
+  k_gokbilim: '<circle cx="12" cy="12" r="4.500"/><ellipse cx="12" cy="12" rx="10" ry="3.500" transform="rotate(-20 12 12)"/>',   // astronomi: halkalı gezegen
+  k_astroloji: '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/><path d="M17 3v4"/><path d="M15 5h4"/>',   // astroloji: ay hilali + yıldız (çizgi; burç sembolü/emoji değil)
   editor: '<path d="M12 20h9"/><path d="M16.500 3.500a2.100 2.100 0 013 3L7 19l-4 1 1-4z"/>',
 };
 const ikon = (ad, boy = 22, dolu = false) => `<svg class="ik" width="${boy}" height="${boy}" viewBox="0 0 24 24" fill="${dolu ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IK[ad]}</svg>`;
@@ -482,8 +482,8 @@ function videoHtml(v, detay) {   // akış: sessiz otomatik oynatma + kendi dene
       ${dug("video-tam", t("tamEkran"), ikon("tam", 20))}</div>${hata}</div>`;
 }
 // görselsiz haber için OP tasarım kartı (yalnız CSS/SVG, dosya yok): 16:9, kategoriye göre sakin tek ton, çizgi ikon + etiket + başlık + OP logosu
-const HK_TON = { bilim: "petrol", teknoloji: "petrol", spor: "petrol", saglik: "yesil", doga: "yesil", hayvanlar: "yesil", iyilik: "altin", sanat: "altin", mahalle: "altin",
-  edebiyat: "altin", siir: "altin", felsefe: "derin", mitoloji: "derin", gokbilim: "derin", resim: "altin", sohbet: "petrol", mutfak: "altin", oyun: "yesil", tarih: "derin", huzur: "petrol", gelisim: "altin", yasam: "yesil", psikoloji: "derin", genel: "petrol" };
+const HK_TON = { bilim: "petrol", spor: "petrol", saglik: "yesil", doga: "yesil", hayvanlar: "yesil", iyilik: "altin", sanat: "altin", mahalle: "altin",
+  edebiyat: "altin", siir: "altin", felsefe: "derin", mitoloji: "derin", gokbilim: "derin", astroloji: "derin", resim: "altin", sohbet: "petrol", mutfak: "altin", oyun: "yesil", tarih: "derin", huzur: "petrol", gelisim: "altin", yasam: "yesil", psikoloji: "derin", genel: "petrol" };
 const HK_ALINTI = new Set(["felsefe", "edebiyat", "siir", "mitoloji"]);   // tırnaklı alıntı düzeni
 const yazarAdiMi = (x) => x.length <= 40 && x.split(/\s+/).length <= 5 && !/[.!?;:"“”,]/.test(x);
 function haberKartHtml(o, detay = false) {
@@ -567,6 +567,7 @@ function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görse
     else if (kartGorunur(o)) h += haberKartHtml(o, detay);
     else if (skorKartiMi(o.kart)) h += skorKartHtml(o.kart, { detay });   // maç sonucu: armasız skor kartı (yalnız fotoğraf/video yoksa)
     if (listeKartiMi(o.kart)) h += listeKartHtml(o.kart, { detay });      // skor LİSTESİ / PUAN TABLOSU: fotoğraf/video varsa ALTINA, yoksa tek başına (gecis-020)
+    if (o.kategori === "astroloji") h += `<div class="eglence-etiket">${ikon("k_astroloji", 14)}<span>${esc(t("eglenceAmacli"))}</span></div>`;   // sahip 2026-10-16: astroloji gönderisinde sabit etiket (kategoriye bağlı)
     const link = guvenliUrl(o.link);
     if (o.kategori !== "sohbet" || link) h += `<${link ? `a href="${esc(link)}" target="_blank" rel="noopener noreferrer"` : "div"} class="kaynak-kart"><span>${o.yer ? "📍 " + esc(o.yer) + " · " : ""}${t("kaynak")}: ${esc(o.kaynak)}</span>${link ? " ↗" : ""}</${link ? "a" : "div"}>`;
   }

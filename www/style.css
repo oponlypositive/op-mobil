@@ -78,6 +78,8 @@ button.ust-dug:hover{background:var(--yuzey)}
 .kaynak-kart{display:flex;justify-content:space-between;gap:8px;margin-top:10px;padding:10px 12px;border:1px solid var(--cizgi);border-radius:14px;
   font-size:14px;color:var(--yazi2);text-decoration:none;overflow-wrap:anywhere}
 a.kaynak-kart:hover{background:var(--yuzey)}
+.eglence-etiket{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 10px;border:1px solid var(--cizgi);border-radius:999px;font-size:12px;color:var(--yazi2);background:var(--yuzey)}
+.eglence-etiket svg{flex:none}
 
 /* eylem satırı */
 .eylemler{display:flex;justify-content:space-between;max-width:420px;margin:6px 0 -6px -8px}
