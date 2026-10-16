@@ -42,11 +42,11 @@ const AVATARLAR = ["🌞", "🌻", "🐱", "🐶", "🦊", "🐼", "🐨", "🦄
 const RENKLER = ["#CDE7EC", "#F3E3B3", "#E6D5F2", "#D5ECD9", "#F6D5D0", "#D9DEE8"];
 const KATEGORI = { huzur: ["İç Huzur", "Inner Peace"], gelisim: ["Kişisel Gelişim", "Personal Growth"], yasam: ["Sağlıklı Yaşam", "Healthy Living"], psikoloji: ["Psikoloji", "Psychology"],   // gecis-019: iç huzur teması, Keşfet ve ilgi seçiminde ÖNDE
   bilim: ["Bilim", "Science"], saglik: ["Sağlık", "Health"], doga: ["Doğa", "Nature"], hayvanlar: ["Hayvanlar", "Animals"], iyilik: ["İyilik", "Kindness"],
-  sanat: ["Sanat", "Arts"], spor: ["Spor", "Sports"], mahalle: ["Mahalle", "Neighborhood"],
+  sanat: ["Sanat", "Arts"], muzik: ["Müzik", "Music"], spor: ["Spor", "Sports"], mahalle: ["Mahalle", "Neighborhood"],
   felsefe: ["Felsefe", "Philosophy"], edebiyat: ["Edebiyat", "Literature"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji", "Mythology"], gokbilim: ["Astronomi", "Astronomy"], astroloji: ["Astroloji", "Astrology"],
   resim: ["Resim", "Paintings"], sohbet: ["Sorular", "Questions"], mutfak: ["Mutfak", "Kitchen"], oyun: ["Oyun", "Games"], tarih: ["Tarih", "History"] };   // sohbet kategorisi çipte "Sorular" (genel "sohbet" sözcüğüyle çakışmasın)
 const KAT_ACIKLAMA = { huzur: ["Sakinlik, nefes ve dikkat", "Calm, breath and attention"], gelisim: ["Küçük alışkanlıklar ve öğrenme", "Small habits and learning"], yasam: ["Uyku, beslenme ve hareket", "Sleep, food and movement"], psikoloji: ["Duygu, düşünce ve davranışı anlamak", "Understanding feelings, thoughts and behavior"], bilim: ["Keşifler ve buluşlar", "Discoveries and breakthroughs"], saglik: ["Sağlık ve iyileşme", "Health and recovery"], doga: ["Doğa ve çevre", "Nature and environment"],
-  hayvanlar: ["Hayvanlar ve patili dostlar", "Animals and pets"], iyilik: ["Küçük ve büyük iyilikler", "Acts of kindness"], sanat: ["Sanat, müzik, tasarım", "Art, music, design"],
+  hayvanlar: ["Hayvanlar ve patili dostlar", "Animals and pets"], iyilik: ["Küçük ve büyük iyilikler", "Acts of kindness"], sanat: ["Sanat, müzik, tasarım", "Art, music, design"], muzik: ["Kült şarkıların ve albümlerin hikâyeleri", "Stories of cult songs and albums"],
   spor: ["Spor başarıları ve güzel anlar", "Sports wins and great moments"], mahalle: ["Mahalle ve şehirlerden", "From neighborhoods and cities"],
   felsefe: ["Felsefe: düşünür sözleri", "Philosophy: thinkers' quotes"], edebiyat: ["Edebiyat alıntıları", "Literary quotes"], siir: ["Şiir", "Poetry"], mitoloji: ["Mitoloji ve eski anlatılar", "Mythology and old tales"], gokbilim: ["Astronomi ve uzay", "Astronomy and space"], astroloji: ["Burçlar, takımyıldız mitleri ve astrolojinin tarihi", "Zodiac signs, constellation myths and the history of astrology"], resim: ["Ünlü tablolar ve öyküleri", "Famous paintings and their stories"], sohbet: ["Topluluğa küçük sorular", "Small questions for the community"], mutfak: ["Tarifler ve içecekler", "Recipes and drinks"], oyun: ["Nostaljik ve geleneksel oyunlar", "Nostalgic and traditional games"], tarih: ["Tarihten güzel anlar", "Lovely moments from history"] };
 // Alt konular (ör. spor dalları, kadın/erkek ligleri, kişisel gelişim) için yer: { spor: [["kadin-sporlari", ["Kadın sporları", "Women's sports"]], ...] }. Haber hattı `alt_konu` etiketi üretince doldurulur; bkz. rapor.
@@ -399,6 +399,7 @@ const IK = {   // satır içi çizgi ikonlar
   seri: '<path d="M12 3l9 4.500-9 4.500-9-4.500z"/><path d="M3 12l9 4.500 9-4.500"/><path d="M3 16.500l9 4.500 9-4.500"/>',
   liste: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3.500 6h.01"/><path d="M3.500 12h.01"/><path d="M3.500 18h.01"/>',
   k_gokbilim: '<circle cx="12" cy="12" r="4.500"/><ellipse cx="12" cy="12" rx="10" ry="3.500" transform="rotate(-20 12 12)"/>',   // astronomi: halkalı gezegen
+  k_muzik: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',   // müzik: nota (çizgi)
   k_astroloji: '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/><path d="M17 3v4"/><path d="M15 5h4"/>',   // astroloji: ay hilali + yıldız (çizgi; burç sembolü/emoji değil)
   editor: '<path d="M12 20h9"/><path d="M16.500 3.500a2.100 2.100 0 013 3L7 19l-4 1 1-4z"/>',
 };
@@ -482,7 +483,7 @@ function videoHtml(v, detay) {   // akış: sessiz otomatik oynatma + kendi dene
       ${dug("video-tam", t("tamEkran"), ikon("tam", 20))}</div>${hata}</div>`;
 }
 // görselsiz haber için OP tasarım kartı (yalnız CSS/SVG, dosya yok): 16:9, kategoriye göre sakin tek ton, çizgi ikon + etiket + başlık + OP logosu
-const HK_TON = { bilim: "petrol", spor: "petrol", saglik: "yesil", doga: "yesil", hayvanlar: "yesil", iyilik: "altin", sanat: "altin", mahalle: "altin",
+const HK_TON = { bilim: "petrol", spor: "petrol", saglik: "yesil", doga: "yesil", hayvanlar: "yesil", iyilik: "altin", sanat: "altin", muzik: "derin", mahalle: "altin",
   edebiyat: "altin", siir: "altin", felsefe: "derin", mitoloji: "derin", gokbilim: "derin", astroloji: "derin", resim: "altin", sohbet: "petrol", mutfak: "altin", oyun: "yesil", tarih: "derin", huzur: "petrol", gelisim: "altin", yasam: "yesil", psikoloji: "derin", genel: "petrol" };
 const HK_ALINTI = new Set(["felsefe", "edebiyat", "siir", "mitoloji"]);   // tırnaklı alıntı düzeni
 const yazarAdiMi = (x) => x.length <= 40 && x.split(/\s+/).length <= 5 && !/[.!?;:"“”,]/.test(x);
@@ -570,6 +571,7 @@ function ekHtml(o, detay) {   // video (varsa, fotoğrafın yerine) ya da görse
     if (o.kategori === "astroloji") h += `<div class="eglence-etiket">${ikon("k_astroloji", 14)}<span>${esc(t("eglenceAmacli"))}</span></div>`;   // sahip 2026-10-16: astroloji gönderisinde sabit etiket (kategoriye bağlı)
     const link = guvenliUrl(o.link);
     if (o.kategori !== "sohbet" || link) h += `<${link ? `a href="${esc(link)}" target="_blank" rel="noopener noreferrer"` : "div"} class="kaynak-kart"><span>${o.yer ? "📍 " + esc(o.yer) + " · " : ""}${t("kaynak")}: ${esc(o.kaynak)}</span>${link ? " ↗" : ""}</${link ? "a" : "div"}>`;
+    if (o.kategori === "muzik") h += baglantiKartHtml(o, true, false, true);   // link YouTube ise küçük kart, değilse boş
   }
   return h;
 }
@@ -624,13 +626,19 @@ async function anketOy(id, sec) {
 // Kart verisi gönderi OLUŞURKEN sunucuda çıkarılır (posts.baglanti); burada yalnız çizilir. Fotoğraf/video varsa ya da metinde kartın adresi yoksa (düzenlenmişse) çizilmez.
 // YouTube: dokununca kart içinde çerezsiz gömme oynatıcı (youtube-nocookie). Mağaza uygulamasında (capacitor:// kökeni) gömme "Hata 153" verebilir → YT_GOMME_NATIF false iken dokununca YouTube/tarayıcı açılır.
 const YT_GOMME_NATIF = false;
-function baglantiKartiVeri(o) {
+function baglantiKartiVeri(o, haberEk = false) {
+  if (BG && o && o.haber && haberEk) {   // yalnız ekHtml çağrısı (akış/detay baglantiKartHtml(o) çağrıları haberde kart çizmez: çift kart olmasın)
+    if (o.kategori !== "muzik") return null;
+    // müzik haberi (editör): `link` YouTube adresiyse küçük YouTube kartı (fotoğrafın altında; yeni dış alan yok: aynı kapak/gömme adresleri)
+    const id = BG.ytKimlik(guvenliUrl(o.link)); if (!id) return null;
+    return { url: BG.ytAdres(id), site: "YouTube", baslik: BG.kartTemizle(o.baglanti)?.baslik || "", aciklama: t("ytOynat"), gorsel: BG.ytKapak(id), tur: "youtube", yt_id: id };
+  }
   if (!BG || !o || o.haber || o.foto || o.video?.url) return null;
   const k = BG.kartTemizle(o.baglanti); if (!k) return null;
   return BG.bul(o.metin).some((b) => BG.temizle(b.ham) === k.url) ? k : null;
 }
-function baglantiKartHtml(o, kucuk = false, onizleme = false) {
-  const k = baglantiKartiVeri(o); if (!k) return "";
+function baglantiKartHtml(o, kucuk = false, onizleme = false, haberEk = false) {
+  const k = baglantiKartiVeri(o, haberEk); if (!k) return "";
   const yt = k.tur === "youtube", site = k.site || BG.kisalt(k.url, 40).split("/")[0];
   const gorsel = yt ? `<span class="bk-gorsel"><img src="${esc(k.gorsel)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"><span class="bk-oynat">${ikon("oynat", 28, true)}</span></span>` : "";
   const metin = `<span class="bk-metin"><span class="bk-site">${esc(site)}</span>${k.baslik ? `<span class="bk-baslik">${esc(k.baslik)}</span>` : ""}${k.aciklama ? `<span class="bk-acik">${esc(k.aciklama)}</span>` : ""}</span>`;
@@ -1326,7 +1334,7 @@ document.addEventListener("keydown", e => {
 const DAVET = {
   tr: {
     genel: ["Bugün iyi olan ne?", "Bugün seni ne gülümsetti?", "Aklındaki güzel şey ne?", "Bugün sana iyi gelen neydi?", "Küçük bir mutluluğun var mı?", "Bugün ne öğrendin?",
-      "Kime teşekkür etmek istersin?", "Bugün neyi başardın?", "Şu an nasıl hissediyorsun?", "Gördüğün güzel bir şey var mı?", "Bugün seni ne şaşırttı?", "En son ne zaman güldün?",
+      "Kime teşekkür etmek istersin?", "Bugün neyi başardın?", "Şu an nasıl hissediyorsun?", "Gördüğün güzel bir şey var mı?", "Bugün seni ne şaşırttı?", "Boşver, gülmeye devam et 😄", "Bugün biraz keyif yapalım mı?", "Kahveni al, anlat bakalım", "Gülümse, burası iyi şeylere açık", "Hadi, güzel bir şey paylaş",
       "Seni neşelendiren bir şey var mı?", "Bugünün en güzel anı neydi?", "Bugün hangi şarkı eşlik etti?", "Sevdiğin küçük bir detay?",
       "Bugün neyle gurur duydun?", "Birine ne söylemek isterdin?", "Bugün seni ne mutlu etti?", "Seni sakinleştiren şey ne?", "Bugün yeni ne denedin?", "Sana iyi gelen biri var mı?", "Bugün ne güzel geçti?"],
     sabah: ["Güne nasıl başladın?", "Bu sabah seni ne ısıttı?", "Bugün neyi dört gözle bekliyorsun?", "Güne güzel başlatan ne oldu?", "Bu sabah ne duydun, ne gördün?", "Bugün ne yapmak istersin?"],
@@ -1334,7 +1342,7 @@ const DAVET = {
   },
   en: {
     genel: ["What's good today?", "What made you smile today?", "What's a nice thing on your mind?", "What did you enjoy today?", "Got a small joy to share?", "What did you learn today?",
-      "Who would you like to thank?", "What did you achieve today?", "How are you feeling right now?", "Seen anything lovely lately?", "What surprised you today?", "When did you last laugh?",
+      "Who would you like to thank?", "What did you achieve today?", "How are you feeling right now?", "Seen anything lovely lately?", "What surprised you today?", "Never mind, keep smiling 😄", "Shall we have some fun today?", "Grab a coffee and tell us!", "Smile, only good vibes here", "Go on, share something nice",
       "Anything cheering you up?", "What was the best moment today?", "Which song kept you company?", "A little detail you love?",
       "What made you proud today?", "What would you tell someone?", "What made you happy today?", "What calms you down?", "What did you try today?", "Is someone good to have around?", "What went well today?"],
     sabah: ["How did your day begin?", "What warmed you this morning?", "What are you looking forward to?", "What started your day well?", "What did you see this morning?", "What would you like to do today?"],

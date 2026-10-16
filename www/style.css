@@ -1045,3 +1045,15 @@ body.an-acik{overflow:hidden}
 .etk-igne{color:var(--vurgu);line-height:0;cursor:grab}
 .etk-harita .maplibregl-ctrl-attrib,.etk-harita-sec .maplibregl-ctrl-attrib{font-size:11px;color:var(--yazi2);background:var(--yukselt)}
 .etk-harita .maplibregl-ctrl-attrib a,.etk-harita-sec .maplibregl-ctrl-attrib a{color:var(--yazi2)}
+
+/* ---- SICAK kartlar (sahip 2026-10-16): aktivite + anket kartları turuncu/amber/sarı. Jetonlar temalar.js `sicak()` (20 temada ayrı; test/tema_kontrast.mjs ölçer).
+   Kart içinde yerel jeton geçersiz kılma: kart içindeki mevcut kurallar (--yazi/--yazi2/--vurgu/--cizgi/--zemin/--yuzey) otomatik sıcak değerleri alır. Skor, alıntı, soru kartları DEĞİŞMEZ. */
+.etk-kart,.akt-kart,.anket{--yazi:var(--sicak-yazi);--yazi2:var(--sicak-yazi2);--vurgu:var(--sicak-vurgu);--vurgu-yazi:var(--sicak-vurgu-yazi);--cizgi:var(--sicak-kenar);--zemin:var(--sicak-zemin);--yuzey:var(--sicak-zemin);color:var(--sicak-yazi)}
+.etk-kart,.akt-kart{background:var(--sicak-zemin)}
+.anket{padding:10px 12px;border:1px solid var(--sicak-kenar);border-radius:16px;background:var(--sicak-zemin)}
+.anket.kucuk{padding:8px 10px}
+.anket-izgi{background:var(--sicak-iz)}
+.anket-izgi .anket-bar{background:var(--sicak-bar2)}
+.anket-sec.sonuc.en .anket-izgi .anket-bar{background:var(--sicak-bar)}
+.anket-sec>.anket-bar{background:color-mix(in srgb,var(--sicak-vurgu) 24%,transparent)}
+.anket-grup{color:var(--yazi2)}

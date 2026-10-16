@@ -48,6 +48,25 @@
     return { id, ad, adEn, mod, zemin, duraklar, duz, metin, gri, cizgi, vurgu, avatar, yer };
   });
 
+  // SICAK kartlar (sahip 2026-10-16): aktivite (etkinlik kartı, Yakınındaki Aktiviteler, detay, tarih rozeti) ve anket kartları turuncu/amber/sarı tonlarda.
+  // Her temanın kendi zemini (t.duz) ile karıştırılır → 20 temada ayrı değerler; renk, hedef zeminde eşiği geçene dek koyulaştırılır/açılır (metin ≥7, ikincil ≥4.5, vurgu ≥4.5, düğme yazısı ≥4.5, çubuk↔iz ≥3).
+  const ayarla = (renk, zemin, esik) => {
+    const yon = aydinlik(zemin) > 0.4 ? "#000000" : "#FFFFFF";
+    for (let o = 0; o <= 1.0001; o += 0.02) { const c = karisim(renk, yon, o); if (kontrast(c, zemin) >= esik) return c; }
+    return yon;
+  };
+  function sicak(t, koyu) {
+    const zemin = koyu ? karisim("#33200A", t.duz, 0.28) : karisim("#FFF4E5", t.duz, 0.16);
+    const yazi = ayarla(koyu ? "#FFF1DC" : "#2B1807", zemin, 7.5), yazi2 = ayarla(koyu ? "#E6B877" : "#8A4B0F", zemin, 4.8);
+    const vurgu = ayarla(koyu ? "#FBBF24" : "#EA580C", zemin, 4.8), iz = karisim(zemin, yazi, 0.12);
+    const bar = ayarla(vurgu, iz, 3.2), bar2 = ayarla(yazi2, iz, 3.2);
+    return {
+      "--sicak-zemin": zemin, "--sicak-kenar": karisim(koyu ? "#B45309" : "#F59E0B", t.duz, koyu ? 0.3 : 0.3), "--sicak-yazi": yazi, "--sicak-yazi2": yazi2,
+      "--sicak-vurgu": vurgu, "--sicak-vurgu-yazi": kontrast("#FFFFFF", vurgu) >= kontrast("#1A0E02", vurgu) ? "#FFFFFF" : "#1A0E02",
+      "--sicak-iz": iz, "--sicak-bar": bar, "--sicak-bar2": bar2,
+    };
+  }
+
   /** Bir temanın TÜM yüzey değişkenleri ({ "--zemin": "#…", … }). */
   function degiskenler(t) {
     const koyu = t.mod === "koyu";
@@ -60,6 +79,7 @@
       "--avatar": t.avatar, "--yer": t.yer, "--perde": koyu ? "rgba(0,0,0,.62)" : "rgba(0,0,0,.45)", "--golge": koyu ? "rgba(0,0,0,.55)" : "rgba(0,0,0,.18)",
       "--bar": "color-mix(in srgb, " + t.duz + " 90%, transparent)", "color-scheme": koyu ? "dark" : "light",
     };
+    Object.assign(v, sicak(t, koyu));
     const takim = HK[t.mod];
     for (const ton of Object.keys(takim)) {
       const [a, b, yazi, et, kenar] = takim[ton];
@@ -70,7 +90,7 @@
   }
 
   // ---------- tarayıcı: tercih + uygulama ----------
-  const API = { liste, VARSAYILAN, degiskenler, kontrast, karisim, aydinlik, HK };
+  const API = { liste, VARSAYILAN, degiskenler, kontrast, karisim, aydinlik, HK, sicak };
   API.bul = (id, mod) => liste.find((t) => t.id === id && (!mod || t.mod === mod)) || null;
   API.varsayilan = (mod) => API.bul(VARSAYILAN[mod], mod);
 
