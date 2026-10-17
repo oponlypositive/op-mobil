@@ -2151,6 +2151,7 @@ document.addEventListener("click", async e => {
     case "an-serit": AN.serit = +a.i; anSecili(el); return anYaziYaz();
     case "an-paylas": return anPaylas(el);
     case "an-ac": return anAc(+a.g);
+    case "an-op-git": anKapat(); return gotur({ sayfa: "detay", id: a.id }, true);
     case "an-kapat": return anKapat();
     case "an-begen": return anBegen();
     case "an-yanit": { const k = $(".an-tepkiler", V.el); if (k) { k.hidden = !k.hidden; el.setAttribute("aria-expanded", String(!k.hidden)); } return; }
@@ -2562,6 +2563,45 @@ const AN_STILLER = ["klasik", "kalin", "zarif", "daktilo"];
 const AN_SERIT = [null, { bg: "#0B3B3F", fg: "#FFFFFF" }, { bg: "#FFD84D", fg: "#1A1A1A" }, { bg: "#F6D5D0", fg: "#2A1410" }, { bg: "#1F3A8A", fg: "#FFFFFF" }, { bg: "#E8F5E9", fg: "#12351A" }];   // yazı şeridi (zemin/yazı); stil.css .an-sr-N ile aynı, tema_kontrast.mjs ≥7:1 ölçer
 const AN_EMOJI = ["😊", "👏", "🌟", "🙏"];
 const anGruplar = () => D.anlar?.gruplar || [];
+// ---- gecis-030: OP HİKÂYELERİ. Kullanıcı anları azsa (< AN_YUVA) kalan yuvaları OP editör hesaplarının son 24 saatteki GÖRSELLİ gönderileri doldurur (hesap başına en yenisi, ≤12, kategori çeşitliliği).
+// YENİ VERİ YAZILMAZ (GET /api/op-hikayeleri salt okuma). Kullanıcı anları HER ZAMAN önce gelir; görülenler soluk halka (görülme YALNIZ cihazda: localStorage 'op-hik-goruldu', gönderi kimlikleri, ≤120).
+const AN_YUVA = 8, AN_OP_ENCOK = 12, OP_HIK_ANAHTAR = "op-hik-goruldu";
+const opGorulenler = () => { const l = sakla.al(OP_HIK_ANAHTAR, []); return new Set(Array.isArray(l) ? l : []); };
+function opGruplar() {
+  const gor = opGorulenler();
+  return (D.opHik?.liste || []).map(h => {
+    const o = h.oge, baslik = String(o.metin || "").split("\n")[0].trim(), g = gor.has(o.id);
+    return { op: true, yazar: h.yazar, hepsiGoruldu: g, oge: o, anlar: [{ id: o.id, op: true, foto: o.gorsel.url, metin: "", baslik, kategori: o.kategori, zaman: o.zaman, gordumMu: g, begendimMi: !!o.begendimMi }] };
+  });
+}
+const anOpGorunen = () => opGruplar().slice(0, Math.min(AN_OP_ENCOK, Math.max(0, AN_YUVA - anGruplar().length)));
+const anTumGruplar = () => [...anGruplar(), ...anOpGorunen()];
+async function opHikayeYukle() {
+  if (!D.ben || (D.opHik && Date.now() - D.opHik.z < 300000)) return;
+  try { const v = await api("/api/op-hikayeleri"); D.opHik = { liste: (v.hikayeler || []).filter(h => h && h.oge && h.oge.id && h.oge.gorsel && h.oge.gorsel.url && h.yazar).slice(0, AN_OP_ENCOK), z: Date.now() }; }
+  catch { D.opHik = { liste: [], z: Date.now() }; }   // tamamlayıcı: hata şeridi bozmaz
+  anSeritCiz();
+}
+function opGoruldu(g, an) {
+  if (an.gordumMu) return;
+  an.gordumMu = true; g.hepsiGoruldu = true;
+  const l = [...opGorulenler()]; l.push(an.id); sakla.koy(OP_HIK_ANAHTAR, l.slice(-120));
+}
+async function opBegen(an) {   // beğeni GÖNDERİNİN beğenisine bağlanır (aynı uç; iyimser)
+  const onceki = an.begendimMi; an.begendimMi = !onceki;
+  const d = $(".an-begen", V.el); if (d) { d.setAttribute("aria-pressed", String(an.begendimMi)); d.querySelector("svg").outerHTML = ikon("begen", 22, an.begendimMi); }
+  try { const v = await api(`/api/oge/${encodeURIComponent(an.id)}/begen`, {}); an.begendimMi = !!v.oge?.begendimMi; }
+  catch (e) { an.begendimMi = onceki; const d2 = $(".an-begen", V.el); if (d2) { d2.setAttribute("aria-pressed", String(onceki)); d2.querySelector("svg").outerHTML = ikon("begen", 22, onceki); } hataGoster(e); }
+}
+function anOpHtml(g, an) {   // tam ekran: gönderinin görseli + başlık (alt şeritte), "OP · kategori" etiketi, Beğen + Gönderiye git; mesaj alanı YOK (editör hesapları mesaj alamaz)
+  const kat = KATEGORI[an.kategori]?.[di()] || an.kategori || "";
+  return `<div class="an-ilerleme" aria-hidden="true"><span class="an-seg"><i class="${hareketAzalt() ? "dolu" : ""}"></i></span></div>
+    <div class="an-ust-sira"><span class="an-kim">${avatarHtml(g.yazar, "kucuk")}<b>${esc(g.yazar.ad)}</b><span class="an-op-et">OP${kat ? " · " + esc(kat) : ""}</span></span>
+      <button type="button" class="an-dug an-x" data-e="an-kapat" aria-label="${esc(t("kapat"))}">✕</button></div>
+    <div class="an-sahne an-tam" id="an-tam"><img src="${esc(an.foto)}" alt="${esc(an.baslik)}" draggable="false"></div>
+    <div class="an-alt an-op-alt"><p class="an-op-baslik">${esc(an.baslik)}</p><div class="an-tepki-sira"><button type="button" class="an-dug an-begen" data-e="an-begen" aria-pressed="${!!an.begendimMi}" aria-label="${esc(t("anBegen"))}">${ikon("begen", 22, !!an.begendimMi)}<span>${esc(t("anBegen"))}</span></button>
+      <button type="button" class="an-dug an-git" data-e="an-op-git" data-id="${esc(an.id)}">${esc(t("anOpGit"))}</button></div></div>`;
+}
 const trIn = (ad) => {   // Ayşe → Ayşe'nin (ünlü uyumu)
   const s = String(ad || "").trim(), k = s.toLocaleLowerCase("tr"), m = k.match(/[aeıioöuü](?=[^aeıioöuü]*$)/), v = m ? m[0] : "e";
   const ek = "aı".includes(v) ? "ın" : "ei".includes(v) ? "in" : "ou".includes(v) ? "un" : "ün";
@@ -2589,9 +2629,11 @@ function anSeritHtml() {
     return g.benim ? `<li class="an-sag an-benim-li">${dugme}<button type="button" class="an-ekle an-rozet" data-e="an-ekle" aria-label="${ekleAria}">${ikon("yaz", 12)}</button></li>` : `<li>${dugme}</li>`;
   };
   const digerleri = gr.filter(x => !x.g.benim).map(oge).join(""), benim = gr.filter(x => x.g.benim).map(oge).join("");
+  const nU = anGruplar().length, opL = anOpGorunen();
+  const opHtml = opL.map((g, j) => `<li><button type="button" class="an-oge op ${g.hepsiGoruldu ? "goruldu" : "yeni"}" data-e="an-ac" data-g="${nU + j}" aria-label="${esc(t("anOpAria", g.yazar.ad))}"><span class="an-halka">${avatarHtml(g.yazar, "kucuk")}<i class="an-op-rozet" aria-hidden="true">OP</i></span><span class="an-ad">${esc(g.yazar.ad)}</span></button></li>`).join("");
   // X'in canlı yayın çubuğu gibi "+" EN SAĞDA (yapışkan: çok an olsa da görünür). Kendi aktif anın varsa kendi halkalı avatarın en sağdadır ve ekleme onun köşesindeki rozettir (DOM sırası = görsel sıra).
   const ekle = benim ? "" : `<li class="an-sag"><button type="button" class="an-oge an-ekle" data-e="an-ekle" aria-label="${ekleAria}"><span class="an-halka an-art">${ikon("yaz", 22)}</span><span class="an-ad">${esc(t("anEkleKisa"))}</span></button></li>`;
-  return `<div class="an-serit" id="an-serit" role="region" aria-label="${esc(t("anlar"))}"><ul class="an-liste">${digerleri}${yuklendi && !gr.length ? `<li class="an-davet">${esc(t("anDavet"))}</li>` : ""}${benim}${ekle}</ul></div>`;
+  return `<div class="an-serit" id="an-serit" role="region" aria-label="${esc(t("anlar"))}"><ul class="an-liste">${digerleri}${opHtml}${yuklendi && !gr.length && !opL.length ? `<li class="an-davet">${esc(t("anDavet"))}</li>` : ""}${benim}${ekle}</ul></div>`;
 }
 function anSeritCiz() {
   const e = $("#an-serit"); if (!e) return;
@@ -2600,6 +2642,7 @@ function anSeritCiz() {
 }
 async function anSeritYukle(zorla) {
   if (!D.ben) return;
+  opHikayeYukle();
   const sekme = D.sekme === "takip" ? "takip" : "senin";
   if (!zorla && D.anlar && D.anlar.sekme === sekme && Date.now() - D.anlar.z < 20000) return anSeritCiz();
   try { const v = await api(`/api/anlar?sekme=${sekme}`); D.anlar = { gruplar: v.gruplar || [], sekme, z: Date.now() }; }
@@ -2685,9 +2728,9 @@ async function anPaylas(dugme) {
 // ---- görüntüleyici
 const V = { g: -1, a: 0, el: null, z: null, bas: 0, kalan: AN_SURE_MS, durak: false, basladi: false, p: null, odak: null, gruplar: [], gozlem: null };
 function anAc(gi, ai) {
-  const g = anGruplar()[gi]; if (!g || !g.anlar.length) return;
+  const tum = anTumGruplar(), g = tum[gi]; if (!g || !g.anlar.length) return;
   anKapat(true);
-  V.gruplar = anGruplar(); V.g = gi; V.odak = document.activeElement;
+  V.gruplar = tum; V.g = gi; V.odak = document.activeElement;
   const el = document.createElement("div"); el.className = "an-gor"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
   document.body.appendChild(el); V.el = el; document.body.classList.add("an-acik");
   el.addEventListener("pointerdown", e => { if (e.target.closest("button,.an-alt")) return; V.p = { x: e.clientX, y: e.clientY, t: Date.now() }; anDurdur(); });
@@ -2724,7 +2767,7 @@ function anGoster(ai) {
   const an = g.anlar[ai], kendi = !!g.benim, hm = hareketAzalt();
   el.setAttribute("aria-label", t("anAriaGor", g.benim ? t("anBenim") : g.yazar.ad));
   el.classList.remove("durdu");
-  el.innerHTML = `<div class="an-ilerleme" aria-hidden="true">${g.anlar.map((_, i) => `<span class="an-seg"><i class="${i < ai || (hm && i === ai) ? "dolu" : ""}"></i></span>`).join("")}</div>
+  el.innerHTML = g.op ? anOpHtml(g, an) : `<div class="an-ilerleme" aria-hidden="true">${g.anlar.map((_, i) => `<span class="an-seg"><i class="${i < ai || (hm && i === ai) ? "dolu" : ""}"></i></span>`).join("")}</div>
     <div class="an-ust-sira"><span class="an-kim">${avatarHtml(g.yazar, "kucuk")}<b>${esc(kendi ? t("anBenim") : g.yazar.ad)}</b><span class="an-zaman">${esc(zamanYaz(an.zaman))} · ${esc(anKalanYaz(an.bitis))}</span></span>
       <button type="button" class="an-dug" data-e="an-menu" aria-label="${esc(bt("menu"))}">•••</button><button type="button" class="an-dug an-x" data-e="an-kapat" aria-label="${esc(t("kapat"))}">✕</button></div>
     <div class="an-sahne an-tam" id="an-tam"><img src="${esc(fotoUrl(an.foto))}" alt="${esc(an.metin ? "" : t("anFotoAlt", g.yazar.ad))}" draggable="false">${anYaziHtml(an.metin, an.stil)}</div>
@@ -2741,7 +2784,8 @@ function anGoster(ai) {
   const img = $("img", el), sahne = $("#an-tam", el);
   const bas = () => { if (V.el !== el || V.a !== ai || V.basladi) return; V.basladi = true; if (img.naturalWidth) el.style.setProperty("--ar", img.naturalWidth / img.naturalHeight); if (!hm) { V.bas = Date.now(); V.z = setTimeout(() => anGoster(V.a + 1), V.kalan); $$(".an-seg i", el)[ai]?.classList.add("oynat"); } };
   if (img.complete && img.naturalWidth) bas(); else { img.addEventListener("load", bas, { once: true }); img.addEventListener("error", bas, { once: true }); }
-  if (!kendi && !an.gordumMu) { an.gordumMu = true; api(`/api/an/${encodeURIComponent(an.id)}/goruldu`, {}).catch(() => {}); }
+  if (an.op) opGoruldu(g, an);
+  else if (!kendi && !an.gordumMu) { an.gordumMu = true; api(`/api/an/${encodeURIComponent(an.id)}/goruldu`, {}).catch(() => {}); }
   g.hepsiGoruldu = g.anlar.every(x => x.gordumMu || g.benim);
   if (kendi) api(`/api/an/${encodeURIComponent(an.id)}/gorenler`).then(v => { an.gorenSayisi = v.sayi; an.begeniSayisi = v.begeniSayisi; const s = $("#an-sayi", el); if (s && V.a === ai) s.textContent = t("anGoren", v.sayi, v.begeniSayisi); }).catch(() => {});
   (el.querySelector(".an-x") || el).focus?.({ preventScroll: true });
@@ -2755,6 +2799,7 @@ function anSurdur() {
 const anSimdi = () => V.gruplar[V.g]?.anlar[V.a];
 async function anBegen() {
   const an = anSimdi(); if (!an) return;
+  if (an.op) return opBegen(an);
   const onceki = an.begendimMi; an.begendimMi = !onceki;
   const d = $(".an-begen", V.el); if (d) { d.setAttribute("aria-pressed", String(an.begendimMi)); d.querySelector("svg").outerHTML = ikon("begen", 22, an.begendimMi); }
   try { const v = await api(`/api/an/${encodeURIComponent(an.id)}/begen`, {}); an.begendimMi = !!v.begendimMi; }
@@ -2786,7 +2831,7 @@ function anCikar(id, mesaj) {   // an listeden düşer (silindi / şikâyet edil
   const g = V.gruplar[V.g], i = g ? g.anlar.findIndex(x => x.id === id) : -1;
   for (const gr of anGruplar()) gr.anlar = gr.anlar.filter(x => x.id !== id);
   if (D.anlar) D.anlar.gruplar = anGruplar().filter(x => x.anlar.length);
-  V.gruplar = anGruplar();
+  V.gruplar = anTumGruplar();
   if (mesaj) tost(mesaj);
   if (!V.el) return anSeritCiz();
   if (i < 0) return;
@@ -3191,6 +3236,8 @@ Object.assign(T.tr, {
   akAraYer: "Mekân ya da adres ara", akKonumKullan2: "Konumumu kullan", akHarita: "Harita", akHaritaYukleniyor: "Harita yükleniyor", akHaritaYok: "Harita yüklenemedi. Yine de mekân arayarak ya da “Konumumu kullan” ile konumu belirleyebilirsin.",
   akIgneTamam: "Konum seçildi", akIgneYok: "Haritaya dokunarak iğneyi koy (zorunlu).", akKonumTr: "Konum Türkiye sınırları içinde olmalı.", akKonumGerek: "Haritadan net bir konum seç.", akAraBos: "Sonuç bulunamadı", akAraHata: "Arama şu an yapılamadı",
   akHaritaMerkez: "Harita konumuna taşındı. İğneyi etkinliğin yapılacağı mekâna koy.", akKonumIgne: "Konumun etkinlik yeri olarak ayarlandı ve herkese açık olacak. Doğru mekân değilse arama yap.",
+  anOpAria: (ad) => `${ad} OP hikâyesi`, anOpGit: "Gönderiye git",
+  akKaynak: (m) => `Kaynak: ${m}`, akYeniSekme: "mekânın sitesinde açılır", akBugun: "Bugün", akYarin: "Yarın", akDevamEden: "Devam edenler", akGunSayisi: (n) => `${n} etkinlik`,
 });
 Object.assign(T.en, {
   aktiviteOlustur: "Create activity", onayBekleyenler: "Pending approval", yakinAkt: "Activities near you", akTumu: "See all", akSehirSec: "Choose your city", akSehirNot: "Choose your city to see activities near you.",
@@ -3208,6 +3255,8 @@ Object.assign(T.en, {
   akAraYer: "Search a place or address", akKonumKullan2: "Use my location", akHarita: "Map", akHaritaYukleniyor: "Loading map", akHaritaYok: "The map could not be loaded. You can still search for a place or use “Use my location”.",
   akIgneTamam: "Location selected", akIgneYok: "Tap the map to drop the pin (required).", akKonumTr: "The location must be inside Türkiye.", akKonumGerek: "Pick an exact location on the map.", akAraBos: "No results", akAraHata: "Search is unavailable right now",
   akHaritaMerkez: "Map moved to your location. Drop the pin on the venue of the activity.", akKonumIgne: "Your location was set as the activity place and will be public. Search if it isn't the right venue.",
+  anOpAria: (ad) => `${ad} OP story`, anOpGit: "Go to post",
+  akKaynak: (m) => `Source: ${m}`, akYeniSekme: "opens on the venue's website", akBugun: "Today", akYarin: "Tomorrow", akDevamEden: "Ongoing", akGunSayisi: (n) => `${n} events`,
 });
 T.tr.bildirimMetin.etkinlik_onay = "Etkinliğin onaylandı ve yayınlandı"; T.en.bildirimMetin.etkinlik_onay = "Your event was approved and published";
 T.tr.bildirimMetin.etkinlik_red = "Etkinliğin yayınlanmadı"; T.en.bildirimMetin.etkinlik_red = "Your event was not published";
@@ -3216,12 +3265,12 @@ Object.assign(IK, {
   konum: '<path d="M12 21s-6.500-5.600-6.500-11a6.500 6.500 0 0113 0c0 5.400-6.500 11-6.500 11z"/><circle cx="12" cy="10" r="2.300"/>',
   etk_sergi: '<rect x="4" y="3.500" width="16" height="12" rx="1"/><path d="M9 20l1.500-4.500"/><path d="M15 20l-1.500-4.500"/>',
   etk_konser: '<path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>',
-  etk_tiyatro: '<path d="M4 5h16v6a8 8 0 01-16 0z"/><path d="M8.500 10h.01"/><path d="M15.500 10h.01"/><path d="M9 15c1 1 5 1 6 0"/>',
-  etk_festival: '<path d="M12 3l2.200 5 5.300.5-4 3.600 1.200 5.300-4.700-2.700-4.700 2.700 1.200-5.300-4-3.600 5.300-.5z"/>',
+  etk_tiyatro: '<path d="M3 4h18"/><path d="M5 4c0 4-1.500 8-2 15h6.500c-.500-4-1.500-8-1.500-15"/><path d="M19 4c0 4 1.500 8 2 15h-6.500c.500-4 1.500-8 1.500-15"/><path d="M10 19h4"/>',   // sahne perdesi (maske değil)
+  etk_festival: '<path d="M5 21V3"/><path d="M5 4h13l-3 4 3 4H5"/><path d="M8 17l2-2 2 2 2-2 2 2"/>',   // bayrak + flama süsü
   etk_soylesi: '<path d="M4 5.500A2.500 2.500 0 016.500 3h11A2.500 2.500 0 0120 5.500v8a2.500 2.500 0 01-2.500 2.500H11l-4.500 4v-4H6.500A2.500 2.500 0 014 13.500z"/>',
-  etk_atolye: '<path d="M14.500 5.500l4 4"/><path d="M4 20l3.500-1 10-10-2.500-2.500-10 10z"/>',
-  etk_spor: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18"/><path d="M12 3c-3 3-3 15 0 18"/>',
-  etk_diger: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>',
+  etk_atolye: '<path d="M20 4c-5 1-8 4-9 8l3 3c4-1 7-4 6-11z"/><path d="M11 12c-3 0-5 2-5 5 0 2-1 3-2 3 4 1 8-1 8-5"/>',   // fırça
+  etk_spor: '<circle cx="14" cy="4.500" r="2"/><path d="M12 8l-3 3 3 3-2 6"/><path d="M12 8l4 2 3-1"/><path d="M12 14l4 2 1 4"/><path d="M9 11l-4 1"/>',   // koşan figür
+  etk_diger: '<path d="M12 3l2.600 5.600 6.100.700-4.500 4.200 1.200 6L12 16.600 6.600 19.500l1.200-6L3.300 9.300l6.100-.700z"/>',   // yıldız
   etk_bulusma: '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.500"/><path d="M3 20c0-3.300 2.700-6 6-6s6 2.700 6 6"/><path d="M16 14.200c2.800 0 5 2.100 5 5.800"/>',
 });
 const ETK_TURLER = ["sergi", "konser", "tiyatro", "festival", "soylesi", "atolye", "spor", "bulusma", "diger"];
@@ -3351,7 +3400,7 @@ const etkYerel = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
 const etkRozet = (e) => { const d = etkTarihNesne(e.baslangic); return d ? `<span class="etk-tarih" aria-hidden="true"><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString(etkLoc(), { month: "short" }).replace(".", ""))}</span></span>` : ""; };
 const etkBitti = (e) => { const b = etkTarihNesne(e.bitis || e.baslangic); const bugun = new Date(); bugun.setHours(0, 0, 0, 0); return !!b && b < bugun; };
 const etkTurHtml = (e) => `<span class="etk-tur">${ikon("etk_" + (IK["etk_" + e.tur] ? e.tur : "diger"), 15)}${esc(t("akTur_" + e.tur))}</span>`;
-const etkEtiketler = (e) => `${etkTurHtml(e)}${e.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${e.kullanici ? "topluluk" : "op"}">${esc(t(e.kullanici ? "akTopluluk" : "akOpten"))}</span>${e.iptal ? `<span class="etk-et iptal">${esc(t("akIptalli"))}</span>` : ""}`;
+const etkEtiketler = (e) => `${etkTurHtml(e)}${e.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}${e.kaynak === "mekan" ? "" : `<span class="etk-et ${e.kullanici ? "topluluk" : "op"}">${esc(t(e.kullanici ? "akTopluluk" : "akOpten"))}</span>`}${e.iptal ? `<span class="etk-et iptal">${esc(t("akIptalli"))}</span>` : ""}${etkDevamHtml(e)}`;
 const etkOnayRozeti = (e) => e.onay === "bekliyor" ? `<span class="etk-onay bekliyor">${esc(t("akInceleme"))}</span>` : e.onay === "reddedildi" ? `<span class="etk-onay red">${esc(t("akRed"))}${e.redNeden ? ": " + esc(t("akRedNeden_" + e.redNeden)) : ""}</span>` : "";
 function etkKatilHtml(id, e) {
   if (e.iptal || etkBitti(e) || e.onay === "bekliyor" || e.onay === "reddedildi") return "";
@@ -3366,34 +3415,98 @@ function etkinlikKartHtml(o, detay = false) {
   const e = o.etkinlik; if (!e) return "";
   const yer = [e.mekan, e.sehir].filter(Boolean).join(", ");
   const harita = detay && e.konumKesin === true && typeof e.enlem === "number" && typeof e.boylam === "number" ? `<div class="etk-harita" data-lat="${e.enlem}" data-lng="${e.boylam}" role="img" aria-label="${esc(t("akHarita") + ": " + (yer || e.ad))}"></div>` : "";
-  return `<div class="etk-kart ${e.iptal ? "iptal" : ""}" data-etk="${esc(o.id)}" role="group" aria-label="${esc(e.ad)}">${etkRozet(e)}
+  return `<div class="etk-kart ${e.iptal ? "iptal" : ""}" data-tur="${esc(e.tur)}" data-etk="${esc(o.id)}" role="group" aria-label="${esc(e.ad)}">${etkRozet(e)}
     <div class="etk-bilgi"><div class="etk-ad">${esc(e.ad)}</div><div class="etk-alt gri">${esc(etkTarihYazi(e))}</div>${yer ? `<div class="etk-alt gri etk-yer">${ikon("konum", 13)} ${esc(yer)}</div>` : ""}${etkMesafeHtml(e)}
     <div class="etk-et-sira">${etkEtiketler(e)}</div>${harita}<div class="etk-eylem">${etkKatilHtml(o.id, e)}${etkSahipHtml(o, e)}${etkYolHtml(e)}</div></div></div>`;
 }
 // ---- şehir: profil şehri (profiles.sehir) · girişsizde cihazdaki seçim · "Diğer" = şehir yok
 const aktSehir = () => { const s = D.ben ? D.ben.sehir : sakla.al("op-akt-sehir", ""); return s && s !== "Diğer" && ETK_SEHIRLER.includes(s) ? s : ""; };
-function aktKartHtml(x) {
-  const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
-  return `<li role="listitem"><div class="akt-kap"><button type="button" class="akt-kart ${x.iptal ? "iptal" : ""}" data-e="etk-ac" data-id="${esc(x.id)}" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}`)}">
+// gecis-030: MEKÂN ETKİNLİĞİ (gönderisiz) dış bağlantıdır: yalnız https, izleme parametresi EKLENMEZ (olduğu gibi), yeni sekme, rel=noopener noreferrer (mobil.js tıklamayı uygulama içi tarayıcıya yönlendirir).
+const etkMekanMi = (x) => x && x.kaynak === "mekan";
+const etkDisUrl = (x) => (etkMekanMi(x) && typeof x.disUrl === "string" && /^https:\/\//i.test(x.disUrl) ? x.disUrl : "");
+const etkKaynakHtml = (x) => (x.mekan ? `<span class="akt-kaynak gri">${esc(t("akKaynak", x.mekan))}</span>` : "");
+function aktMekanKartHtml(x, yer) {
+  return `<li role="listitem"><div class="akt-kap"><a class="akt-kart mekan" data-tur="${esc(x.tur)}" href="${esc(etkDisUrl(x))}" target="_blank" rel="noopener noreferrer" data-etk-dis="1" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}, ${t("akYeniSekme")}`)}">
     <span class="akt-ust-sira">${etkRozet(x)}<span class="akt-tur" title="${esc(t("akTur_" + x.tur))}">${ikon("etk_" + (IK["etk_" + x.tur] ? x.tur : "diger"), 20)}</span></span>
     <span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}</span><span class="akt-yer gri">${yer ? esc(yer) : ""}</span>${etkMesafeHtml(x)}
-    <span class="akt-et-sira">${x.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${x.kullanici ? "topluluk" : "op"}">${esc(t(x.kullanici ? "akTopluluk" : "akOpten"))}</span></span></button>${etkYolHtml(x)}</div></li>`;
+    <span class="akt-et-sira">${etkTurHtml(x)}${etkDevamHtml(x)}</span>${etkKaynakHtml(x)}</a>${etkYolHtml(x)}</div></li>`;
 }
-/** Gösterilecek liste: konum varsa (cihazda) mesafeye göre en yakın, yoksa sunucu (şehir) sırası. */
-function aktListe(a, sinir) {
-  if (!a || !a.veri) return [];
-  const l = a.veri.etkinlikler || [];
-  if (a.mod === "gps" && konumGecerli()) {
-    return l.map((x, i) => ({ x, i, km: etkMesafe(x) })).sort((p, q) => (p.km === null) - (q.km === null) || (p.km ?? 0) - (q.km ?? 0) || p.i - q.i).slice(0, sinir).map(p => p.x);
+function aktKartHtml(x) {
+  const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
+  if (etkDisUrl(x)) return aktMekanKartHtml(x, yer);
+  return `<li role="listitem"><div class="akt-kap"><button type="button" class="akt-kart ${x.iptal ? "iptal" : ""}" data-tur="${esc(x.tur)}" data-e="etk-ac" data-id="${esc(x.id)}" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}`)}">
+    <span class="akt-ust-sira">${etkRozet(x)}<span class="akt-tur" title="${esc(t("akTur_" + x.tur))}">${ikon("etk_" + (IK["etk_" + x.tur] ? x.tur : "diger"), 20)}</span></span>
+    <span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}</span><span class="akt-yer gri">${yer ? esc(yer) : ""}</span>${etkMesafeHtml(x)}
+    <span class="akt-et-sira">${x.ucretsiz ? `<span class="etk-et ucretsiz">${esc(t("akUcretsiz"))}</span>` : ""}<span class="etk-et ${x.kullanici ? "topluluk" : "op"}">${esc(t(x.kullanici ? "akTopluluk" : "akOpten"))}</span>${etkDevamHtml(x)}</span></button>${etkYolHtml(x)}</div></li>`;
+}
+// ---- gecis-030: "en yakın ve en erken tarihli 20 aktivite" (sahip). SIRALAMA PUANI (küçük önce) = gün_farkı (bugün ve süren etkinlik 0) + mesafe_km / 10.
+// Konum yoksa mesafe yok: yalnız tarih + şehir önceliği (profil şehri dışı +3). Pencere: şerit 14 gün, "Tümünü gör" 60 gün.
+// DEVAM EDEN SERGİ (tür sergi, başlangıcı geçmiş, bitişi gelmemiş; sahip 2026-10-17): gün_farkı 0 sayılır ama şeritteki 20'nin EN ÇOK 6'sı olabilir ("Devam ediyor · <bitiş>'ne kadar" rozeti); listeyi doldurmasın.
+// Çeşitlilik: aynı mekândan (mekanUrl, yoksa mekân adı + şehir) şeritte en çok 3. Mesafe ve sıralama bu cihazda; konum ağa/depoya girmez.
+const AKT_SINIR = 20, AKT_PENCERE = 14, AKT_TUMU_PENCERE = 60, AKT_MEKAN_ENCOK = 3, AKT_DEVAM_ENCOK = 6, AKT_SEHIR_CEZA = 3;
+const etkGunNo = (s) => { const d = etkTarihNesne(s); return d ? Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000) : null; };
+const etkBugunNo = () => { const n = new Date(); return Math.round(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 86400000); };
+/** Süren etkinlik: başlangıcı geçmiş, bitişi (var ve) gelmemiş. Devam eden SERGİ ayrıca şerit kotasına tabidir. */
+const etkSuruyor = (x, bugun = etkBugunNo()) => { const b = etkGunNo(x.baslangic), s = etkGunNo(x.bitis || x.baslangic); return !!x.bitis && b !== null && b < bugun && s >= bugun; };
+const etkDevamSergi = (x, bugun = etkBugunNo()) => x.tur === "sergi" && etkSuruyor(x, bugun);
+const AY_YONELME = { tr: ["Ocak'a", "Şubat'a", "Mart'a", "Nisan'a", "Mayıs'a", "Haziran'a", "Temmuz'a", "Ağustos'a", "Eylül'e", "Ekim'e", "Kasım'a", "Aralık'a"] };
+function etkDevamYazi(x) {   // "Devam ediyor · 22 Ekim'e kadar" · "Ongoing · until 22 Oct"
+  const d = etkTarihNesne(x.bitis); if (!d) return "";
+  if (D.dil === "en") return `Ongoing · until ${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "short" })}`;
+  return `Devam ediyor · ${d.getDate()} ${AY_YONELME.tr[d.getMonth()]} kadar`;
+}
+const etkDevamHtml = (x) => (etkSuruyor(x) ? `<span class="etk-et devam">${esc(etkDevamYazi(x))}</span>` : "");
+function aktPuan(x, bugun, sehirK, gps) {
+  const b = etkGunNo(x.baslangic);
+  let p = Math.max(0, b - bugun);
+  if (gps) { const km = etkMesafe(x); p += km === null ? 1000 : km / 10; }
+  else if (sehirK && ilKatla(x.sehir) !== sehirK) p += AKT_SEHIR_CEZA;
+  return p;
+}
+const aktMekanAnahtar = (x) => x.mekanUrl || (x.mekan ? ilKatla(x.mekan) + "|" + ilKatla(x.sehir) : "");
+/** Pencere içindeki (bitmemiş, başlangıcı ≤ bugün+pencere) etkinlikleri puana göre sıralar; cap > 0 ise aynı mekândan en çok cap; en çok sinir. */
+function aktSirala(l, { pencere = AKT_PENCERE, sinir = AKT_SINIR, cap = AKT_MEKAN_ENCOK, devamCap = AKT_DEVAM_ENCOK, gps = false, sehir = "" } = {}) {
+  const bugun = etkBugunNo(), sk = sehir ? ilKatla(sehir) : "";
+  const adaylar = (l || []).filter(x => x && !x.iptal && etkGunNo(x.baslangic) !== null && etkGunNo(x.baslangic) - bugun <= pencere && etkGunNo(x.bitis || x.baslangic) >= bugun && (!etkMekanMi(x) || etkDisUrl(x)))
+    .map((x, i) => ({ x, i, p: aktPuan(x, bugun, sk, gps) })).sort((a, b) => a.p - b.p || etkGunNo(a.x.baslangic) - etkGunNo(b.x.baslangic) || a.i - b.i);
+  const say = new Map(), cikis = []; let devam = 0;
+  for (const { x } of adaylar) {
+    const an = cap > 0 ? aktMekanAnahtar(x) : "", dv = devamCap > 0 && etkDevamSergi(x, bugun);
+    if (an && (say.get(an) || 0) >= cap) continue;
+    if (dv && devam >= devamCap) continue;
+    if (an) say.set(an, (say.get(an) || 0) + 1);
+    if (dv) devam++;
+    cikis.push(x); if (cikis.length >= sinir) break;
   }
-  return l.slice(0, sinir);
+  return cikis;
+}
+/** Şerit listesi: cihazda sıralı en çok 20 (konum varsa mesafeli, yoksa tarih + şehir önceliği). */
+function aktListe(a, ayar = {}) {
+  if (!a || !a.veri) return [];
+  return aktSirala(a.veri.etkinlikler || [], { gps: a.mod === "gps" && !!konumGecerli(), sehir: aktSehir(), ...ayar });
+}
+/** "Tümünü gör": tarih başlıklı gruplar [{ etiket, liste }] — bugün/yarın/tarih…, en sonda "Devam edenler" (bugünden önce başlamış); grup içinde puan sırası. */
+function aktTarihGruplari(l, ayar = {}) {
+  const bugun = etkBugunNo(), gps = !!ayar.gps, sk = ayar.sehir ? ilKatla(ayar.sehir) : "";
+  const gruplar = new Map();
+  for (const x of l) { const b = etkGunNo(x.baslangic), an = b < bugun ? "devam" : b; if (!gruplar.has(an)) gruplar.set(an, []); gruplar.get(an).push({ x, p: aktPuan(x, bugun, sk, gps) }); }
+  const sirali = [...gruplar.entries()].sort(([a], [b]) => (a === "devam") - (b === "devam") || (a === "devam" ? 0 : a - b));
+  return sirali.map(([an, ogeler]) => {
+    ogeler.sort((a, b) => a.p - b.p);
+    let etiket;
+    if (an === "devam") etiket = t("akDevamEden");
+    else if (an === bugun) etiket = t("akBugun");
+    else if (an === bugun + 1) etiket = t("akYarin");
+    else etiket = new Date(an * 86400000 + 43200000).toLocaleDateString(etkLoc(), { day: "numeric", month: "long", weekday: "long", timeZone: "UTC" });
+    return { etiket, liste: ogeler.map(o => o.x) };
+  });
 }
 const aktKonumDugmeHtml = () => `<div class="akt-konum-sira"><button type="button" class="dug kucuk ikincil" data-e="akt-konum">${ikon("konum", 16)} ${esc(t("akKonumKullan"))}</button><p class="gri akt-konum-not">${esc(t("akKonumGizli"))}</p></div>`;
 function aktiviteGovdeHtml() {
   const sehir = aktSehir(), a = D.akt, gps = !!konumGecerli();
   if (!sehir && !gps) return `<div class="akt-bos"><p class="gri">${esc(t("akSehirNot"))}</p><div class="akt-bos-dugmeler"><button type="button" class="dug kucuk" data-e="akt-konum">${ikon("konum", 16)} ${esc(t("akKonumKullan"))}</button><button type="button" class="dug kucuk ikincil" data-e="sehir-sec">${esc(t("akSehirSec"))}</button></div><p class="gri akt-konum-not">${esc(t("akKonumGizli"))}</p>${D.konumHata ? `<p class="gri akt-konum-not" role="status">${esc(t("akKonumYok2"))}</p>` : ""}</div>`;
   if (!a || !a.veri) return `<div class="akt-bos gri" role="status">${esc(t("akYukleniyor"))}…</div>`;
-  const l = aktListe(a, 10);
+  const l = aktListe(a);
   if (!l.length) return `<div class="akt-bos"><p class="gri">${esc(t("akBos"))}</p>${gps ? "" : aktKonumDugmeHtml()}</div>`;
   return `${gps ? `<p class="gri akt-yakin">${esc(t("akKonumaGore"))}</p>` : a.veri.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : ""}<ul class="akt-sirit" role="list">${l.map(aktKartHtml).join("")}</ul>${gps ? "" : aktKonumDugmeHtml()}${!gps && D.konumHata ? `<p class="gri akt-konum-not akt-yakin" role="status">${esc(t("akKonumYok2"))}</p>` : ""}`;
 }
@@ -3402,9 +3515,10 @@ function aktiviteBolumHtml() {
   return `<section class="aktivite" data-aktivite aria-label="${esc(t("yakinAkt"))}"><div class="akt-ust"><h2>${esc(t("yakinAkt"))}</h2>${gorunur ? `<button type="button" class="akt-tumu" data-e="aktiviteler-ac">${esc(t("akTumu"))}</button>` : ""}</div>${aktiviteGovdeHtml()}</section>`;
 }
 /** Etkinlik adayları (tüm ülke, ≤200, enlem/boylam dahil; GPS isteğe GİRMEZ) ya da konum yoksa şehir listesi (eski davranış). */
-async function aktiviteVeri(sehir, gps, tur, sinir) {
-  if (gps) return { mod: "gps", veri: await api(`/api/etkinlik-adaylari?sehir=${encodeURIComponent(sehir || "")}&gun=7&sinir=200${tur ? "&tur=" + tur : ""}`) };
-  return { mod: "sehir", veri: await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=7&sinir=${sinir}${tur ? "&tur=" + tur : ""}`) };
+async function aktiviteVeri(sehir, gps, tur, tumu) {
+  const gun = tumu ? AKT_TUMU_PENCERE : AKT_PENCERE;
+  if (gps) return { mod: "gps", veri: await api(`/api/etkinlik-adaylari?sehir=${encodeURIComponent(sehir || "")}&gun=${gun}&sinir=${tumu ? 400 : 200}${tur ? "&tur=" + tur : ""}`) };
+  return { mod: "sehir", veri: await api(`/api/etkinlikler?sehir=${encodeURIComponent(sehir)}&gun=${gun}&sinir=${tumu ? 100 : 50}${tur ? "&tur=" + tur : ""}`) };
 }
 async function aktiviteYukle(zorla) {
   const sehir = aktSehir();
@@ -3413,7 +3527,7 @@ async function aktiviteYukle(zorla) {
   const gps = !!konumGecerli(), a = D.akt;
   if (!gps && !sehir) return aktiviteYaz();
   if (!zorla && a && a.sehir === sehir && a.mod === (gps ? "gps" : "sehir") && a.veri && Date.now() - a.z < 120000) return aktiviteYaz();
-  try { D.akt = { sehir, z: Date.now(), ...(await aktiviteVeri(sehir, gps, "", 10)) }; }
+  try { D.akt = { sehir, z: Date.now(), ...(await aktiviteVeri(sehir, gps, "", false)) }; }
   catch { D.akt = { sehir, z: Date.now(), mod: gps ? "gps" : "sehir", veri: { etkinlikler: [], yakin: false } }; }
   aktiviteYaz();
 }
@@ -3468,16 +3582,19 @@ async function aktivitelerCiz(my) {
   const gps = !!konumGecerli();
   if (!sehir && !gps) { kok().innerHTML = kabuk(bas + `<div class="akt-bos">${aktiviteGovdeHtml()}</div>`, { geri: true, fab: false }); return; }
   kok().innerHTML = kabuk(bas + iskelet, { geri: true, fab: false });
-  let v; try { v = await aktiviteVeri(sehir, gps, tur, 50); } catch (e) { v = null; }
+  let v; try { v = await aktiviteVeri(sehir, gps, tur, true); } catch (e) { v = null; }
   if (my !== D.cizim) return;
-  const l = v ? aktListe({ mod: v.mod, veri: v.veri }, 50) : [];
+  const gruplar = v ? aktTarihGruplari(aktSirala(v.veri.etkinlikler || [], { pencere: AKT_TUMU_PENCERE, sinir: 150, cap: 0, devamCap: 0, gps, sehir }), { gps: gps && v.mod === "gps", sehir }) : [];
   const not = gps ? `<p class="gri akt-yakin">${esc(t("akKonumaGore"))}</p>` : v?.veri?.yakin ? `<p class="gri akt-yakin">${esc(t("akYakinSehir", sehir))}</p>` : "";
-  kok().innerHTML = kabuk(bas + (l.length ? not + `<ul class="akt-liste" role="list">${l.map(aktListeSatiri).join("")}</ul>` : bosHtml(t("akBos"))) + (gps ? "" : aktKonumDugmeHtml()), { geri: true, fab: false });
+  const govde = gruplar.map(g => `<section class="akt-grup" aria-label="${esc(g.etiket)}"><h2 class="akt-tbas">${esc(g.etiket)} <span class="gri">${esc(t("akGunSayisi", g.liste.length))}</span></h2><ul class="akt-liste" role="list">${g.liste.map(aktListeSatiri).join("")}</ul></section>`).join("");
+  kok().innerHTML = kabuk(bas + (gruplar.length ? not + govde : bosHtml(t("akBos"))) + (gps ? "" : aktKonumDugmeHtml()), { geri: true, fab: false });
 }
 function aktListeSatiri(x) {
-  const yer = [x.mekan, x.sehir].filter(Boolean).join(", ");
-  return `<li><button type="button" class="akt-satir" data-e="etk-ac" data-id="${esc(x.id)}">${etkRozet(x)}<span class="akt-satir-bilgi"><span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}${yer ? " · " + esc(yer) : ""}</span>
-    ${etkMesafeHtml(x)}<span class="etk-et-sira">${etkEtiketler(x)}</span></span></button>${etkYolHtml(x) ? `<div class="etk-eylem akt-yol-sira">${etkYolHtml(x)}</div>` : ""}</li>`;
+  const yer = [x.mekan, x.sehir].filter(Boolean).join(", "), ic = `${etkRozet(x)}<span class="akt-satir-bilgi"><span class="akt-ad">${esc(x.ad)}</span><span class="akt-tarih gri">${esc(etkTarihYazi(x))}${yer ? " · " + esc(yer) : ""}</span>
+    ${etkMesafeHtml(x)}<span class="etk-et-sira">${etkEtiketler(x)}</span>${etkMekanMi(x) ? etkKaynakHtml(x) : ""}</span>`;
+  const ek = etkYolHtml(x) ? `<div class="etk-eylem akt-yol-sira">${etkYolHtml(x)}</div>` : "";
+  if (etkDisUrl(x)) return `<li><a class="akt-satir mekan" href="${esc(etkDisUrl(x))}" target="_blank" rel="noopener noreferrer" data-etk-dis="1" aria-label="${esc(`${x.ad}, ${etkTarihYazi(x)}${yer ? ", " + yer : ""}, ${t("akYeniSekme")}`)}">${ic}</a>${ek}</li>`;
+  return `<li><button type="button" class="akt-satir" data-e="etk-ac" data-id="${esc(x.id)}">${ic}</button>${ek}</li>`;
 }
 // ---- Aktivitelerim (incelemede / yayınlanmadı / yayında) + Katılacaklarım
 function etkSahipSatir(x) {

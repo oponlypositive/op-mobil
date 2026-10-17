@@ -67,6 +67,27 @@
     };
   }
 
+  // AKTİVİTE TÜRÜ RENKLERİ (sahip 2026-10-17): kart zemini türe göre ZARİF İKİ TONLU geçiş (sıcak aileler ama türler ayrışır) + düşük opaklıkta desen (style.css ::before, currentColor %10).
+  // Her tema × tür için ayrı hesaplanır: yazı ≥7, ikincil ≥4.5, vurgu ≥4.5 geçişin EN KÖTÜ ucunda ve desenli zeminde ölçülür (test/tema_kontrast.mjs). Jetonlar: --t-<tür>-a/-b (geçiş uçları), -yazi, -yazi2, -vurgu, -vurgu-yazi, -kenar.
+  const TUR_RENK = {   // [açık a, açık b, koyu a, koyu b]
+    sergi: ["#FDE8AE", "#FBD27A", "#3D2907", "#4D360D"], konser: ["#FFDCD2", "#FFBFAF", "#4A2119", "#5A2E23"], tiyatro: ["#F8D6E0", "#EDB3C6", "#411927", "#512536"],
+    festival: ["#FFE6A6", "#FFC96E", "#473008", "#593D0D"], soylesi: ["#FFE3D0", "#FFCBA8", "#462919", "#573724"], atolye: ["#F7E1A0", "#EBC56A", "#3F300C", "#4F3D13"],
+    spor: ["#EEF3AE", "#CFE58C", "#2C390D", "#3A4A12"], bulusma: ["#FFDDB8", "#FFC18C", "#472915", "#59361C"], diger: ["#FFF3C8", "#FBDF98", "#3D300A", "#4D3D0F"],
+  };
+  const TURLER = Object.keys(TUR_RENK);
+  function turRenkleri(t, koyu) {
+    const v = {}, desenRenk = koyu ? "#FFF1DC" : "#2B1807";
+    for (const tur of TURLER) {
+      const p = TUR_RENK[tur], a = karisim(koyu ? p[2] : p[0], t.duz, koyu ? 0.16 : 0.06), b = karisim(koyu ? p[3] : p[1], t.duz, koyu ? 0.16 : 0.06);
+      const kotu = koyu ? (aydinlik(a) >= aydinlik(b) ? a : b) : (aydinlik(a) <= aydinlik(b) ? a : b);   // yazıya en yakın uç
+      const olcu = karisim(kotu, desenRenk, 0.12);   // desen yazı renginde %10 binerken en kötü zemin (pay bırakılmış)
+      const yazi = ayarla(koyu ? "#FFF1DC" : "#2B1807", olcu, 7.6), yazi2 = ayarla(koyu ? "#F0C98A" : "#8A4B0F", olcu, 4.9), vurgu = ayarla(koyu ? "#FCD34D" : "#B45309", olcu, 4.9);
+      Object.assign(v, { ["--t-" + tur + "-a"]: a, ["--t-" + tur + "-b"]: b, ["--t-" + tur + "-yazi"]: yazi, ["--t-" + tur + "-yazi2"]: yazi2, ["--t-" + tur + "-vurgu"]: vurgu,
+        ["--t-" + tur + "-vurgu-yazi"]: kontrast("#FFFFFF", vurgu) >= kontrast("#1A0E02", vurgu) ? "#FFFFFF" : "#1A0E02", ["--t-" + tur + "-kenar"]: karisim(b, koyu ? "#FFD27A" : "#8A4B0F", 0.34) });
+    }
+    return v;
+  }
+
   /** Bir temanın TÜM yüzey değişkenleri ({ "--zemin": "#…", … }). */
   function degiskenler(t) {
     const koyu = t.mod === "koyu";
@@ -79,7 +100,7 @@
       "--avatar": t.avatar, "--yer": t.yer, "--perde": koyu ? "rgba(0,0,0,.62)" : "rgba(0,0,0,.45)", "--golge": koyu ? "rgba(0,0,0,.55)" : "rgba(0,0,0,.18)",
       "--bar": "color-mix(in srgb, " + t.duz + " 90%, transparent)", "color-scheme": koyu ? "dark" : "light",
     };
-    Object.assign(v, sicak(t, koyu));
+    Object.assign(v, sicak(t, koyu), turRenkleri(t, koyu));
     const takim = HK[t.mod];
     for (const ton of Object.keys(takim)) {
       const [a, b, yazi, et, kenar] = takim[ton];
@@ -90,7 +111,7 @@
   }
 
   // ---------- tarayıcı: tercih + uygulama ----------
-  const API = { liste, VARSAYILAN, degiskenler, kontrast, karisim, aydinlik, HK, sicak };
+  const API = { liste, VARSAYILAN, degiskenler, kontrast, karisim, aydinlik, HK, sicak, TURLER, TUR_RENK };
   API.bul = (id, mod) => liste.find((t) => t.id === id && (!mod || t.mod === mod)) || null;
   API.varsayilan = (mod) => API.bul(VARSAYILAN[mod], mod);
 

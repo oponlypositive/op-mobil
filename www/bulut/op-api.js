@@ -173,6 +173,12 @@ export async function api(yol, govde, yontem) {
     for (const g of v?.gruplar || []) for (const a of g.anlar || []) a.foto = depoUrl("foto", a.foto);
     return v;
   }
+  // ---- gecis-030: OP hikâyeleri (Anlar şeridinde kullanıcı anları azsa yuvaları doldurur): YENİ VERİ YAZMAZ, salt okuma RPC (son 24 saat, görselli editör gönderileri, hesap başına 1, ≤12)
+  if (m === "GET" && p === "/api/op-hikayeleri") {
+    const v = await rpc("op_hikayeleri", { p_dil: d });
+    for (const h of v?.hikayeler || []) ogeDuzelt(h.oge);
+    return v;
+  }
   if (m === "POST" && p === "/api/an") {
     const b = govde || {};
     const fotoYol = await fotoYukle(b.foto);
