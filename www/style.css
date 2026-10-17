@@ -1193,3 +1193,34 @@ html.klavye .msj-kutu{padding-bottom:8px}
 .ao-sag{flex:none;font-size:13px}
 .etk-onay-kutu input{width:20px;height:20px}
 .etk-ara-sonuc,.etk-yol,.akt-yol-sira .dug{min-height:44px}
+
+/* ---- gecis-031: yönetici şikâyet yönetimi (yalnız tema jetonları; dokunma hedefleri ≥44 px) */
+.menu-bolum{padding:10px 12px 2px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--yazi2)}
+.cek-menu .menu-bolum{padding:12px 4px 2px}
+.sk-aciklama{margin:0 16px 8px;font-size:14px}
+.sk-suz{display:flex;flex-wrap:wrap;gap:8px;padding:6px 16px}
+.dug.kucuk.sk-chip{min-height:44px}
+.sk-chip[aria-pressed="true"]{background:var(--vurgu);color:var(--vurgu-yazi);border-color:var(--vurgu)}
+.sk-liste{list-style:none;margin:0;padding:0}
+.sk-kart{padding:14px 16px;border-bottom:1px solid var(--cizgi);display:flex;flex-direction:column;gap:8px}
+.sk-ust{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sk-tur{font-weight:800}
+.sk-sayi{padding:2px 10px;border-radius:999px;background:var(--yuzey);font-size:13px;font-weight:700}
+.sk-durum{font-size:13px;font-weight:700;color:var(--yazi2)}
+.sk-durum.gizli{color:var(--hata)}
+.sk-onizleme{background:var(--yuzey);border-radius:12px;padding:10px 12px;overflow-wrap:anywhere}
+.sk-metin{white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.sk-kopya{font-size:12px;margin-bottom:4px}
+.sk-foto{display:block;max-width:100%;max-height:220px;border-radius:10px;margin-top:6px;object-fit:cover}
+.sk-profil{display:flex;gap:10px;align-items:flex-start}
+.sk-nedenler{display:flex;flex-wrap:wrap;gap:6px}
+.sk-neden{padding:2px 10px;border-radius:999px;border:1px solid var(--cizgi);font-size:13px}
+.sk-ayr,.sk-zaman,.sk-gecmis{font-size:13px}
+.sk-gecmis{margin:0;padding-left:18px}
+.sk-yazar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sk-rozet{padding:2px 10px;border-radius:999px;border:1px solid var(--hata);color:var(--hata);font-size:12px;font-weight:700}
+.sk-ihlal{font-size:13px;color:var(--yazi2)}
+.sk-not-et{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.sk-not{width:100%;padding:9px 12px;border:1px solid var(--cizgi);border-radius:10px;background:var(--zemin);color:var(--yazi);outline:none;resize:vertical;min-height:44px}
+.sk-eylem{display:flex;flex-wrap:wrap;gap:8px}
+.sk-eylem .dug,.sheet .sk-onay{min-height:44px}

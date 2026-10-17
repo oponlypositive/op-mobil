@@ -1026,10 +1026,10 @@ async function bildirimCiz(my) {
   const v = await api("/api/bildirimler?okundu=1").catch(() => ({ bildirimler: [] }));
   if (my !== D.cizim) return;
   D.okunmamis = 0;
-  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit", yorum_begen: "begen", yorum_yanit: "yanit", an_tepki: "begen", etkinlik_onay: "takvim", etkinlik_red: "takvim", mesaj: "mesaj", mesaj_istek: "mesaj" };
+  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit", yorum_begen: "begen", yorum_yanit: "yanit", an_tepki: "begen", etkinlik_onay: "takvim", etkinlik_red: "takvim", mesaj: "mesaj", mesaj_istek: "mesaj", moderasyon: "bayrak", sikayet_sonuc: "bayrak" };
   kok().innerHTML = kabuk(`<h1 class="baslik">${t("bildirim")}</h1>` + (v.bildirimler.length ? v.bildirimler.map(b =>
     `<div class="satir bildirim ${b.okundu ? "" : "yeni"}" data-e="bil-ac" data-t="${esc(b.tur)}" data-h="${esc(b.tur === "takip" ? b.kimden?.handle : b.hedef)}"><div class="satir-ic"><span class="bil-ik">${ikon(tur[b.tur] || "begen", 22, b.tur === "begen")}</span>
-      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin">${b.tur.startsWith("etkinlik_") ? "" : `<b>${esc(b.kimden?.ad)}</b> `}${bm[b.tur] || ""}${b.tur === "etkinlik_red" && b.ek ? `: ${esc(T[D.dil]["akRedNeden_" + b.ek] || "")}` : ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset" || b.tur === "yorum_begen" || b.tur === "yorum_yanit") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
+      <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin">${b.tur.startsWith("etkinlik_") || b.tur === "moderasyon" || b.tur === "sikayet_sonuc" ? "" : `<b>${esc(b.kimden?.ad)}</b> `}${bildirimSistemMetin(b) ?? (bm[b.tur] || "")}${b.tur === "etkinlik_red" && b.ek ? `: ${esc(T[D.dil]["akRedNeden_" + b.ek] || "")}` : ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset" || b.tur === "yorum_begen" || b.tur === "yorum_yanit") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
       <div class="gri">${zamanYaz(b.zaman)}</div></div></div></div></div>`).join("") : bosHtml(t("bosBildirim"))));
 }
 // ---------- yazı serileri (gecis-019) ----------
@@ -1294,7 +1294,7 @@ function ciz(basa = true, yen = false) {   // yen: aşağı çekip yenileme / ye
   const my = ++D.cizim; sheetKapat(); kok().onclick = kok().onkeydown = kok().onchange = null; yeniHapKapat();
   yanCiz(); veriYukle().then(() => { if (my === D.cizim) sagCiz(); });
   if ((D.ben?.handle || "") !== D.yoneticiKim) { D.yoneticiKim = D.ben?.handle || ""; yoneticiYukle(); }   // gecis-024: "Onay bekleyenler" menüsü yalnız yöneticiye (asıl yetki sunucuda)
-  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "ara" ? araCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "mesaj" ? mesajCiz(my) : s === "mesaj-konusma" ? mesajKonusmaCiz(my) : s === "anketler" ? anketlerCiz(my) : s === "aktiviteler" ? aktivitelerCiz(my) : s === "aktivitelerim" ? aktivitelerimCiz(my) : s === "onay" ? onayCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
+  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "ara" ? araCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "mesaj" ? mesajCiz(my) : s === "mesaj-konusma" ? mesajKonusmaCiz(my) : s === "anketler" ? anketlerCiz(my) : s === "aktiviteler" ? aktivitelerCiz(my) : s === "aktivitelerim" ? aktivitelerimCiz(my) : s === "onay" ? onayCiz(my) : s === "sikayet" ? sikayetCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
   if (basa) scrollTo(0, 0);
   return is.then(() => { if (!basa && my === D.cizim) scrollTo(0, G.scroll || 0); if (my === D.cizim && s === "akis") setTimeout(ilgiIlkKontrol, 400); });
 }
@@ -1981,7 +1981,7 @@ document.addEventListener("click", async e => {
   }
   const a = el.dataset;
   switch (a.e) {
-    case "git": if (BULUT && !D.ben && (a.s === "bildirim" || a.s === "mesaj" || a.s === "profil" || a.s === "kayit" || a.s === "aktivitelerim" || a.s === "onay")) return girisIste();
+    case "git": if (BULUT && !D.ben && (a.s === "bildirim" || a.s === "mesaj" || a.s === "profil" || a.s === "kayit" || a.s === "aktivitelerim" || a.s === "onay" || a.s === "sikayet")) return girisIste();
       if (a.s === "akis" && G.sayfa === "akis" && !G.kategori && !document.querySelector(".sheet,.cekmece")) { if (scrollY > 80) { scrollTo({ top: 0, behavior: hareketAzalt() ? "auto" : "smooth" }); return; } return akisYenile(); }   // X gibi: aşağıdaysa en üste, tepedeyse yenile
       return gotur({ sayfa: a.s, handle: a.s === "profil" ? D.ben.handle : null }, false);
     case "geri": return yigin.length ? history.back() : gotur({ sayfa: "akis" }, false);
@@ -2006,6 +2006,15 @@ document.addEventListener("click", async e => {
     case "onay-evet": return onayKarar(a.id, true, "", el);
     case "onay-red": return onayRedAc(a.id);
     case "onay-red-evet": return onayKarar(a.id, false, a.n, el);
+    case "sk-durum": D.sk.durum = a.v === "karar" ? "karar" : "acik"; return ciz(false, true);
+    case "sk-tur": D.sk.tur = SK_TURLER.includes(a.v) ? a.v : ""; return ciz(false, true);
+    case "sk-sira": D.sk.sira = SK_SIRALAR.includes(a.v) ? a.v : "yeni"; return ciz(false, true);
+    case "sk-daha": return skDahaFazla(el);
+    case "sk-karar": return skKarar(el);
+    case "sk-aski-gun": return skGonder({ tur: D.skBek.tur, id: D.skBek.id, karar: "askiya_al", not: D.skBek.not, ...(Number(a.g) > 0 ? { gun: Number(a.g) } : {}) }, el);
+    case "sk-sil-evet": return skGonder({ tur: D.skBek.tur, id: D.skBek.id, karar: "sil", not: D.skBek.not }, el);
+    case "sk-kapat-2": return skKapat2();
+    case "sk-kapat-son": return skGonder({ tur: D.skBek.tur, id: D.skBek.id, karar: "hesap_kapat", not: D.skBek.not, onay: true, onayYaz: ($("#sk-kapat-ad")?.value || "").trim() }, el);
     case "ust-yenile": yigin.length = 0; G = { sayfa: "akis", kategori: "", handle: null, id: null, odak: false }; return akisYenile();   // logo: en üste çık + yenile
     case "yeni-hap": scrollTo(0, 0); return akisYenile();
     case "foto-ac": return fotoTikla(el, e);
@@ -2067,7 +2076,7 @@ document.addEventListener("click", async e => {
     case "paylas-ig": return paylasIg(a.id, a.tur);
     case "paylas-diger": return paylasDiger(a.id);
     case "paylas-wa": return paylasWa(a.id);
-    case "bil-ac": return a.t === "etkinlik_red" ? gotur({ sayfa: "aktivitelerim" }, true) : a.t === "an_tepki" ? anBenimAc() : a.t === "mesaj" || a.t === "mesaj_istek" ? gotur({ sayfa: "mesaj-konusma", handle: a.h }, true) : a.t === "takip" ? gotur({ sayfa: "profil", handle: a.h }, true) : gotur({ sayfa: "detay", id: a.h }, true);
+    case "bil-ac": return a.t === "moderasyon" || a.t === "sikayet_sonuc" ? undefined : a.t === "etkinlik_red" ? gotur({ sayfa: "aktivitelerim" }, true) : a.t === "an_tepki" ? anBenimAc() : a.t === "mesaj" || a.t === "mesaj_istek" ? gotur({ sayfa: "mesaj-konusma", handle: a.h }, true) : a.t === "takip" ? gotur({ sayfa: "profil", handle: a.h }, true) : gotur({ sayfa: "detay", id: a.h }, true);
     case "yaz": if (girisGerekli()) return; return yazAc();
     case "foto-sil": taslak.fotolar.splice(a.i !== undefined ? +a.i : 0, a.i !== undefined ? 1 : taslak.fotolar.length); baglantiTara(); return yzGuncelle();
     // ---- gecis-021: yorum beğenisi + iç içe yanıt, Son Anketler
@@ -2944,8 +2953,8 @@ async function hesapSilSon(dugme) {
 
 // ---------- yan alanlar: sol menü (≥700 px), sağ sütun (≥1100 px), mobil çekmece, "İyi gündem" + "Kimi takip etmeli" (tek kod, her yerde aynı bileşen) ----------
 const girisli = () => !BULUT || !!D.ben;
-const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], anketler: ["anket", "sonAnketler"], bildirim: ["bildirim", "bildirim"], mesaj: ["mesaj", "mesajlar"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"], aktivite: ["takvim", "aktiviteOlustur"], onay: ["tik", "onayBekleyenler"] };
-const menuOgeleri = (sira) => sira.filter(s => s === "onay" ? !!D.yonetici : s === "aktivite" ? girisli() && !!D.ben : girisli() || s === "akis" || s === "kesfet" || s === "video" || s === "anketler" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
+const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], anketler: ["anket", "sonAnketler"], bildirim: ["bildirim", "bildirim"], mesaj: ["mesaj", "mesajlar"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"], aktivite: ["takvim", "aktiviteOlustur"], onay: ["tik", "onayBekleyenler"], sikayet: ["bayrak", "sikayetler"] };
+const menuOgeleri = (sira) => sira.filter(s => s === "onay" || s === "sikayet" || s === "yonetim" ? !!D.yonetici : s === "aktivite" ? girisli() && !!D.ben : girisli() || s === "akis" || s === "kesfet" || s === "video" || s === "anketler" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
 function solSecili() {
   if (G.sayfa === "akis") return G.kategori ? "kesfet" : "akis";
   if (G.sayfa === "profil") return !G.handle || G.handle === D.ben?.handle ? "profil" : "";
@@ -2953,11 +2962,12 @@ function solSecili() {
   if (G.sayfa === "ara") return "kesfet";
   if (G.sayfa === "aktivitelerim") return "aktivite";
   if (G.sayfa === "mesaj-konusma") return "mesaj";
-  return ["kesfet", "bildirim", "mesaj", "kayit", "video", "anketler", "onay"].includes(G.sayfa) ? G.sayfa : "";
+  return ["kesfet", "bildirim", "mesaj", "kayit", "video", "anketler", "onay", "sikayet"].includes(G.sayfa) ? G.sayfa : "";
 }
 const menuDugme = (s, sinif) => {
+  if (s === "yonetim") return `<div class="menu-bolum" role="presentation">${esc(t("yonetim"))}</div>`;   // gecis-031: yönetici bölümü başlığı (Onay bekleyenler + Şikâyetler)
   const [ik, ad] = MENU_TANIM[s], sec = solSecili() === s, e = s === "ayarlar" ? 'data-e="ayarlar"' : s === "aktivite" ? 'data-e="aktivite-yeni"' : `data-e="git" data-s="${s}"`;
-  return `<button class="${sinif} ${sec ? "secili" : ""}" ${e} aria-label="${t(ad)}" ${sec ? 'aria-current="page"' : ""}>${ikon(ik, 26)}<span class="sol-ad">${t(ad)}</span>${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}${s === "mesaj" ? mesajRozetHtml() : ""}</button>`;
+  return `<button class="${sinif} ${sec ? "secili" : ""}" ${e} aria-label="${s === "sikayet" && D.sikayetAcik ? t(ad) + ", " + D.sikayetAcik : t(ad)}" ${sec ? 'aria-current="page"' : ""}>${ikon(ik, 26)}<span class="sol-ad">${t(ad)}</span>${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}${s === "mesaj" ? mesajRozetHtml() : ""}${s === "sikayet" && D.sikayetAcik ? `<i class="sayi-rozet" aria-hidden="true">${D.sikayetAcik > 9 ? "9+" : D.sikayetAcik}</i>` : ""}</button>`;
 };
 const yasalSatir = () => `<a href="/yasal/kosullar" target="_blank" rel="noopener">${t("kosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${t("gizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${t("cerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${t("kurallar")}</a> · <a href="/yasal/destek" target="_blank" rel="noopener">${t("destek")}</a>`;
 function hesapKartHtml() {
@@ -2969,7 +2979,7 @@ function hesapKartHtml() {
 }
 function solHtml() {
   return `<div class="sol-ic"><div class="sol-ust"><button class="sol-logo" data-e="ust-yenile" aria-label="OP"><img src="icons/op.svg" alt="OP"></button>${betaEtiket()}</div>
-    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "anketler", "aktivite", "onay", "bildirim", "mesaj", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
+    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "anketler", "aktivite", "yonetim", "onay", "sikayet", "bildirim", "mesaj", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
     <button class="dug sol-yaz" data-e="yaz-sol" aria-label="${t("gonderiYayinla")}"><span class="yaz-ik">${ikon("yaz", 26)}</span><span class="yaz-ad">${t("gonderiYayinla")}</span></button>
     <div class="bosluk"></div>${hesapKartHtml()}</div>`;
 }
@@ -3037,7 +3047,7 @@ function cekmeceHtml() {
       <span class="cek-say gri">${typeof k.takipSayisi === "number" ? `<span><b>${k.takipSayisi}</b> ${t("takipSay")}</span> · <span><b>${k.takipci || 0}</b> ${t("takipciSay")}</span>` : ""}</span></button>`
     : `<div class="cek-misafir">${avatarHtml(null)}<button class="dug tam" data-e="giris-ac">${bt("girisYap")}</button><button class="dug ikincil tam" data-e="kayit-ac">${bt("kayitOl")}</button></div>`;
   return `<div class="cek-ust"><span class="cek-baslik">${t("yanMenu")}</span><button class="ust-dug" data-e="sheet-kapat" aria-label="${t("kapat")}">✕</button></div>${hesap}
-    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "mesaj", "kesfet", "video", "anketler", "aktivite", "onay", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
+    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "mesaj", "kesfet", "video", "anketler", "aktivite", "yonetim", "onay", "sikayet", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
       ${BULUT && k ? `<button class="cek-oge" data-e="cikis-yap"><span class="sol-ad">${bt("cikisYap")}</span></button>` : ""}</nav>
     <div class="bosluk"></div><div class="grup cek-tema" role="group" aria-label="${t("tema")}"><button class="dug kucuk ${tm === "acik" ? "" : "ikincil"}" data-e="tema" data-t="acik" aria-pressed="${tm === "acik"}">${t("acikTema")}</button>
       <button class="dug kucuk ${tm === "koyu" ? "" : "ikincil"}" data-e="tema" data-t="koyu" aria-pressed="${tm === "koyu"}">${t("koyuTema")}</button></div>
@@ -3846,9 +3856,138 @@ async function onayKarar(id, onay, neden, dugme) {
   if (!document.querySelector(".onay-kart")) ciz(false, true);
 }
 async function yoneticiYukle() {
-  if (!D.ben) { D.yonetici = false; return; }
+  if (!D.ben) { D.yonetici = false; D.sikayetAcik = 0; return; }
   const once = D.yonetici; try { D.yonetici = (await api("/api/yonetici")).yonetici === true; } catch { D.yonetici = false; }
   if (once !== D.yonetici) { solCiz(); const c = document.querySelector(".cekmece"); if (c) cekmeceAc(true); }
+  if (D.yonetici) { yonetimOzetYukle(); if (!D.skZaman) D.skZaman = setInterval(() => { if (D.yonetici && !document.hidden) yonetimOzetYukle(); }, 120000); }
+  else { D.sikayetAcik = 0; if (D.skZaman) { clearInterval(D.skZaman); D.skZaman = 0; } }
+  if (D.ben.askida) api("/api/askida-kontrol", {}).then(v => { if (v && v.askida === false) D.ben.askida = false; }).catch(() => {});   // gecis-031: süreli askı dolduysa bayrak indirilir
+}
+
+// ---------- gecis-031: YÖNETİCİ ŞİKÂYET YÖNETİMİ (App Store 1.2) — sunucuda yonetici_mi() ister; menüde gizleme yalnız kolaylıktır (rol bazlı, gizli özellik değil) ----------
+Object.assign(T.tr, {
+  yonetim: "Yönetim", sikayetler: "Şikâyetler", skAciklama: "Bildirilen içerikler hedefe göre gruplanır. Karar verince şikâyet edenlere sonuç bildirimi gider; şikâyet edenin kimliği yazara asla gösterilmez.",
+  skAcik: "Açık", skKararli: "Karara bağlanmış", skTumu: "Tümü", skTur_gonderi: "Gönderi", skTur_yanit: "Yanıt", skTur_profil: "Profil", skTur_an: "An", skTur_mesaj: "Mesaj", skTur_etkinlik: "Etkinlik", skTur_silinmis: "Silinmiş içerik",
+  skSira_yeni: "En yeni", skSira_cok: "En çok şikâyet alan", skSira_eski: "En eski", skSayi: (n) => `${n} şikâyet`, skAcikSayi: (n) => `${n} açık`, skBos: "Açık şikâyet yok. Her şey yolunda ☁️", skBosKarar: "Karara bağlanmış şikâyet yok.",
+  skDahaFazla: "Daha fazla göster", skHedefYok: "İçerik silinmiş", skYayinda: "Yayında", skGizliOto: "Otomatik gizlendi", skGizliYon: "Yönetici gizledi", skGizli: "Gizli", skIlk: "İlk", skSon: "Son",
+  skIhlal: (n) => `Önceki ihlal: ${n}`, skAskida: "Askıda", skAskidaBitis: (d) => `${d} tarihine kadar`, skSuresiz: "süresiz", skYoneticiRozet: "Yönetici", skNot: "Not (isteğe bağlı, yalnız yöneticiler görür)", skMesajKopya: "Şikâyet anındaki kopya", skVideo: "Video", skHaber: "Haber",
+  skIhlalYok: "İhlal yok", skIhlalYokAc: "İhlal yok — geri aç", skGizle: "Gizle", skSil: "Sil", skUyar: "Yazarı uyar", skAskiAl: "Hesabı askıya al", skAskiKaldir: "Askıyı kaldır", skHesapKapat: "Hesabı kapat", skKapat: "Şikâyeti kapat",
+  skKarar_ihlal_yok: "İhlal yok", skKarar_gizle: "Gizlendi", skKarar_sil: "Silindi", skKarar_uyar: "Uyarıldı", skKarar_askiya_al: "Askıya alındı", skKarar_askiyi_kaldir: "Askı kaldırıldı", skKarar_hesap_kapat: "Hesap kapatıldı", skGun: (n) => `${n} gün`,
+  skSilBaslik: "İçeriği sil", skSilMetin: "İçerik ve dosyası kalıcı olarak silinir; geri alınamaz.", skAskiBaslik: "Hesabı askıya al", skAskiMetin: "Askıdaki hesap yazamaz ve etkileşemez; kendi içeriğini silebilir. Süre seç:",
+  skKapatBaslik: "Hesabı kapat", skKapatUyari: "Hesap ve tüm içeriği (fotoğraf, mesaj, yanıt) kalıcı olarak silinir. Bu işlem geri alınamaz.", skKapatAd: (ad) => `Onaylamak için kullanıcı adını yaz: ${ad}`, skKapatSon: "Hesabı kalıcı kapat",
+  skKararTamam: "Karar kaydedildi", skYetkisiz: "Bu sayfa yalnız yöneticilere açıktır.", skYukle: "Yükleniyor…", skSureli: "Süresiz",
+  modItiraz: "Yanlış olduğunu düşünüyorsan Destek sayfasından bize yazabilirsin.",
+});
+Object.assign(T.en, {
+  yonetim: "Admin", sikayetler: "Reports", skAciklama: "Reported content is grouped by target. When you decide, the reporters get a result notification; a reporter's identity is never shown to the author.",
+  skAcik: "Open", skKararli: "Decided", skTumu: "All", skTur_gonderi: "Post", skTur_yanit: "Reply", skTur_profil: "Profile", skTur_an: "Moment", skTur_mesaj: "Message", skTur_etkinlik: "Event", skTur_silinmis: "Deleted content",
+  skSira_yeni: "Newest", skSira_cok: "Most reported", skSira_eski: "Oldest", skSayi: (n) => `${n} report${n === 1 ? "" : "s"}`, skAcikSayi: (n) => `${n} open`, skBos: "No open reports. All good ☁️", skBosKarar: "No decided reports.",
+  skDahaFazla: "Show more", skHedefYok: "Content deleted", skYayinda: "Live", skGizliOto: "Auto-hidden", skGizliYon: "Hidden by admin", skGizli: "Hidden", skIlk: "First", skSon: "Last",
+  skIhlal: (n) => `Past violations: ${n}`, skAskida: "Suspended", skAskidaBitis: (d) => `until ${d}`, skSuresiz: "indefinitely", skYoneticiRozet: "Admin", skNot: "Note (optional, admins only)", skMesajKopya: "Copy from the time of the report", skVideo: "Video", skHaber: "News",
+  skIhlalYok: "No violation", skIhlalYokAc: "No violation — restore", skGizle: "Hide", skSil: "Delete", skUyar: "Warn author", skAskiAl: "Suspend account", skAskiKaldir: "Lift suspension", skHesapKapat: "Close account", skKapat: "Close report",
+  skKarar_ihlal_yok: "No violation", skKarar_gizle: "Hidden", skKarar_sil: "Deleted", skKarar_uyar: "Warned", skKarar_askiya_al: "Suspended", skKarar_askiyi_kaldir: "Suspension lifted", skKarar_hesap_kapat: "Account closed", skGun: (n) => `${n} day${n === 1 ? "" : "s"}`,
+  skSilBaslik: "Delete content", skSilMetin: "The content and its file are permanently deleted; this can't be undone.", skAskiBaslik: "Suspend account", skAskiMetin: "A suspended account can't post or interact; it can still delete its own content. Choose a duration:",
+  skKapatBaslik: "Close account", skKapatUyari: "The account and all its content (photos, messages, replies) are permanently deleted. This can't be undone.", skKapatAd: (ad) => `To confirm, type the username: ${ad}`, skKapatSon: "Close account permanently",
+  skKararTamam: "Decision saved", skYetkisiz: "This page is for admins only.", skYukle: "Loading…", skSureli: "Indefinitely",
+  modItiraz: "If you think this is a mistake, write to us from the Support page.",
+});
+Object.assign(IK, { bayrak: '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>' });
+const SK_TURLER = ["gonderi", "yanit", "profil", "an", "mesaj", "etkinlik"], SK_SIRALAR = ["yeni", "cok", "eski"];
+D.sk = D.sk || { durum: "acik", tur: "", sira: "yeni", liste: [], sonraki: false, acik: 0 };
+// yönetici bildirimleri: yazara (moderasyon: "karar:tur") ve şikâyet edene (sikayet_sonuc: kaldirildi | ihlal_yok | islendi). Kimse adıyla anılmaz.
+function bildirimSistemMetin(b) {
+  const en = D.dil === "en";
+  if (b.tur === "sikayet_sonuc") {
+    const son = b.ek === "kaldirildi" ? (en ? "removed" : "kaldırıldı") : b.ek === "ihlal_yok" ? (en ? "no violation found" : "kurallara aykırı bulunmadı") : (en ? "action taken" : "gerekli işlem yapıldı");
+    return esc((en ? "The content you reported was reviewed: " : "Bildirdiğin içerik incelendi: ") + son);
+  }
+  if (b.tur !== "moderasyon") return null;
+  const [karar, ikinci] = String(b.ek || "").split(":"), nesne = { gonderi: ["Gönderin", "Your post"], yanit: ["Yanıtın", "Your reply"], an: ["Anın", "Your moment"], mesaj: ["Mesajın", "Your message"] }[ikinci] || ["İçeriğin", "Your content"];
+  const n = nesne[en ? 1 : 0];
+  let m;
+  if (karar === "gizle") m = en ? `${n} was found to violate the rules and was hidden.` : `${n} kurallara aykırı bulundu ve gizlendi.`;
+  else if (karar === "sil") m = en ? `${n} was removed for violating the rules.` : `${n} kurallara aykırı bulunduğu için kaldırıldı.`;
+  else if (karar === "uyar") m = en ? "You received a warning: your posts must follow the OP Rules." : "Hesabın için bir uyarı aldın: paylaşımların OP Kurallarına uymalı.";
+  else if (karar === "askiya_al") m = ikinci === "suresiz" ? (en ? "Your account was suspended." : "Hesabın askıya alındı.") : (en ? `Your account was suspended for ${t("skGun", Number(ikinci) || 1)}.` : `Hesabın ${Number(ikinci) || 1} gün askıya alındı.`);
+  else if (karar === "askiyi_kaldir") return esc(en ? "Your account suspension was lifted." : "Hesabının askısı kaldırıldı.");
+  else return null;
+  return esc(m) + `<div class="gri">${esc(t("modItiraz"))} <a href="/yasal/destek" target="_blank" rel="noopener">${esc(t("destek"))}</a></div>`;
+}
+async function yonetimOzetYukle() {
+  if (!D.yonetici) { D.sikayetAcik = 0; return; }
+  try { const v = await api("/api/yonetim/ozet"), once = D.sikayetAcik || 0; D.sikayetAcik = Number(v.acik) || 0; if (once !== D.sikayetAcik) { solCiz(); const c = document.querySelector(".cekmece"); if (c) cekmeceAc(true); } } catch { /* rozet tamamlayıcıdır */ }
+}
+const skYol = (bas = 0) => `/api/yonetim/sikayetler?durum=${D.sk.durum}&sira=${D.sk.sira}&sinir=20&baslangic=${bas}${D.sk.tur ? "&tur=" + D.sk.tur : ""}`;
+async function sikayetCiz(my) {
+  let v; try { v = await api(skYol()); } catch (e) { v = { hata: e }; }
+  if (my !== D.cizim) return;
+  if (v.hata) { kok().innerHTML = kabuk(`<h1 class="baslik">${esc(t("sikayetler"))}</h1>` + bosHtml(v.hata.durum === 403 ? t("skYetkisiz") : t("yok")), { geri: true, fab: false }); return; }
+  Object.assign(D.sk, { liste: v.sikayetler, sonraki: !!v.sonraki, acik: v.acik });
+  if ((D.sikayetAcik || 0) !== v.acik) { D.sikayetAcik = v.acik; solCiz(); }
+  skSayfaYaz();
+}
+function skSayfaYaz() {
+  const chip = (e, v, ad, sec) => `<button type="button" class="dug kucuk ikincil sk-chip" data-e="${e}" data-v="${esc(v)}" aria-pressed="${sec ? "true" : "false"}">${esc(ad)}</button>`;
+  kok().innerHTML = kabuk(`<h1 class="baslik">${esc(t("sikayetler"))}</h1><p class="gri sk-aciklama">${esc(t("skAciklama"))}</p>
+    <div class="sk-suz" role="group" aria-label="${esc(t("skAcik"))}">${chip("sk-durum", "acik", t("skAcik") + (D.sk.acik ? ` (${D.sk.acik})` : ""), D.sk.durum === "acik")}${chip("sk-durum", "karar", t("skKararli"), D.sk.durum === "karar")}</div>
+    <div class="sk-suz" role="group">${chip("sk-tur", "", t("skTumu"), !D.sk.tur)}${SK_TURLER.map(x => chip("sk-tur", x, t("skTur_" + x), D.sk.tur === x)).join("")}</div>
+    <div class="sk-suz" role="group">${SK_SIRALAR.map(x => chip("sk-sira", x, t("skSira_" + x), D.sk.sira === x)).join("")}</div>
+    ${D.sk.liste.length ? `<ul class="sk-liste" role="list">${D.sk.liste.map(skKartHtml).join("")}</ul>${D.sk.sonraki ? `<button type="button" class="dug ikincil tam" data-e="sk-daha">${esc(t("skDahaFazla"))}</button>` : ""}` : bosHtml(t(D.sk.durum === "acik" ? "skBos" : "skBosKarar"))}`, { geri: true, fab: false });
+}
+function skOnizleme(x) {
+  const h = x.hedef || {}, foto = h.foto ? `<img class="sk-foto" src="${esc(fotoUrl(h.foto))}" alt="" loading="lazy">` : "", fotolar = (h.fotolar || []).slice(1, 4).map(f => `<img class="sk-foto" src="${esc(fotoUrl(f))}" alt="" loading="lazy">`).join("");
+  if (x.tur === "profil" && h.var) return `<div class="sk-profil">${avatarHtml({ avatar: h.avatar, renk: h.renk, foto: h.foto, ad: h.ad }, "kucuk")}<div><b>${esc(h.ad)}</b> <span class="gri">@${esc(h.handle)}</span>${h.bio ? `<div class="sk-metin">${esc(h.bio)}</div>` : ""}</div></div>`;
+  return `${x.tur === "mesaj" ? `<div class="gri sk-kopya">${esc(t("skMesajKopya"))}</div>` : ""}${h.metin ? `<div class="sk-metin">${esc(h.metin)}</div>` : ""}${h.video ? `<div class="gri">${ikon("video", 16)} ${esc(t("skVideo"))}</div>` : ""}${foto}${fotolar}`;
+}
+function skKartHtml(x) {
+  const h = x.hedef || {}, y = x.yazar, ben = D.ben?.handle, id = esc(x.id), tur = esc(x.tur);
+  const durum = x.tur === "silinmis" || !h.var ? t("skHedefYok") : h.gizli ? (h.gizliNeden === "yonetici" ? t("skGizliYon") : h.gizliNeden === "sikayet" ? t("skGizliOto") : t("skGizli")) : t("skYayinda");
+  const nedenler = Object.entries(x.nedenler || {}).sort((a, b) => b[1] - a[1]).map(([n, c]) => `<span class="sk-neden">${esc(bt("nedenler")[n] || n)} · ${c}</span>`).join("");
+  const yazarOk = !!y && !y.editor && !y.resmi && !y.yonetici && y.handle !== ben;
+  const sec = [];
+  if (x.tur === "silinmis") sec.push(["ihlal_yok", "skKapat", ""]);
+  else {
+    sec.push(["ihlal_yok", h.gizli ? "skIhlalYokAc" : "skIhlalYok", ""]);
+    if (["gonderi", "yanit", "an"].includes(x.tur) && h.var && !(h.gizli && h.gizliNeden === "yonetici")) sec.push(["gizle", "skGizle", "ikincil"]);
+    if (["gonderi", "yanit", "an", "mesaj"].includes(x.tur) && h.var && !h.haber && !h.silindi) sec.push(["sil", "skSil", "ikincil tehlike"]);
+    if (yazarOk) { sec.push(["uyar", "skUyar", "ikincil"]); sec.push(y.askida ? ["askiyi_kaldir", "skAskiKaldir", "ikincil"] : ["askiya_al", "skAskiAl", "ikincil tehlike"]); sec.push(["hesap_kapat", "skHesapKapat", "ikincil tehlike"]); }
+  }
+  const gecmis = (x.kararlar || []).map(k => `<li>${esc(t("skKarar_" + k.karar))}${k.gun ? " · " + esc(t("skGun", k.gun)) : k.karar === "askiya_al" ? " · " + esc(t("skSuresiz")) : ""} · ${esc(zamanYaz(k.zaman))}${k.yonetici ? " · @" + esc(k.yonetici) : ""}${k.notu ? ` · “${esc(k.notu)}”` : ""}</li>`).join("");
+  return `<li class="sk-kart" data-sk="${id}" data-tur="${tur}">
+    <div class="sk-ust"><span class="sk-tur">${esc(t("skTur_" + (x.etkinlik ? "etkinlik" : x.tur)))}</span><span class="sk-sayi">${esc(t("skSayi", x.sayi))}${x.acikSayi && x.acikSayi !== x.sayi ? " · " + esc(t("skAcikSayi", x.acikSayi)) : ""}</span><span class="bosluk"></span><span class="sk-durum${h.gizli ? " gizli" : ""}">${esc(durum)}</span></div>
+    <div class="sk-onizleme">${skOnizleme(x)}</div>
+    <div class="sk-nedenler">${nedenler}</div>${(x.ayrintilar || []).map(a => `<div class="gri sk-ayr">“${esc(a)}”</div>`).join("")}
+    <div class="gri sk-zaman">${esc(t("skIlk"))}: ${esc(zamanYaz(x.ilk))} · ${esc(t("skSon"))}: ${esc(zamanYaz(x.son))}</div>
+    ${y ? `<div class="sk-yazar">${avatarHtml(y, "kucuk")}<span><b>${esc(y.ad)}</b> <span class="gri">@${esc(y.handle)}</span></span><span class="sk-ihlal">${esc(t("skIhlal", y.ihlal || 0))}</span>${y.askida ? `<span class="sk-rozet">${esc(t("skAskida"))}${y.askidaBitis ? " · " + esc(t("skAskidaBitis", new Date(y.askidaBitis).toLocaleDateString(D.dil === "en" ? "en" : "tr"))) : " · " + esc(t("skSuresiz"))}</span>` : ""}${y.yonetici ? `<span class="sk-rozet">${esc(t("skYoneticiRozet"))}</span>` : ""}</div>` : ""}
+    ${gecmis ? `<ul class="sk-gecmis gri" role="list">${gecmis}</ul>` : ""}
+    <label class="sk-not-et"><span class="gri">${esc(t("skNot"))}</span><textarea class="sk-not" rows="1" maxlength="200" aria-label="${esc(t("skNot"))}"></textarea></label>
+    <div class="sk-eylem">${sec.map(([k, ad, sinif]) => `<button type="button" class="dug kucuk ${sinif}" data-e="sk-karar" data-k="${k}" data-t="${tur}" data-id="${id}">${esc(t(ad))}</button>`).join("")}</div></li>`;
+}
+function skKarar(el) {
+  const kart = el.closest(".sk-kart"), x = D.sk.liste.find(s => String(s.id) === el.dataset.id && s.tur === el.dataset.t);
+  const govde = { tur: el.dataset.t, id: el.dataset.id, karar: el.dataset.k, not: (kart?.querySelector(".sk-not")?.value || "").trim().slice(0, 200) };
+  D.skBek = { ...govde, handle: x?.yazar?.handle || "" };
+  if (govde.karar === "askiya_al") return sheet(sheetUst(t("skAskiBaslik")) + `<p>${esc(t("skAskiMetin"))}</p><div class="onay-nedenler">${[[1, t("skGun", 1)], [7, t("skGun", 7)], [30, t("skGun", 30)], [0, t("skSureli")]].map(([g, ad]) => `<button type="button" class="dug ikincil tam sk-onay" data-e="sk-aski-gun" data-g="${g}">${esc(ad)}</button>`).join("")}</div>`);
+  if (govde.karar === "sil") return sheet(sheetUst(t("skSilBaslik")) + `<p>${esc(t("skSilMetin"))}</p><button class="dug tam tehlike sk-onay" data-e="sk-sil-evet">${esc(t("skSil"))}</button><button class="dug ikincil tam sk-onay" data-e="sheet-kapat">${bt("vazgec")}</button>`);
+  if (govde.karar === "hesap_kapat") return sheet(sheetUst(t("skKapatBaslik")) + `<p>${esc(t("skKapatUyari"))}</p><button class="dug tam tehlike sk-onay" data-e="sk-kapat-2">${bt("devam")}</button><button class="dug ikincil tam sk-onay" data-e="sheet-kapat">${bt("vazgec")}</button>`);
+  return skGonder(govde, el);   // ihlal_yok · gizle · uyar · askiyi_kaldir: TEK dokunuş
+}
+function skKapat2() {
+  const s = sheet(sheetUst(t("skKapatBaslik")) + `<p>${esc(t("skKapatAd", D.skBek.handle))}</p><div class="alan"><input id="sk-kapat-ad" autocomplete="off" autocapitalize="none" aria-label="${esc(t("skKapatAd", D.skBek.handle))}"></div><div id="ipucu"></div>
+    <button class="dug tam tehlike sk-onay" id="sk-kapat-son" data-e="sk-kapat-son" disabled>${esc(t("skKapatSon"))}</button><button class="dug ikincil tam sk-onay" data-e="sheet-kapat">${bt("vazgec")}</button>`);
+  $("#sk-kapat-ad", s).addEventListener("input", e => { $("#sk-kapat-son", s).disabled = e.target.value.trim().replace(/^@/, "").toLowerCase() !== String(D.skBek.handle).toLowerCase(); });
+}
+async function skGonder(govde, dugme) {
+  if (dugme) dugme.disabled = true;
+  try { await api("/api/yonetim/karar", govde); }
+  catch (er) { if (dugme) dugme.disabled = false; return hataGoster(er); }
+  sheetKapat(); tost(t("skKararTamam")); yonetimOzetYukle();
+  if (G.sayfa === "sikayet") ciz(false, true);
+}
+async function skDahaFazla(dugme) {
+  dugme.disabled = true;
+  try { const v = await api(skYol(D.sk.liste.length)); D.sk.liste = D.sk.liste.concat(v.sikayetler); D.sk.sonraki = !!v.sonraki; skSayfaYaz(); }
+  catch (er) { dugme.disabled = false; hataGoster(er); }
 }
 
 // ---------- SEKME KAYDIRMA (Senin İçin ⇄ Takip ⇄ Yakınımda; X gibi) ----------
@@ -3928,7 +4067,7 @@ const hareketAzalt2 = () => !!matchMedia?.("(prefers-reduced-motion: reduce)").m
   let p = null, yenileniyor = false;
   const ptrUygun = (e) => {
     if (yenileniyor || scrollY > 0 || document.querySelector(".sheet,.cekmece")) return false;
-    if (!["akis", "kesfet", "video", "profil", "bildirim", "kayit", "kayit-liste", "seri", "aktiviteler", "aktivitelerim", "onay"].includes(G.sayfa)) return false;
+    if (!["akis", "kesfet", "video", "profil", "bildirim", "kayit", "kayit-liste", "seri", "aktiviteler", "aktivitelerim", "onay", "sikayet"].includes(G.sayfa)) return false;
     return !e.target.closest?.(".video-ilerleme,.oneri-sirit,textarea,input,select,.duz,.yz");
   };
   const tut = () => { if (!p || !p.aktif) return; p.kare = 0; const d = Math.min(MAKS, p.dy * 0.8); p.el.style.transform = `translate3d(0,${d}px,0)`; p.g.style.opacity = String(Math.min(1, d / 50)); p.g.style.transform = `rotate(${d * 4}deg)`; };

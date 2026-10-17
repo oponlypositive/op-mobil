@@ -56,6 +56,9 @@ const M = {
   seri_var: ["Bu adla bir seri zaten var.", "You already have a series with that name."], seri_derinlik: ["Seriler en çok 3 düzey olabilir.", "Series can be at most 3 levels deep."],
   liste_ad: ["Liste adı 1-40 karakter olmalı.", "A list name must be 1-40 characters."], liste_limit: ["En çok 100 liste oluşturabilirsin.", "You can create up to 100 lists."],
   liste_var: ["Bu adla bir listen zaten var.", "You already have a list with that name."],
+  // gecis-031: yönetici kararı kuralları (sunucuda)
+  kendi_hesabin: ["Kendi hesabın için bu kararı veremezsin.", "You can't make this decision for your own account."], yonetici_hedef: ["Başka bir yönetici hesabı için bu karar verilemez.", "This decision can't be made for another admin account."],
+  yazar_ozel: ["Bu hesap için bu karar verilemez.", "This decision can't be made for this account."], haber_silinemez: ["Haber gönderileri silinemez.", "News posts can't be deleted."],
 };
 // Sunucunun (Edge Function) Türkçe iletileri → EN karşılık (tam eşleşme); eşleşmeyen sunucu iletisi olduğu gibi gösterilir.
 const SUNUCU_EN = {
@@ -86,11 +89,16 @@ const SUNUCU_EN = {
   "Bu kişiye şu an mesaj gönderemezsin.": "You can't message this person right now.", "Mesaj isteği kabul edilene kadar fotoğraf gönderemezsin.": "You can't send photos until your message request is accepted.",
   "Mesaj isteğin henüz kabul edilmedi.": "Your message request hasn't been accepted yet.", "Mesaj en çok 1000 karakter olabilir.": "A message can be 1000 characters at most.", "Mesaj geçersiz.": "That message isn't valid.",
   "Fotoğraf bulunamadı, tekrar yükler misin?": "The photo wasn't found, could you upload it again?",
+  // gecis-031: yönetim
+  "Bu işlem için yetkin yok.": "You don't have permission for this.", "Kendi hesabın için bu kararı veremezsin.": "You can't make this decision for your own account.",
+  "Başka bir yönetici hesabı için bu karar verilemez.": "This decision can't be made for another admin account.", "Bu hesap için bu karar verilemez.": "This decision can't be made for this account.",
+  "Hesabı kapatmayı onaylaman gerekiyor.": "Please confirm closing the account.", "Kullanıcı adı eşleşmedi, hesap kapatılmadı.": "The username didn't match, the account was not closed.",
+  "Karar kaydedildi ama hesap tam silinemedi; birazdan tekrar dener misin?": "The decision was saved but the account couldn't be fully deleted; please try again shortly.", "Olmadı": "That didn't work",
 };
 const FOTO_COK = ["En çok 4 fotoğraf eklenebilir.", "You can add up to 4 photos."];
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
 function hataYap(mesaj, durum = 400, filtre = false, bekleSn = 0) { const e = new Error(mesaj || ileti("genel")); e.durum = durum; e.filtre = filtre; e.bekleSn = bekleSn; return e; }
-const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, yetkisiz: 403, anket_bitti: 409, zaten_oy: 409, seri_ad: 400, seri_limit: 409, seri_var: 409, seri_derinlik: 400, liste_ad: 400, liste_limit: 409, liste_var: 409 };
+const DURUM = { giris_gerek: 401, bulunamadi: 404, olmadi: 400, cok_hizli: 429, yetkisiz: 403, anket_bitti: 409, zaten_oy: 409, seri_ad: 400, seri_limit: 409, seri_var: 409, seri_derinlik: 400, liste_ad: 400, liste_limit: 409, liste_var: 409, kendi_hesabin: 400, yonetici_hedef: 400, yazar_ozel: 400, haber_silinemez: 403 };
 function rpcHatasi(error) {
   const kod = String(error?.message || "").trim();
   if (M[kod] && DURUM[kod]) return hataYap(ileti(kod), DURUM[kod]);
@@ -282,6 +290,15 @@ export async function api(yol, govde, yontem) {
   if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/katil$/))) return rpc("etkinlik_katil_degistir", { p_post: r[1] });
   if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/onayla$/))) return rpc("etkinlik_onayla", { p_post: r[1] });
   if (m === "POST" && (r = p.match(/^\/api\/etkinlik\/([0-9a-f-]{36})\/reddet$/))) return rpc("etkinlik_reddet", { p_post: r[1], p_neden: String((govde || {}).neden || "") });
+  // ---- gecis-031: YÖNETİCİ ŞİKÂYET YÖNETİMİ (hepsi sunucuda yonetici_mi() ister; "sil" + "hesap_kapat" Storage/Auth gerektirdiğinden Edge Function `yonetim`den geçer)
+  if (m === "GET" && p === "/api/yonetim/ozet") return rpc("yonetim_ozet");
+  if (m === "GET" && p === "/api/yonetim/sikayetler") return rpc("yonetim_sikayetler", { p_durum: q.get("durum") || "acik", p_tur: q.get("tur") || null, p_sira: q.get("sira") || "yeni", p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 30, 1), 50), p_baslangic: Math.max(Number(q.get("baslangic")) || 0, 0), p_dil: d });
+  if (m === "POST" && p === "/api/yonetim/karar") {
+    const b = govde || {};
+    if (b.karar === "sil" || b.karar === "hesap_kapat") return fonksiyon("yonetim", { karar: b.karar, tur: b.tur, id: b.id, not: String(b.not || ""), ...(b.karar === "hesap_kapat" ? { onay: b.onay === true, onayYaz: String(b.onayYaz || "") } : {}) });
+    return rpc("sikayet_karar", { p_tur: b.tur, p_id: b.id, p_karar: b.karar, p_not: b.not ? String(b.not) : null, p_gun: b.karar === "askiya_al" && b.gun ? Number(b.gun) : null });
+  }
+  if (m === "POST" && p === "/api/askida-kontrol") return { askida: (await rpc("askida_sure_kontrol")) === true };   // süreli askı doldu mu? (kendi hesabın)
   if (m === "GET" && p === "/api/onerilen") return ogeleriDuzelt(await rpc("onerilen", { p_dil: d, p_tum: q.get("tum") === "1" }));   // gecis-005-onerilen.sql; yoksa istemci kutuyu gizler
 
   if (m === "POST" && p === "/api/gonderi") {
