@@ -4,7 +4,7 @@
 // Hata sözleşmesi: hata → `Error(mesaj)` + `e.durum` (HTTP benzeri) + `e.filtre` (çift filtre takıldıysa true) + `e.bekleSn` (hız sınırı).
 // supabase-js: public/vendor/supabase.umd.js (sabit sürüm, kendi sitemizden); app.js bu dosyayı import etmeden ÖNCE <script> ile yükler
 // ve `globalThis.supabase` olarak bulunur. Ayrıntı: ../../bulut/MIMARI.md bölüm 7.
-import { denetle } from "./moderasyon.mjs";
+import { denetle, denetleSaldirgan } from "./moderasyon.mjs";
 
 const YAPI = globalThis.OP_YAPI || {};
 const AYAR = { url: YAPI.supabaseUrl || "", anahtar: YAPI.supabaseAnahtar || "", site: YAPI.site || "" };
@@ -82,6 +82,10 @@ const SUNUCU_EN = {
   "OP'de herkes sadece insan 🤗 Kimlik vurgusu olmadan paylaşmayı dener misin?": "On OP everyone is simply a person 🤗 Could you share without emphasising identity?",
   "Bu konu biraz ağır geldi ☁️ OP'de sadece iyi haberler var; içindeki umut veren tarafı anlatır mısın?": "That feels a little heavy ☁️ OP is only good news; could you share the hopeful side of it?",
   "Yazı en çok 120 karakter olabilir.": "The text can be 120 characters at most.", "Yazı stili geçersiz.": "That text style isn't valid.",
+  // gecis-028: mesajlar
+  "Bu kişiye şu an mesaj gönderemezsin.": "You can't message this person right now.", "Mesaj isteği kabul edilene kadar fotoğraf gönderemezsin.": "You can't send photos until your message request is accepted.",
+  "Mesaj isteğin henüz kabul edilmedi.": "Your message request hasn't been accepted yet.", "Mesaj en çok 1000 karakter olabilir.": "A message can be 1000 characters at most.", "Mesaj geçersiz.": "That message isn't valid.",
+  "Fotoğraf bulunamadı, tekrar yükler misin?": "The photo wasn't found, could you upload it again?",
 };
 const FOTO_COK = ["En çok 4 fotoğraf eklenebilir.", "You can add up to 4 photos."];
 const ileti = (k) => (M[k] || M.genel)[dil() === "en" ? 1 : 0];
@@ -184,6 +188,30 @@ export async function api(yol, govde, yontem) {
   if (m === "GET" && (r = p.match(/^\/api\/an\/([0-9a-f-]{36})\/gorenler$/))) return rpc("an_gorenler", { p_id: r[1] });
 
 
+  // ---- gecis-028: MESAJLAR (DM). Okuma/ayar = RPC; gönderme/herkesten silme = mesaj-gonder Edge Function (saldırgan dil süzgeci + hız sınırı sunucuda); fotoğraf (TEK) gönderiyle aynı yoldan Storage'a yüklenir.
+  const mesajDuzelt = (x) => { if (x?.foto && !/^https?:/i.test(x.foto)) x.foto = depoUrl("foto", x.foto); if (x?.alinti && x.alinti.yok === false && x.alinti.foto && !/^https?:/i.test(x.alinti.foto)) x.alinti.foto = depoUrl("foto", x.alinti.foto); return x; };
+  if (m === "GET" && p === "/api/mesaj/sayilar") return rpc("mesaj_sayilari");
+  if (m === "GET" && p === "/api/mesaj/konusmalar") return rpc("mesaj_konusmalar", { p_sekme: q.get("sekme") === "istek" ? "istek" : "gelen", p_dil: d, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 40, 1), 60), p_once: q.get("once") || null });
+  if (m === "POST" && p === "/api/mesaj/ayar") { const b = govde || {}; return rpc("mesaj_ayar_kaydet", { p_izin: b.mesajIzni ?? null, p_okundu: typeof b.okunduBilgisi === "boolean" ? b.okunduBilgisi : null }); }
+  if (m === "GET" && (r = p.match(/^\/api\/mesaj\/k\/([a-z0-9_]+)$/))) {
+    const v = await rpc("mesaj_konusma", { p_handle: r[1], p_dil: d, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 50, 1), 100), p_once: q.get("once") || null });
+    (v?.mesajlar || []).forEach(mesajDuzelt);
+    return v;
+  }
+  if (m === "POST" && (r = p.match(/^\/api\/mesaj\/k\/([a-z0-9_]+)\/oku$/))) return rpc("mesaj_oku", { p_handle: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/mesaj\/k\/([a-z0-9_]+)\/istek$/))) return rpc("mesaj_istek_yanit", { p_handle: r[1], p_islem: String((govde || {}).islem || "") });
+  if (m === "DELETE" && (r = p.match(/^\/api\/mesaj\/k\/([a-z0-9_]+)$/))) return rpc("mesaj_konusma_sil", { p_handle: r[1] });
+  if (m === "DELETE" && (r = p.match(/^\/api\/mesaj\/m\/([0-9a-f-]{36})$/))) return fonksiyon("mesaj-gonder", { islem: "sil", id: r[1] });
+  if (m === "POST" && (r = p.match(/^\/api\/mesaj\/k\/([a-z0-9_]+)$/))) {
+    const b = govde || {};
+    const fotoYol = b.foto ? await fotoYukle(b.foto) : null;
+    try {
+      const v = await fonksiyon("mesaj-gonder", { islem: "gonder", hedef: r[1], metin: b.metin || "", ...(fotoYol ? { fotoYol } : {}), ...(b.alintiAnId ? { alintiAnId: b.alintiAnId } : {}) });
+      if (v?.mesaj) mesajDuzelt(v.mesaj);
+      return v;
+    } catch (e) { if (fotoYol) await sb.storage.from("foto").remove([fotoYol]).catch(() => {}); throw e; }
+  }
+
   if (m === "POST" && p === "/api/kullanici") {   // profil oluştur / güncelle (kimlik = oturum)
     const b = govde || {};
     let fotoYol = null;   // gecis-016: profil fotoğrafı (istemcide 512x512 JPEG) → Storage `foto/<uid>/<uuid>.jpg`; yol profil-kaydet'e gider
@@ -223,6 +251,7 @@ export async function api(yol, govde, yontem) {
     return ogeleriDuzelt(v);
   }
   if (m === "GET" && p === "/api/gundem") return rpc("gundem", { p_sinir: 10 });
+  if (m === "GET" && p === "/api/ara-oneri") return rpc("ara_oneri", { p_q: (q.get("q") || "").slice(0, 40), p_dil: d });   // gecis-029: yazarken açılır öneri (kişiler · #etiketler · seriler); girişsiz çağrılmaz
   // ---- gecis-024: YAKINDAKİ AKTİVİTELER (okuma anon da açık) + aktivite oluşturma (etkinlik-yaz) + onay akışı (yönetici RPC'leri sunucuda yetki ister)
   if (m === "GET" && p === "/api/etkinlikler") return ogeleriDuzelt(await rpc("yakin_etkinlikler", { p_sehir: (q.get("sehir") || "").slice(0, 40), p_gun: Math.min(Math.max(Number(q.get("gun")) || 7, 1), 30), p_tur: q.get("tur") || null, p_sinir: Math.min(Math.max(Number(q.get("sinir")) || 10, 1), 50) }));
   // gecis-025: aday liste (tüm ülke, en çok 200, enlem/boylam dahil). Kullanıcının GPS konumu BURAYA GELMEZ; mesafe/sıralama cihazda yapılır. Yalnız profil şehri (zaten sunucuda) öncelik içindir.
@@ -320,7 +349,7 @@ export async function api(yol, govde, yontem) {
     try { return await rpc("bekleme_ekle", { p_eposta: b.eposta, p_dil: b.dil === "en" ? "en" : "tr" }); }
     catch (e) { throw hataYap(M.eposta_gecersiz[b.dil === "en" ? 1 : 0], 400); }
   }
-  if (m === "POST" && p === "/api/denetle") return denetle(String((govde || {}).metin || ""));   // yazarken canlı ipucu (yerel; ağ yok)
+  if (m === "POST" && p === "/api/denetle") return (govde || {}).mesaj === true ? denetleSaldirgan(String(govde.metin || "")) : denetle(String((govde || {}).metin || ""));   // yazarken canlı ipucu (yerel; ağ yok); mesaj:true = DM → yalnız saldırgan dil (gecis-028)
 
   // ---- yeni uçlar (mağaza şartları)
   if (m === "GET" && p === "/api/ben") return { kullanici: await rpc("ben") };
@@ -331,6 +360,22 @@ export async function api(yol, govde, yontem) {
   if (m === "DELETE" && p === "/api/hesap") { const v = await fonksiyon("hesap-sil", { onay: true }); await sb.auth.signOut({ scope: "local" }).catch(() => {}); return v; }
 
   throw hataYap(ileti("bulunamadi"), 404);
+}
+
+// ---- gecis-028: ANLIK MESAJ (Supabase Realtime postgres_changes). RLS yalnız konuşma üyelerinin kendi satırlarını iletir; olay yalnız SİNYAL'dir (içerik güvenilmez, istemci RPC ile yeniden okur).
+// cb({ tur: "mesaj" | "uye" }); durumCb(true|false) = bağlı mı (kopunca istemci 15 sn yoklamaya düşer). Dönüş: dinlemeyi bırakan işlev. Uygulama arka plana geçince çağıran taraf bırakır.
+export function mesajDinle(cb, durumCb) {
+  let kanal = null, iptal = false;
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || iptal) return durumCb?.(false);
+    const uid = session.user.id;
+    kanal = sb.channel("mesajlar-" + uid)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mesajlar" }, () => cb({ tur: "mesaj" }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "konusma_uyeleri", filter: "user_id=eq." + uid }, () => cb({ tur: "uye" }))
+      .subscribe((durum) => { if (!iptal) durumCb?.(durum === "SUBSCRIBED"); });
+  })().catch(() => durumCb?.(false));
+  return () => { iptal = true; if (kanal) { try { sb.removeChannel(kanal); } catch { /* yok say */ } kanal = null; } };
 }
 
 // ---- GİRİŞ / KAYIT / ÇIKIŞ / ŞİFRE (yalnız e-posta + şifre; sosyal giriş yok)

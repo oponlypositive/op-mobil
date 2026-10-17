@@ -358,6 +358,7 @@ const IK = {   // satır içi çizgi ikonlar
   anket: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
   baglanti: '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.700-5.700l-1 1"/><path d="M14 10a4 4 0 00-5.700 0l-3 3a4 4 0 005.700 5.700l1-1"/>',
   eposta: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  mesaj: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',   // gecis-028: Mesajlar (zarf)
   ucak: '<path d="M21 3L3 10.500l7 2.500 2.500 7z"/><path d="M21 3L10 13"/>',
   geri: '<path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>',
   yaz: '<path d="M12 5v14"/><path d="M5 12h14"/>',
@@ -763,9 +764,9 @@ function ustHtml(geri, sekmeler) {
     ${sekmeler ? `<nav class="sekmeler" role="tablist" style="--i:${Math.max(0, ["senin", "takip", "yakin"].indexOf(D.sekme))}" aria-label="${esc(t("akKaydirAria"))}">${["senin", "takip", "yakin"].map(s => `<button role="tab" aria-selected="${D.sekme === s}" class="sekme ${D.sekme === s ? "secili" : ""}" data-e="sekme" data-s="${s}"><span>${t(s)}</span></button>`).join("")}<i class="sekme-cizgi" aria-hidden="true"></i></nav>` : ""}</header>`;
 }
 function altHtml() {
-  const secili = (G.sayfa === "akis" && G.kategori) || G.sayfa === "ara" ? "kesfet" : G.sayfa === "profil" && G.handle === D.ben?.handle ? "profil" : G.sayfa;
-  const b = (s) => `<button class="${secili === s ? "secili" : ""}" data-e="git" data-s="${s}" aria-label="${t(s === "akis" ? "ana" : s)}">${ikon(s === "akis" ? "ana" : s, 25)}${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}</button>`;
-  return `<nav class="alt">${["akis", "kesfet", "bildirim", "profil"].map(b).join("")}</nav>`;
+  const secili = (G.sayfa === "akis" && G.kategori) || G.sayfa === "ara" ? "kesfet" : G.sayfa === "mesaj-konusma" ? "mesaj" : G.sayfa === "profil" && G.handle === D.ben?.handle ? "profil" : G.sayfa;
+  const b = (s) => `<button class="${secili === s ? "secili" : ""}" data-e="git" data-s="${s}" aria-label="${s === "mesaj" && mesajToplam() ? esc(t("mesajAriaAlt", mesajToplam())) : t(s === "akis" ? "ana" : s)}">${ikon(s === "akis" ? "ana" : s, 25)}${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}${s === "mesaj" ? mesajRozetHtml() : ""}</button>`;
+  return `<nav class="alt">${["akis", "kesfet", "bildirim", "mesaj", "profil"].map(b).join("")}</nav>`;
 }
 const fabHtml = () => `<button class="fab" data-e="yaz" aria-label="${t("yeniGonderi")}">${ikon("yaz", 26)}</button>`;
 function kabuk(govde, { geri = false, sekmeler = false, alt = true, fab = true, ekstra = "" } = {}) {
@@ -1025,7 +1026,7 @@ async function bildirimCiz(my) {
   const v = await api("/api/bildirimler?okundu=1").catch(() => ({ bildirimler: [] }));
   if (my !== D.cizim) return;
   D.okunmamis = 0;
-  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit", yorum_begen: "begen", yorum_yanit: "yanit", an_tepki: "begen", etkinlik_onay: "takvim", etkinlik_red: "takvim" };
+  const bm = T[D.dil].bildirimMetin, tur = { begen: "begen", yanit: "yanit", yay: "yay", alinti: "alinti", takip: "profil", bahset: "yanit", yorum_begen: "begen", yorum_yanit: "yanit", an_tepki: "begen", etkinlik_onay: "takvim", etkinlik_red: "takvim", mesaj: "mesaj", mesaj_istek: "mesaj" };
   kok().innerHTML = kabuk(`<h1 class="baslik">${t("bildirim")}</h1>` + (v.bildirimler.length ? v.bildirimler.map(b =>
     `<div class="satir bildirim ${b.okundu ? "" : "yeni"}" data-e="bil-ac" data-t="${esc(b.tur)}" data-h="${esc(b.tur === "takip" ? b.kimden?.handle : b.hedef)}"><div class="satir-ic"><span class="bil-ik">${ikon(tur[b.tur] || "begen", 22, b.tur === "begen")}</span>
       <div class="govde">${avatarHtml(b.kimden, "kucuk")}<div class="bil-metin">${b.tur.startsWith("etkinlik_") ? "" : `<b>${esc(b.kimden?.ad)}</b> `}${bm[b.tur] || ""}${b.tur === "etkinlik_red" && b.ek ? `: ${esc(T[D.dil]["akRedNeden_" + b.ek] || "")}` : ""}${(b.tur === "yanit" || b.tur === "alinti" || b.tur === "bahset" || b.tur === "yorum_begen" || b.tur === "yorum_yanit") && b.ek ? `<div class="gri">${baglaEtiket(b.ek, b.etiketler)}</div>` : ""}
@@ -1251,7 +1252,7 @@ async function profilCiz(my) {
   const etiket = k.editor ? t("editor") : k.resmi ? t("resmi") : "";
   kok().innerHTML = kabuk(`<div class="profil-ust">${avatarHtml(k, "dev")}<div class="bosluk"></div>
       ${benim ? `<button class="dug ikincil" data-e="profil-duzenle">${t("duzenle")}</button>`
-        : `${BULUT && D.ben && !k.editor && !k.resmi ? `<button class="menu-dug" data-e="menu" data-t="profil" data-id="" data-h="${esc(k.handle)}" data-ed="0" data-eng="${v.engelliMi ? 1 : 0}" aria-label="${bt("menu")}">•••</button>` : ""}<button class="dug ${v.takipEdiyorMu ? "ikincil" : ""}" data-e="takip" data-h="${esc(k.handle)}">${v.takipEdiyorMu ? t("takipte") : t("takipEt")}</button>`}</div>
+        : `${BULUT && D.ben && !k.editor && !k.resmi ? `<button class="menu-dug" data-e="menu" data-t="profil" data-id="" data-h="${esc(k.handle)}" data-ed="0" data-eng="${v.engelliMi ? 1 : 0}" aria-label="${bt("menu")}">•••</button>` : ""}${D.ben && !k.editor && !k.resmi && !v.engelliMi ? `<button class="dug ikincil msj-profil-dug" data-e="mesaj-ac" data-h="${esc(k.handle)}" aria-label="${esc(t("mesajProfil"))}" title="${esc(t("mesajProfil"))}">${ikon("mesaj", 18)}</button>` : ""}<button class="dug ${v.takipEdiyorMu ? "ikincil" : ""}" data-e="takip" data-h="${esc(k.handle)}">${v.takipEdiyorMu ? t("takipte") : t("takipEt")}</button>`}</div>
     <div class="profil-bilgi"><h2 class="ad">${esc(k.ad)}${rozetHtml(k)}</h2><div class="gri">@${esc(k.handle)}</div>
       ${etiket ? `<div class="etiket">${esc(etiket)}</div>` : ""}
       ${k.editor && !k.resmi ? `<p class="gri bot-not" role="note">${esc(t("botNot"))}</p>` : ""}
@@ -1293,7 +1294,7 @@ function ciz(basa = true, yen = false) {   // yen: aşağı çekip yenileme / ye
   const my = ++D.cizim; sheetKapat(); kok().onclick = kok().onkeydown = kok().onchange = null; yeniHapKapat();
   yanCiz(); veriYukle().then(() => { if (my === D.cizim) sagCiz(); });
   if ((D.ben?.handle || "") !== D.yoneticiKim) { D.yoneticiKim = D.ben?.handle || ""; yoneticiYukle(); }   // gecis-024: "Onay bekleyenler" menüsü yalnız yöneticiye (asıl yetki sunucuda)
-  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "ara" ? araCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "anketler" ? anketlerCiz(my) : s === "aktiviteler" ? aktivitelerCiz(my) : s === "aktivitelerim" ? aktivitelerimCiz(my) : s === "onay" ? onayCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
+  const s = G.sayfa, is = s === "video" ? videolarCiz(my, yen) : s === "onerilen" ? onerilenCiz(my) : s === "akis" ? akisCiz(my, yen) : s === "kesfet" ? kesfetCiz(my) : s === "ara" ? araCiz(my) : s === "bildirim" ? bildirimCiz(my) : s === "mesaj" ? mesajCiz(my) : s === "mesaj-konusma" ? mesajKonusmaCiz(my) : s === "anketler" ? anketlerCiz(my) : s === "aktiviteler" ? aktivitelerCiz(my) : s === "aktivitelerim" ? aktivitelerimCiz(my) : s === "onay" ? onayCiz(my) : s === "profil" ? profilCiz(my) : s === "kayit" ? kayitCiz(my) : s === "kayit-liste" ? kayitListeCiz(my) : s === "seri" ? seriCiz(my) : detayCiz(my);
   if (basa) scrollTo(0, 0);
   return is.then(() => { if (!basa && my === D.cizim) scrollTo(0, G.scroll || 0); if (my === D.cizim && s === "akis") setTimeout(ilgiIlkKontrol, 400); });
 }
@@ -1679,6 +1680,7 @@ function ayarlarAcYerel() {
     <div class="alan"><label>${t("dil")}</label>${grup([["tr", "Türkçe"], ["en", "English"]], D.dil, "dil", "d")}</div>
     <div class="alan"><label>${t("yaziBoyutu")}</label>${grup([["kucuk", t("yaziKucuk")], ["normal", t("yaziNormal")], ["buyuk", t("yaziBuyuk")]], sakla.al("op-yazi", "kucuk"), "yazi", "v")}</div>
     <div class="alan"><label>${t("otoVideo")}</label>${grup([["1", t("otoAcik")], ["0", t("otoKapali")]], otoVideoTercih() ? "1" : "0", "oto-video", "v")}<p class="gri oto-not">${t("otoVideoNot")}</p></div>
+    ${mesajAyarHtml(grup)}
 ${NATIF && navigator.vibrate ? `<div class="alan"><label>${t("titresim")}</label>${grup([["1", t("otoAcik")], ["0", t("otoKapali")]], sakla.al("op-titresim", true) !== false ? "1" : "0", "titresim", "v")}<p class="gri oto-not">${t("titresimNot")}</p></div>` : ""}
     <button class="dug ikincil tam" data-e="ilgi-ac">${t("ilgiBaslik")}</button>
     <button class="dug ikincil tam" data-e="kayitlar">${ikon("kayit", 18)} ${t("kayitlar")}</button>
@@ -1979,7 +1981,7 @@ document.addEventListener("click", async e => {
   }
   const a = el.dataset;
   switch (a.e) {
-    case "git": if (BULUT && !D.ben && (a.s === "bildirim" || a.s === "profil" || a.s === "kayit" || a.s === "aktivitelerim" || a.s === "onay")) return girisIste();
+    case "git": if (BULUT && !D.ben && (a.s === "bildirim" || a.s === "mesaj" || a.s === "profil" || a.s === "kayit" || a.s === "aktivitelerim" || a.s === "onay")) return girisIste();
       if (a.s === "akis" && G.sayfa === "akis" && !G.kategori && !document.querySelector(".sheet,.cekmece")) { if (scrollY > 80) { scrollTo({ top: 0, behavior: hareketAzalt() ? "auto" : "smooth" }); return; } return akisYenile(); }   // X gibi: aşağıdaysa en üste, tepedeyse yenile
       return gotur({ sayfa: a.s, handle: a.s === "profil" ? D.ben.handle : null }, false);
     case "geri": return yigin.length ? history.back() : gotur({ sayfa: "akis" }, false);
@@ -2065,7 +2067,7 @@ document.addEventListener("click", async e => {
     case "paylas-ig": return paylasIg(a.id, a.tur);
     case "paylas-diger": return paylasDiger(a.id);
     case "paylas-wa": return paylasWa(a.id);
-    case "bil-ac": return a.t === "etkinlik_red" ? gotur({ sayfa: "aktivitelerim" }, true) : a.t === "an_tepki" ? anBenimAc() : a.t === "takip" ? gotur({ sayfa: "profil", handle: a.h }, true) : gotur({ sayfa: "detay", id: a.h }, true);
+    case "bil-ac": return a.t === "etkinlik_red" ? gotur({ sayfa: "aktivitelerim" }, true) : a.t === "an_tepki" ? anBenimAc() : a.t === "mesaj" || a.t === "mesaj_istek" ? gotur({ sayfa: "mesaj-konusma", handle: a.h }, true) : a.t === "takip" ? gotur({ sayfa: "profil", handle: a.h }, true) : gotur({ sayfa: "detay", id: a.h }, true);
     case "yaz": if (girisGerekli()) return; return yazAc();
     case "foto-sil": taslak.fotolar.splice(a.i !== undefined ? +a.i : 0, a.i !== undefined ? 1 : taslak.fotolar.length); baglantiTara(); return yzGuncelle();
     // ---- gecis-021: yorum beğenisi + iç içe yanıt, Son Anketler
@@ -2105,6 +2107,24 @@ document.addEventListener("click", async e => {
     case "onerilen-liste": return gotur({ sayfa: "onerilen" }, true);
     case "takip-oneri": return onerilenTakip(a.h);
     case "sheet-kapat": return sheetKapat();
+    case "mesaj-yeni": return mesajYeniAc();
+    case "mesaj-ac": case "mesaj-kisi": return mesajKonusmaAc(a.h);
+    case "mesaj-sekme": return mesajSekmeDegis(a.s);
+    case "mesaj-liste-daha": return mesajListeYukle(false, true);
+    case "mesaj-daha": return mesajDahaYukle(el);
+    case "mesaj-foto-sec": return $("#msj-dosya")?.click();
+    case "mesaj-foto-kaldir": if (DM.k) { DM.k.foto = null; mesajAltCiz(); } return;
+    case "mesaj-foto-ac": return fotoGoruntule(el.currentSrc || el.src, 0);
+    case "mesaj-konusma-menu": return mesajKonusmaMenu();
+    case "mesaj-m-menu": return mesajMesajMenu(a.id, a.benim === "1");
+    case "mesaj-sil-sor": return mesajSilSor(a.id);
+    case "mesaj-sil-evet": return mesajSilEvet(a.id, el);
+    case "mesaj-konusma-sil-sor": return mesajKonusmaSilSor();
+    case "mesaj-konusma-sil-evet": return mesajKonusmaSilEvet(el);
+    case "mesaj-engelle-sor": case "mesaj-istek-engelle": return DM.k ? engelSor(DM.k.kisi.handle) : undefined;
+    case "mesaj-istek": return mesajIstekYanit(a.i, el);
+    case "mesaj-izin": return mesajAyarKaydet({ mesajIzni: a.v });
+    case "mesaj-okundu": return mesajAyarKaydet({ okunduBilgisi: a.v === "1" });
     case "ayarlar": return ayarlarAc();
     case "tema": return temaSec(a.t);
     case "dil": D.dil = a.d; sakla.koy("op-dil", a.d); document.documentElement.lang = a.d; return ciz(false);
@@ -2134,7 +2154,7 @@ document.addEventListener("click", async e => {
     case "an-kapat": return anKapat();
     case "an-begen": return anBegen();
     case "an-yanit": { const k = $(".an-tepkiler", V.el); if (k) { k.hidden = !k.hidden; el.setAttribute("aria-expanded", String(!k.hidden)); } return; }
-    case "an-tepki": return anTepki();
+    case "an-tepki": return anTepki(a.m);
     case "an-menu": return anMenu();
     case "an-sil-sor": return anSilSor(a.id);
     case "an-sil-evet": return anSilEvet(a.id, el);
@@ -2430,6 +2450,7 @@ function ayarlarAcBulut() {
     <div class="alan"><label>${t("dil")}</label>${grup([["tr", "Türkçe"], ["en", "English"]], D.dil, "dil", "d")}</div>
     <div class="alan"><label>${t("yaziBoyutu")}</label>${grup([["kucuk", t("yaziKucuk")], ["normal", t("yaziNormal")], ["buyuk", t("yaziBuyuk")]], sakla.al("op-yazi", "kucuk"), "yazi", "v")}</div>
     <div class="alan"><label>${t("otoVideo")}</label>${grup([["1", t("otoAcik")], ["0", t("otoKapali")]], otoVideoTercih() ? "1" : "0", "oto-video", "v")}<p class="gri oto-not">${t("otoVideoNot")}</p></div>
+    ${giris ? mesajAyarHtml(grup) : ""}
     ${giris ? tit0 + `<button class="dug ikincil tam" data-e="kayitlar">${ikon("kayit", 18)} ${t("kayitlar")}</button>
       <button class="dug ikincil tam" data-e="profil-duzenle">${t("duzenle")}</button>
       <button class="dug ikincil tam" data-e="engellenenler">${bt("engellenenler")}</button>`
@@ -2678,13 +2699,18 @@ function anAc(gi, ai) {
     if (kisa) anGoster(e.clientX < el.clientWidth / 3 ? V.a - 1 : V.a + 1);
   });
   el.addEventListener("pointercancel", () => { V.p = null; anSurdur(); });
+  const vv = window.visualViewport;
+  if (vv) {
+    const kb = () => { if (V.el !== el) return; const k = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)); el.style.setProperty("--kb", k + "px"); el.classList.toggle("kb-acik", k > 80); };
+    vv.addEventListener("resize", kb); vv.addEventListener("scroll", kb); V.vvKapat = () => { vv.removeEventListener("resize", kb); vv.removeEventListener("scroll", kb); };
+  }
   V.gozlem = new MutationObserver(() => { if (V.durak && V.menu && !document.querySelector(".sheet")) { V.menu = false; anSurdur(); } });
   V.gozlem.observe(document.body, { childList: true });
   let a = ai; if (a == null) { a = g.anlar.findIndex(x => !x.gordumMu); if (a < 0) a = 0; }
   anGoster(a);
 }
 function anKapat(sessiz) {
-  clearTimeout(V.z); V.gozlem?.disconnect(); V.gozlem = null;
+  clearTimeout(V.z); V.gozlem?.disconnect(); V.gozlem = null; V.vvKapat?.(); V.vvKapat = null;
   if (V.el) { V.el.remove(); V.el = null; document.body.classList.remove("an-acik"); if (V.odak?.isConnected) V.odak.focus?.({ preventScroll: true }); }
   V.p = null; V.menu = false; V.basladi = false;
   if (!sessiz) anSeritCiz();   // görülenler soluklaşır
@@ -2694,7 +2720,7 @@ function anGoster(ai) {
   let g = V.gruplar[V.g]; if (!g) return anKapat();
   if (ai < 0) { if (V.g > 0) { V.g--; return anGoster(V.gruplar[V.g].anlar.length - 1); } ai = 0; }
   if (ai >= g.anlar.length) { if (V.g + 1 < V.gruplar.length) { V.g++; return anGoster(0); } return anKapat(); }
-  clearTimeout(V.z); V.a = ai; V.kalan = AN_SURE_MS; V.durak = false; V.basladi = false; V.menu = false;
+  clearTimeout(V.z); V.a = ai; V.kalan = AN_SURE_MS; V.durak = false; V.basladi = false; V.menu = false; V.yaz = false;
   const an = g.anlar[ai], kendi = !!g.benim, hm = hareketAzalt();
   el.setAttribute("aria-label", t("anAriaGor", g.benim ? t("anBenim") : g.yazar.ad));
   el.classList.remove("durdu");
@@ -2703,9 +2729,15 @@ function anGoster(ai) {
       <button type="button" class="an-dug" data-e="an-menu" aria-label="${esc(bt("menu"))}">•••</button><button type="button" class="an-dug an-x" data-e="an-kapat" aria-label="${esc(t("kapat"))}">✕</button></div>
     <div class="an-sahne an-tam" id="an-tam"><img src="${esc(fotoUrl(an.foto))}" alt="${esc(an.metin ? "" : t("anFotoAlt", g.yazar.ad))}" draggable="false">${anYaziHtml(an.metin, an.stil)}</div>
     <div class="an-alt">${kendi ? `<span class="an-sayi" id="an-sayi" aria-live="polite">${esc(t("anGoren", an.gorenSayisi ?? 0, an.begeniSayisi ?? 0))}</span>`
-      : `<button type="button" class="an-dug an-begen" data-e="an-begen" aria-pressed="${!!an.begendimMi}" aria-label="${esc(t("anBegen"))}">${ikon("begen", 22, !!an.begendimMi)}<span>${esc(t("anBegen"))}</span></button>
-         <button type="button" class="an-dug an-yanit" data-e="an-yanit" aria-expanded="false" aria-label="${esc(t("anYanitla"))}">${ikon("emoji", 22)}<span>${esc(t("anYanitla"))}</span></button>
-         <div class="an-tepkiler" hidden>${AN_EMOJI.map(m => `<button type="button" class="an-dug" data-e="an-tepki" aria-label="${m}">${m}</button>`).join("")}</div>`}</div>`;
+      : `<div class="an-tepki-sira"><button type="button" class="an-dug an-begen" data-e="an-begen" aria-pressed="${!!an.begendimMi}" aria-label="${esc(t("anBegen"))}">${ikon("begen", 22, !!an.begendimMi)}<span>${esc(t("anBegen"))}</span></button>
+         <div class="an-tepkiler" role="group" aria-label="${esc(t("anTepkiler"))}">${AN_EMOJI.map(m => `<button type="button" class="an-dug" data-e="an-tepki" data-m="${m}" aria-label="${m}">${m}</button>`).join("")}</div></div>
+         ${g.yazar.editor || g.yazar.resmi ? "" : `<form class="an-mesaj" novalidate><input class="an-mesaj-girdi" type="text" maxlength="${MESAJ_EN_COK}" placeholder="${esc(t("anYanitIpucu"))}" aria-label="${esc(t("anMesajAlani"))}" enterkeyhint="send" autocomplete="off"><button type="submit" class="an-dug an-gonder" aria-label="${esc(t("anGonder"))}" disabled>${ikon("ucak", 20)}</button></form><div class="an-mesaj-ipucu" role="status" aria-live="polite"></div>`}`}</div>`;
+  const gir = $(".an-mesaj-girdi", el);   // gecis-028: yanıt kutusu; yazarken an DURUR (klavye açık, ilerleme yok)
+  if (gir) {
+    gir.addEventListener("focus", () => { V.yaz = true; anDurdur(); });
+    gir.addEventListener("blur", () => { V.yaz = false; anSurdur(); });
+    gir.addEventListener("input", () => { $(".an-gonder", el).disabled = !gir.value.trim(); });
+  }
   const img = $("img", el), sahne = $("#an-tam", el);
   const bas = () => { if (V.el !== el || V.a !== ai || V.basladi) return; V.basladi = true; if (img.naturalWidth) el.style.setProperty("--ar", img.naturalWidth / img.naturalHeight); if (!hm) { V.bas = Date.now(); V.z = setTimeout(() => anGoster(V.a + 1), V.kalan); $$(".an-seg i", el)[ai]?.classList.add("oynat"); } };
   if (img.complete && img.naturalWidth) bas(); else { img.addEventListener("load", bas, { once: true }); img.addEventListener("error", bas, { once: true }); }
@@ -2716,7 +2748,7 @@ function anGoster(ai) {
 }
 function anDurdur() { if (V.durak || !V.el) return; V.durak = true; clearTimeout(V.z); if (V.basladi) V.kalan = Math.max(150, V.kalan - (Date.now() - V.bas)); V.el.classList.add("durdu"); }
 function anSurdur() {
-  if (!V.durak || !V.el || V.menu || document.querySelector(".sheet")) return;
+  if (!V.durak || !V.el || V.menu || V.yaz || document.querySelector(".sheet")) return;
   V.durak = false; V.el.classList.remove("durdu");
   if (V.basladi && !hareketAzalt()) { V.bas = Date.now(); clearTimeout(V.z); V.z = setTimeout(() => anGoster(V.a + 1), V.kalan); }
 }
@@ -2728,10 +2760,8 @@ async function anBegen() {
   try { const v = await api(`/api/an/${encodeURIComponent(an.id)}/begen`, {}); an.begendimMi = !!v.begendimMi; }
   catch (e) { an.begendimMi = onceki; const d2 = $(".an-begen", V.el); if (d2) { d2.setAttribute("aria-pressed", String(onceki)); d2.querySelector("svg").outerHTML = ikon("begen", 22, onceki); } hataGoster(e); }
 }
-async function anTepki() {   // "Yanıtla": DM yok → sahibine yalnız "anına tepki verdi" bildirimi (kalp ile aynı kayıt; zaten beğendiysen tekrar bildirim gitmez)
+async function anTepki() {   // hızlı emoji tepkisi: sahibine yalnız "anına tepki verdi" bildirimi (kalp ile aynı kayıt; zaten beğendiysen tekrar bildirim gitmez). Yazılı yanıt = DM (anMesajGonder)
   const an = anSimdi(); if (!an) return;
-  const kutu = $(".an-tepkiler", V.el); if (kutu) kutu.hidden = true;
-  $(".an-yanit", V.el)?.setAttribute("aria-expanded", "false");
   if (!an.begendimMi) await anBegen();
   tost(t("anTepkiGitti"));
 }
@@ -2774,10 +2804,11 @@ document.addEventListener("keydown", e => {   // yakalama aşaması: Esc önce a
   if (!V.el) return;
   if (e.key === "Escape") { if (!document.querySelector(".sheet")) { anKapat(); e.stopPropagation(); } return; }
   if (document.querySelector(".sheet")) return;
+  if (e.target.matches?.("input,textarea") && e.key !== "Tab") return;   // yanıt kutusunda ←/→ imleç içindir
   if (e.key === "ArrowRight") { e.preventDefault(); anGoster(V.a + 1); }
   else if (e.key === "ArrowLeft") { e.preventDefault(); anGoster(V.a - 1); }
   else if (e.key === "Tab") {
-    const f = [...V.el.querySelectorAll("button:not([hidden]):not([disabled])")].filter(x => x.getClientRects().length); if (!f.length) return;
+    const f = [...V.el.querySelectorAll("button:not([hidden]):not([disabled]),input:not([disabled])")].filter(x => x.getClientRects().length); if (!f.length) return;
     if (!V.el.contains(document.activeElement)) { e.preventDefault(); f[0].focus(); }
     else if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
     else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
@@ -2805,6 +2836,8 @@ function sikayetSonrasi(tur, id) {   // şikâyet edende içerik hemen gizlenir 
     D.ogeler = D.ogeler.filter(o => o.id !== id);
     document.querySelectorAll(`[data-oge="${id}"]`).forEach(el => el.remove());
     if (G.sayfa === "detay" && G.id === id) { tost(bt("sikayetAlindi")); return yigin.length ? history.back() : gotur({ sayfa: "akis" }, false); }
+  } else if (tur === "mesaj") {   // gecis-028: şikâyet edilen mesaj şikâyet edende hemen gizlenir
+    if (DM.k) { DM.k.mesajlar = DM.k.mesajlar.filter(m => m.id !== id); const a = $("#msj-akis"); if (a) a.innerHTML = mesajAkisHtml(DM.k); }
   } else if (tur === "an") {
     anSikayetSonrasi(id);
   } else if (tur === "yanit") {
@@ -2825,6 +2858,7 @@ async function engelDegistir(h, dugme) {
   D.ogeler = D.ogeler.filter(o => o.yazar?.handle !== h);
   document.querySelectorAll(`article.satir:has(.sol[data-profil="${h}"])`).forEach(el => el.remove());
   tost(bt("engellendi"));
+  if (G.sayfa === "mesaj-konusma" && G.handle === h) { DM.k = null; mesajSayiYokla(); return yigin.length ? history.back() : gotur({ sayfa: "mesaj" }, false); }   // gecis-028: engellenen konuşma gizlenir
   if (G.sayfa === "profil" && G.handle === h) return yigin.length ? history.back() : gotur({ sayfa: "akis" }, false);
 }
 async function engellenenlerAc() {
@@ -2865,7 +2899,7 @@ async function hesapSilSon(dugme) {
 
 // ---------- yan alanlar: sol menü (≥700 px), sağ sütun (≥1100 px), mobil çekmece, "İyi gündem" + "Kimi takip etmeli" (tek kod, her yerde aynı bileşen) ----------
 const girisli = () => !BULUT || !!D.ben;
-const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], anketler: ["anket", "sonAnketler"], bildirim: ["bildirim", "bildirim"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"], aktivite: ["takvim", "aktiviteOlustur"], onay: ["tik", "onayBekleyenler"] };
+const MENU_TANIM = { akis: ["ana", "ana"], kesfet: ["kesfet", "kesfet"], video: ["video", "videolar"], anketler: ["anket", "sonAnketler"], bildirim: ["bildirim", "bildirim"], mesaj: ["mesaj", "mesajlar"], kayit: ["kayit", "kayitlar"], profil: ["profil", "profil"], ayarlar: ["ayarlar", "ayarlar"], aktivite: ["takvim", "aktiviteOlustur"], onay: ["tik", "onayBekleyenler"] };
 const menuOgeleri = (sira) => sira.filter(s => s === "onay" ? !!D.yonetici : s === "aktivite" ? girisli() && !!D.ben : girisli() || s === "akis" || s === "kesfet" || s === "video" || s === "anketler" || s === "ayarlar");   // misafirde girişsiz çalışmayan öğe yok
 function solSecili() {
   if (G.sayfa === "akis") return G.kategori ? "kesfet" : "akis";
@@ -2873,11 +2907,12 @@ function solSecili() {
   if (G.sayfa === "kayit-liste") return "kayit";
   if (G.sayfa === "ara") return "kesfet";
   if (G.sayfa === "aktivitelerim") return "aktivite";
-  return ["kesfet", "bildirim", "kayit", "video", "anketler", "onay"].includes(G.sayfa) ? G.sayfa : "";
+  if (G.sayfa === "mesaj-konusma") return "mesaj";
+  return ["kesfet", "bildirim", "mesaj", "kayit", "video", "anketler", "onay"].includes(G.sayfa) ? G.sayfa : "";
 }
 const menuDugme = (s, sinif) => {
   const [ik, ad] = MENU_TANIM[s], sec = solSecili() === s, e = s === "ayarlar" ? 'data-e="ayarlar"' : s === "aktivite" ? 'data-e="aktivite-yeni"' : `data-e="git" data-s="${s}"`;
-  return `<button class="${sinif} ${sec ? "secili" : ""}" ${e} aria-label="${t(ad)}" ${sec ? 'aria-current="page"' : ""}>${ikon(ik, 26)}<span class="sol-ad">${t(ad)}</span>${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}</button>`;
+  return `<button class="${sinif} ${sec ? "secili" : ""}" ${e} aria-label="${t(ad)}" ${sec ? 'aria-current="page"' : ""}>${ikon(ik, 26)}<span class="sol-ad">${t(ad)}</span>${s === "bildirim" && D.okunmamis ? '<i class="nokta"></i>' : ""}${s === "mesaj" ? mesajRozetHtml() : ""}</button>`;
 };
 const yasalSatir = () => `<a href="/yasal/kosullar" target="_blank" rel="noopener">${t("kosul")}</a> · <a href="/yasal/gizlilik" target="_blank" rel="noopener">${t("gizlilik")}</a> · <a href="/yasal/cerezler" target="_blank" rel="noopener">${t("cerez")}</a> · <a href="/yasal/kurallar" target="_blank" rel="noopener">${t("kurallar")}</a> · <a href="/yasal/destek" target="_blank" rel="noopener">${t("destek")}</a>`;
 function hesapKartHtml() {
@@ -2889,7 +2924,7 @@ function hesapKartHtml() {
 }
 function solHtml() {
   return `<div class="sol-ic"><div class="sol-ust"><button class="sol-logo" data-e="ust-yenile" aria-label="OP"><img src="icons/op.svg" alt="OP"></button>${betaEtiket()}</div>
-    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "anketler", "aktivite", "onay", "bildirim", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
+    <nav class="sol-menu" aria-label="${t("menu")}">${menuOgeleri(["akis", "kesfet", "video", "anketler", "aktivite", "onay", "bildirim", "mesaj", "kayit", "profil", "ayarlar"]).map(s => menuDugme(s, "sol-oge")).join("")}</nav>
     <button class="dug sol-yaz" data-e="yaz-sol" aria-label="${t("gonderiYayinla")}"><span class="yaz-ik">${ikon("yaz", 26)}</span><span class="yaz-ad">${t("gonderiYayinla")}</span></button>
     <div class="bosluk"></div>${hesapKartHtml()}</div>`;
 }
@@ -2957,7 +2992,7 @@ function cekmeceHtml() {
       <span class="cek-say gri">${typeof k.takipSayisi === "number" ? `<span><b>${k.takipSayisi}</b> ${t("takipSay")}</span> · <span><b>${k.takipci || 0}</b> ${t("takipciSay")}</span>` : ""}</span></button>`
     : `<div class="cek-misafir">${avatarHtml(null)}<button class="dug tam" data-e="giris-ac">${bt("girisYap")}</button><button class="dug ikincil tam" data-e="kayit-ac">${bt("kayitOl")}</button></div>`;
   return `<div class="cek-ust"><span class="cek-baslik">${t("yanMenu")}</span><button class="ust-dug" data-e="sheet-kapat" aria-label="${t("kapat")}">✕</button></div>${hesap}
-    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "kesfet", "video", "anketler", "aktivite", "onay", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
+    <nav class="cek-menu" aria-label="${t("menu")}">${menuOgeleri(["profil", "kayit", "bildirim", "mesaj", "kesfet", "video", "anketler", "aktivite", "onay", "ayarlar"]).map(s => menuDugme(s, "cek-oge")).join("")}
       ${BULUT && k ? `<button class="cek-oge" data-e="cikis-yap"><span class="sol-ad">${bt("cikisYap")}</span></button>` : ""}</nav>
     <div class="bosluk"></div><div class="grup cek-tema" role="group" aria-label="${t("tema")}"><button class="dug kucuk ${tm === "acik" ? "" : "ikincil"}" data-e="tema" data-t="acik" aria-pressed="${tm === "acik"}">${t("acikTema")}</button>
       <button class="dug kucuk ${tm === "koyu" ? "" : "ikincil"}" data-e="tema" data-t="koyu" aria-pressed="${tm === "koyu"}">${t("koyuTema")}</button></div>
@@ -3856,8 +3891,460 @@ const hareketAzalt2 = () => !!matchMedia?.("(prefers-reduced-motion: reduce)").m
   window.visualViewport?.addEventListener("resize", () => setTimeout(duzelt, 150));
 })();
 
+// ---------- MESAJLAR / DM (gecis-028; sahip 2026-10-16: "mesajlaşmayı ve Mesajlar bölümünü de oluşturalım") ----------
+// Bölümler: yazılar · durum/rozet · anlık iletim (Realtime + 15 sn yoklama yedeği) · liste · konuşma · Yeni mesaj · ayarlar · Anlar yanıtı.
+// Gizlilik: mesajlar uçtan uca şifreli DEĞİLDİR (sunucuda saklanır; şikâyet incelemesi için yöneticiler görebilir; hesap silinince silinir) → gizlilik metni + Ayarlar notu.
+// Bağlantılar tıklanabilir (BG.bagla) ama ÖNİZLEME KARTI YOK (SSRF/izleme yüzeyi büyümesin). Süzgeç: yalnız saldırgan dil (sunucu zorunlu; burada yalnız ipucu).
+Object.assign(T.tr, { mesaj: "Mesajlar", mesajlar: "Mesajlar", yeniMesaj: "Yeni mesaj", mesajIstekler: (n) => (n ? `İstekler (${n})` : "İstekler"), mesajGelenSekme: "Mesajlar",
+  bosMesaj: "Henüz bir konuşman yok. Birine merhaba de.", bosIstek: "Bekleyen mesaj isteği yok.", kisiAra: "Kişi ara (ad ya da @kullanıcıadı)", kisiAraNot: "Birini bulmak için yazmaya başla.", kisiYok: "Kimse bulunamadı.",
+  mesajYaz: "Mesaj yaz…", mesajGonderAria: "Mesajı gönder", mesajFotoEkle: "Fotoğraf ekle", mesajFotoKaldir: "Fotoğrafı kaldır", mesajSilindi: "Bu mesaj silindi", mesajSen: "Sen: ", mesajFoto: "Fotoğraf",
+  mesajGoruldu: "Görüldü", mesajAnYok: "Bu an artık yok", mesajAnYanit: (benim) => (benim ? "Yanıtladığın an" : "Anına yanıt"), mesajMenu: "Mesaj seçenekleri", mesajHerkestenSil: "Herkesten sil",
+  mesajHerkestenSilSor: "Bu mesaj herkes için silinsin mi? İçeriği silinir, \"Bu mesaj silindi\" notu kalır.", mesajSilindiTost: "Mesaj silindi", mesajKonusmaSil: "Konuşmayı benden sil",
+  mesajKonusmaSilSor: "Konuşma yalnız senin listenden kalkar; karşı taraf görmeye devam eder. Yeni mesaj gelirse yeniden açılır.", mesajKonusmaSilindi: "Konuşma silindi", mesajDaha: "Eski mesajları göster",
+  mesajIstekMetin: (ad) => `${ad} sana mesaj isteği gönderdi. Kabul edene kadar mesajı okuduğun ona bildirilmez.`, mesajKabul: "Kabul et", mesajIstekSil: "Sil", mesajIstekEngelle: "Engelle",
+  mesajIstekGitti: "İstek gönderildi", mesajIstekGittiTost: "Mesajın istek olarak gönderildi; kabul edilince fotoğraf da gönderebilirsin.", mesajIstekNot: "Mesaj isteğin gönderildi. Kabul edilene kadar en çok 3 mesaj yazabilir, fotoğraf gönderemezsin.",
+  mesajNeden_mesaj_kapali: "Bu kişiye şu an mesaj gönderemezsin.", mesajNeden_istek_bekliyor: "Mesaj isteğin henüz kabul edilmedi.", mesajNeden_yetkisiz: "Şu an mesaj gönderemezsin.", mesajNeden_bulunamadi: "Bu kişiye ulaşılamıyor.",
+  mesajGizlilik: "Gizlilik", mesajKim: "Kimler sana mesaj atabilir?", mesajKimHerkes: "Herkes", mesajKimTakip: "Takip ettiklerim", mesajKimKimse: "Kimse", mesajKimNot: "Takip etmediğin birinin ilk mesajı İstekler'e düşer.",
+  mesajOkundu: "Okundu bilgisi gönder", mesajOkunduNot: "Kapatırsan karşılıklıdır: sen de başkalarının mesajı ne zaman okuduğunu görmezsin.", mesajSifreNot: "Mesajlar uçtan uca şifreli değildir; şikâyet incelemesi için yöneticiler tarafından görülebilir. Hesabını silince mesajların da silinir.",
+  mesajAyarTamam: "Mesaj ayarın kaydedildi", mesajBildirim: "sana mesaj gönderdi", mesajIstekBildirim: "sana mesaj isteği gönderdi", mesajGitti: "Mesajın gönderildi", anYanitIpucu: "Yanıt gönder…", mesajProfil: "Mesaj gönder",
+  mesajBugun: "Bugün", mesajDun: "Dün", mesajBosKonusma: "Henüz mesaj yok. İlk mesajı sen yaz.", mesajCokUzun: "Mesaj en çok 1000 karakter olabilir.", mesajAriaListe: "Konuşmalar", mesajAriaAkis: "Mesajlar",
+  mesajOkunmamisAria: (n) => `${n} okunmamış`, mesajAriaAlt: (n) => `Mesajlar, ${n} yeni`, mesajKisiMenu: "Konuşma seçenekleri", mesajEngellendi: "Engellendi", mesajDahaKonusma: "Daha fazla göster",
+  anTepkiler: "Hızlı tepkiler", anMesajAlani: "Ana mesaj gönder", anGonder: "Gönder" });
+Object.assign(T.en, { mesaj: "Messages", mesajlar: "Messages", yeniMesaj: "New message", mesajIstekler: (n) => (n ? `Requests (${n})` : "Requests"), mesajGelenSekme: "Messages",
+  bosMesaj: "No conversations yet. Say hello to someone.", bosIstek: "No pending message requests.", kisiAra: "Search people (name or @username)", kisiAraNot: "Start typing to find someone.", kisiYok: "No one found.",
+  mesajYaz: "Write a message…", mesajGonderAria: "Send message", mesajFotoEkle: "Add photo", mesajFotoKaldir: "Remove photo", mesajSilindi: "This message was deleted", mesajSen: "You: ", mesajFoto: "Photo",
+  mesajGoruldu: "Seen", mesajAnYok: "This moment is no longer available", mesajAnYanit: (benim) => (benim ? "Moment you replied to" : "Reply to your moment"), mesajMenu: "Message options", mesajHerkestenSil: "Delete for everyone",
+  mesajHerkestenSilSor: "Delete this message for everyone? Its content is removed and a \"This message was deleted\" note stays.", mesajSilindiTost: "Message deleted", mesajKonusmaSil: "Delete conversation for me",
+  mesajKonusmaSilSor: "The conversation disappears only from your list; the other person still sees it. A new message reopens it.", mesajKonusmaSilindi: "Conversation deleted", mesajDaha: "Show earlier messages",
+  mesajIstekMetin: (ad) => `${ad} sent you a message request. They won't see when you read it until you accept.`, mesajKabul: "Accept", mesajIstekSil: "Delete", mesajIstekEngelle: "Block",
+  mesajIstekGitti: "Request sent", mesajIstekGittiTost: "Your message was sent as a request; once accepted you can send photos too.", mesajIstekNot: "Your message request was sent. Until it's accepted you can write up to 3 messages and no photos.",
+  mesajNeden_mesaj_kapali: "You can't message this person right now.", mesajNeden_istek_bekliyor: "Your message request hasn't been accepted yet.", mesajNeden_yetkisiz: "You can't send messages right now.", mesajNeden_bulunamadi: "This person can't be reached.",
+  mesajGizlilik: "Privacy", mesajKim: "Who can message you?", mesajKimHerkes: "Everyone", mesajKimTakip: "People I follow", mesajKimKimse: "No one", mesajKimNot: "A first message from someone you don't follow goes to Requests.",
+  mesajOkundu: "Send read receipts", mesajOkunduNot: "If you turn it off it works both ways: you won't see when others read your messages either.", mesajSifreNot: "Messages are not end-to-end encrypted; administrators can see them to review reports. When you delete your account your messages are deleted too.",
+  mesajAyarTamam: "Your message settings were saved", mesajBildirim: "sent you a message", mesajIstekBildirim: "sent you a message request", mesajGitti: "Your message was sent", anYanitIpucu: "Send a reply…", mesajProfil: "Send a message",
+  mesajBugun: "Today", mesajDun: "Yesterday", mesajBosKonusma: "No messages yet. Write the first one.", mesajCokUzun: "A message can be 1000 characters at most.", mesajAriaListe: "Conversations", mesajAriaAkis: "Messages",
+  mesajOkunmamisAria: (n) => `${n} unread`, mesajAriaAlt: (n) => `Messages, ${n} new`, mesajKisiMenu: "Conversation options", mesajEngellendi: "Blocked", mesajDahaKonusma: "Show more",
+  anTepkiler: "Quick reactions", anMesajAlani: "Send a message", anGonder: "Send" });
+T.tr.bildirimMetin.mesaj = T.tr.mesajBildirim; T.tr.bildirimMetin.mesaj_istek = T.tr.mesajIstekBildirim;
+T.en.bildirimMetin.mesaj = T.en.mesajBildirim; T.en.bildirimMetin.mesaj_istek = T.en.mesajIstekBildirim;
+
+// ---- durum
+const MESAJ_YOKLAMA_MS = (Number(YAPI.mesajYoklamaSn) > 0 ? Number(YAPI.mesajYoklamaSn) : 15) * 1000;   // Realtime yoksa/koparsa yedek yoklama (varsayılan 15 sn); testler kısaltır
+const MESAJ_EN_COK = 1000;
+const DM = { sayi: { okunmamis: 0, istek: 0 }, sekme: "gelen", liste: null, daha: false, k: null, acik: false, rt: false, z: 0, sz: 0, birak: null, ayarIstendi: false };
+const mesajToplam = () => (DM.sayi.okunmamis || 0) + (DM.sayi.istek || 0);
+const mesajRozetHtml = () => { const n = mesajToplam(); return n ? `<i class="sayi-rozet" aria-hidden="true">${n > 9 ? "9+" : n}</i>` : ""; };
+function mesajRozetCiz() {   // alt gezinme + sol menü rozeti
+  const alt = $(".alt"); if (alt) alt.outerHTML = altHtml();
+  solCiz();
+}
+async function mesajSayiYokla() {
+  if (!D.ben) return;
+  const v = await api("/api/mesaj/sayilar").catch(() => null); if (!v) return;
+  const yeni = { okunmamis: v.okunmamis || 0, istek: v.istek || 0 };
+  if (yeni.okunmamis !== DM.sayi.okunmamis || yeni.istek !== DM.sayi.istek) { DM.sayi = yeni; mesajRozetCiz(); }
+}
+
+// ---- anlık iletim: Supabase Realtime (yalnız bulutta; RLS ile yalnız kendi konuşmalarım) + yoklama yedeği. Uygulama arka plandayken dinleme KAPANIR (visibilitychange).
+function mesajKontrol() {   // bildirimYokla her 20 sn'de çağırır: giriş/çıkışa göre dinlemeyi aç/kapat
+  if (!D.ben) { if (DM.acik) mesajDinlemeBirak(); if (mesajToplam()) { DM.sayi = { okunmamis: 0, istek: 0 }; } DM.liste = null; DM.k = null; return; }
+  if (!BULUT && D.ben.mesajIzni === undefined && !DM.ayarIstendi) { DM.ayarIstendi = true; api("/api/mesaj/ayar").then(v => { D.ben.mesajIzni = v.mesajIzni; D.ben.okunduBilgisi = v.okunduBilgisi; }).catch(() => {}); }
+  if (!DM.acik && !document.hidden) mesajDinlemeBasla();
+}
+function mesajDinlemeBasla() {
+  mesajDinlemeBirak(); DM.acik = true; DM.rt = false;
+  if (BULUT && OPB?.mesajDinle) { try { DM.birak = OPB.mesajDinle(() => mesajSinyal(), (ok) => { if (!DM.acik) return; DM.rt = !!ok; mesajZamanlayici(); }); } catch { DM.rt = false; } }
+  mesajZamanlayici(); mesajSinyal(true);
+}
+function mesajZamanlayici() { clearInterval(DM.z); DM.z = setInterval(() => mesajSinyal(true), DM.rt ? 4 * MESAJ_YOKLAMA_MS : MESAJ_YOKLAMA_MS); }   // Realtime bağlıyken yalnız emniyet (okundu bilgisi Realtime'a girmez): 4x aralık
+function mesajDinlemeBirak() { DM.acik = false; DM.rt = false; clearInterval(DM.z); clearTimeout(DM.sz); try { DM.birak?.(); } catch { /* yok say */ } DM.birak = null; }
+function mesajSinyal(hemen) {   // olay/yoklama → sayaç + açık sayfa tazelenir (içerik her zaman RPC'den; Realtime yükü yalnız sinyal)
+  clearTimeout(DM.sz);
+  DM.sz = setTimeout(async () => {
+    if (!D.ben || document.hidden) return;
+    await mesajSayiYokla();
+    if (G.sayfa === "mesaj") mesajListeYukle(true); else if (G.sayfa === "mesaj-konusma") mesajKonusmaYenile();
+  }, hemen ? 0 : 250);
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) mesajDinlemeBirak(); else if (D.ben) mesajDinlemeBasla(); });
+
+// ---- yardımcılar
+function mesajGunEtiket(z) {
+  const d = new Date(z), s = new Date(), g = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), fark = Math.round((g(s) - g(d)) / 86400000);
+  if (fark === 0) return t("mesajBugun"); if (fark === 1) return t("mesajDun");
+  return d.toLocaleDateString(D.dil === "en" ? "en-GB" : "tr-TR", { day: "numeric", month: "long", ...(d.getFullYear() === s.getFullYear() ? {} : { year: "numeric" }) });
+}
+const mesajSaat = (z) => new Date(z).toLocaleTimeString(D.dil === "en" ? "en-GB" : "tr-TR", { hour: "2-digit", minute: "2-digit" });
+const mesajMetinHtml = (m) => (BG ? BG.bagla(m, esc) : esc(m));   // bağlantı tıklanabilir (rel=noopener noreferrer nofollow), kart/önizleme YOK
+const mesajNedenMetni = (n) => { const k = "mesajNeden_" + n; return T[D.dil][k] || T.tr[k] || t("hata"); };
+
+// ---- LİSTE
+function mesajSatirHtml(c) {
+  const k = c.kisi, s = c.son || {}, yeni = (c.okunmamis || 0) > 0;
+  const on = s.silindi ? t("mesajSilindi") : (s.metin || (s.foto ? t("mesajFoto") : "")), sen = s.benim && !s.silindi ? t("mesajSen") : "";
+  return `<button type="button" class="msj-satir${yeni ? " yeni" : ""}" data-e="mesaj-ac" data-h="${esc(k.handle)}" aria-label="${esc(k.ad)}${yeni ? ", " + esc(t("mesajOkunmamisAria", c.okunmamis)) : ""}">
+    ${avatarHtml(k)}<span class="msj-bilgi"><span class="msj-ust"><span class="ad">${esc(k.ad)}${rozetHtml(k)}</span><span class="gri zaman">${zamanYaz(c.zaman)}</span></span>
+    <span class="msj-on ${yeni ? "" : "gri"}">${c.istekGiden ? `<span class="msj-etiket">${esc(t("mesajIstekGitti"))}</span> ` : ""}${esc(sen + on)}</span></span>${yeni ? `<span class="msj-nokta" aria-hidden="true">${c.okunmamis > 9 ? "9+" : c.okunmamis}</span>` : ""}</button>`;
+}
+function mesajListeHtml() {
+  const l = DM.liste;
+  if (!l) return iskelet;
+  if (!l.konusmalar.length) return bosHtml(t(DM.sekme === "istek" ? "bosIstek" : "bosMesaj"), DM.sekme === "istek" ? "" : `<br><br><button class="dug" data-e="mesaj-yeni">${esc(t("yeniMesaj"))}</button>`);
+  return `<div class="msj-liste" role="list" aria-label="${esc(t("mesajAriaListe"))}">${l.konusmalar.map(mesajSatirHtml).join("")}</div>` + (DM.daha ? `<div class="msj-daha-sira"><button class="dug ikincil kucuk" data-e="mesaj-liste-daha">${esc(t("mesajDahaKonusma"))}</button></div>` : "");
+}
+function mesajSekmeHtml() {
+  const n = DM.liste?.istekSayisi ?? DM.sayi.istek ?? 0, b = (id, ad) => `<button role="tab" class="msj-sekme ${DM.sekme === id ? "secili" : ""}" aria-selected="${DM.sekme === id}" data-e="mesaj-sekme" data-s="${id}"><span>${esc(ad)}</span></button>`;
+  return `<nav class="msj-sekmeler" role="tablist">${b("gelen", t("mesajGelenSekme"))}${b("istek", t("mesajIstekler", n))}</nav>`;
+}
+async function mesajListeYukle(sessiz, daha) {
+  if (G.sayfa !== "mesaj") return;
+  const sekme = DM.sekme, once = daha && DM.liste?.konusmalar.length ? DM.liste.konusmalar[DM.liste.konusmalar.length - 1].zaman : "";
+  let v; try { v = await api(`/api/mesaj/konusmalar?sekme=${sekme}${once ? "&once=" + encodeURIComponent(once) : ""}`); } catch (e) { if (!sessiz) { const kap = $("#msj-kap"); if (kap) kap.innerHTML = bosHtml(e.message || t("hata")); } return; }
+  if (G.sayfa !== "mesaj" || DM.sekme !== sekme) return;
+  const onceki = (daha && DM.liste) ? DM.liste.konusmalar : [];
+  DM.liste = { ...v, konusmalar: onceki.concat(v.konusmalar || []) };
+  DM.daha = (v.konusmalar || []).length >= 40;
+  const kap = $("#msj-kap"); if (kap) kap.innerHTML = mesajListeHtml();
+  const sk = $(".msj-sekmeler"); if (sk) sk.outerHTML = mesajSekmeHtml();
+  if (typeof v.istekSayisi === "number" && v.istekSayisi !== DM.sayi.istek) { DM.sayi = { ...DM.sayi, istek: v.istekSayisi }; mesajRozetCiz(); }
+}
+async function mesajCiz(my) {
+  if (BULUT && !D.ben) return girisIste();
+  DM.liste = null; DM.daha = false;
+  kok().innerHTML = kabuk(`<div class="msj-baslik-sira"><h1 class="baslik">${esc(t("mesajlar"))}</h1><button class="dug kucuk" data-e="mesaj-yeni">${ikon("yaz", 16)} ${esc(t("yeniMesaj"))}</button></div>${mesajSekmeHtml()}<div id="msj-kap">${iskelet}</div>`, { fab: false });
+  await mesajListeYukle(false);
+  if (my !== D.cizim) return;
+}
+function mesajSekmeDegis(s) { if (DM.sekme === s) return; DM.sekme = s; DM.liste = null; DM.daha = false; const sk = $(".msj-sekmeler"); if (sk) sk.outerHTML = mesajSekmeHtml(); const kap = $("#msj-kap"); if (kap) kap.innerHTML = iskelet; mesajListeYukle(false); }
+
+// ---- YENİ MESAJ (kişi arama: mevcut kullanici_ara; kendin/engelli/askıdaki/resmi çıkmaz, rozetli içerik hesapları mesaj alamaz)
+function mesajYeniAc() {
+  if (girisGerekli()) return;
+  const s = sheet(sheetUst(t("yeniMesaj")) + `<div class="alan"><input id="ym-ara" placeholder="${esc(t("kisiAra"))}" autocomplete="off" autocapitalize="off" aria-label="${esc(t("kisiAra"))}" maxlength="24"></div><div id="ym-liste" class="ym-liste" aria-live="polite"><p class="gri ym-not">${esc(t("kisiAraNot"))}</p></div>`);
+  const g = $("#ym-ara", s); let z = 0, no = 0; g.focus();
+  g.addEventListener("input", () => {
+    clearTimeout(z); const q = g.value.trim().replace(/^@+/, ""), kap = $("#ym-liste", s);
+    if (!q) { kap.innerHTML = `<p class="gri ym-not">${esc(t("kisiAraNot"))}</p>`; return; }
+    z = setTimeout(async () => {
+      const n = ++no;
+      try {
+        const v = await api(`/api/kullanici-ara?q=${encodeURIComponent(q.toLowerCase())}`); if (n !== no || !kap.isConnected) return;
+        const l = (v.kullanicilar || []).filter(u => !u.editor && !u.resmi && u.handle !== D.ben?.handle);
+        kap.innerHTML = l.length ? l.map(u => `<button type="button" class="msj-satir" data-e="mesaj-kisi" data-h="${esc(u.handle)}">${avatarHtml(u)}<span class="msj-bilgi"><span class="msj-ust"><span class="ad">${esc(u.ad)}${rozetHtml(u)}</span></span><span class="msj-on gri">@${esc(u.handle)}${u.takipEdiyorMu ? " · " + esc(t("takipte")) : ""}</span></span></button>`).join("") : `<p class="gri ym-not">${esc(t("kisiYok"))}</p>`;
+      } catch (e) { if (n === no && kap.isConnected) kap.innerHTML = `<p class="gri ym-not">${esc(e.message || t("hata"))}</p>`; }
+    }, 220);
+  });
+}
+
+// ---- KONUŞMA
+const mesajKonusmaAc = (handle) => { if (girisGerekli()) return; sheetKapat(); return gotur({ sayfa: "mesaj-konusma", handle }, true); };
+function mesajAlintiHtml(a, benim) {
+  if (!a || a.yok) return `<div class="msj-alinti yok" role="note">${esc(t("mesajAnYok"))}</div>`;
+  return `<div class="msj-alinti" role="note"><span class="msj-alinti-foto"><img src="${esc(fotoUrl(a.foto))}" alt="" loading="lazy" decoding="async"></span><span class="msj-alinti-metin"><b>${esc(t("mesajAnYanit", benim))}</b>${a.metin ? `<span>${esc(a.metin)}</span>` : ""}</span></div>`;
+}
+function mesajBalonHtml(m, gorulen) {
+  const yon = m.benim ? "benim" : "onun";
+  if (m.silindi) return `<div class="msj-sira ${yon}" data-mid="${esc(m.id)}"><div class="msj-balon silindi">${esc(t("mesajSilindi"))}</div></div>`;
+  const foto = m.foto ? `<img class="msj-foto" src="${esc(fotoUrl(m.foto))}" alt="${esc(t("mesajFoto"))}" loading="lazy" decoding="async" data-e="mesaj-foto-ac">` : "";
+  const alinti = m.alinti ? mesajAlintiHtml(m.alinti, m.benim) : "";
+  const menu = `<button type="button" class="msj-uc" data-e="mesaj-m-menu" data-id="${esc(m.id)}" data-benim="${m.benim ? 1 : 0}" aria-label="${esc(t("mesajMenu"))}">•••</button>`;
+  return `<div class="msj-sira ${yon}" data-mid="${esc(m.id)}">${m.benim ? menu : ""}<div class="msj-kol"><div class="msj-balon">${alinti}${foto}${m.metin ? `<div class="msj-metin">${mesajMetinHtml(m.metin)}</div>` : ""}</div>
+    <div class="msj-saat gri">${esc(mesajSaat(m.zaman))}${gorulen ? ` · ${esc(t("mesajGoruldu"))}` : ""}</div></div>${m.benim ? "" : menu}</div>`;
+}
+function mesajAkisHtml(k) {
+  const l = k.mesajlar || [];
+  let sonBenim = null; if (k.karsiOkundu) for (const m of l) if (m.benim && !m.silindi && Date.parse(m.zaman) <= Date.parse(k.karsiOkundu)) sonBenim = m.id;
+  let h = k.daha ? `<div class="msj-daha-sira"><button class="dug ikincil kucuk" data-e="mesaj-daha">${esc(t("mesajDaha"))}</button></div>` : "", gun = "";
+  for (const m of l) { const g = mesajGunEtiket(m.zaman); if (g !== gun) { h += `<div class="msj-tarih"><span>${esc(g)}</span></div>`; gun = g; } h += mesajBalonHtml(m, m.id === sonBenim); }
+  if (!l.length) h += `<div class="bos az">${esc(t("mesajBosKonusma"))}</div>`;
+  return h;
+}
+function mesajUstHtml(k) {
+  return `<header class="ust"><div class="ust-sira msj-ust-sira"><button class="ust-dug" data-e="geri" aria-label="${esc(t("geri"))}">${ikon("geri", 22)}</button>
+    <button type="button" class="msj-kim" data-profil="${esc(k.handle)}">${avatarHtml(k, "kucuk")}<span class="msj-kim-ad"><b class="ad">${esc(k.ad)}${rozetHtml(k)}</b><span class="gri">@${esc(k.handle)}</span></span></button>
+    <button class="ust-dug" data-e="mesaj-konusma-menu" aria-haspopup="dialog" aria-label="${esc(t("mesajKisiMenu"))}">•••</button></div></header>`;
+}
+function mesajAltHtml(k) {
+  if (k.istekGelen) return `<div class="msj-istek" role="group"><p>${esc(t("mesajIstekMetin", k.kisi.ad))}</p><div class="msj-istek-dug"><button class="dug kucuk" data-e="mesaj-istek" data-i="kabul">${esc(t("mesajKabul"))}</button>
+      <button class="dug ikincil kucuk" data-e="mesaj-istek" data-i="sil">${esc(t("mesajIstekSil"))}</button><button class="dug ikincil kucuk tehlike" data-e="mesaj-istek-engelle">${esc(t("mesajIstekEngelle"))}</button></div></div>`;
+  if (!k.yazabilir) return `<p class="msj-not gri" role="status">${esc(mesajNedenMetni(k.neden))}</p>`;
+  const foto = k.foto ? `<div class="msj-onizleme"><img src="${esc(k.foto)}" alt="${esc(t("mesajFoto"))}"><button type="button" class="msj-onizleme-kaldir" data-e="mesaj-foto-kaldir" aria-label="${esc(t("mesajFotoKaldir"))}">✕</button></div>` : "";
+  return `${k.istekGiden ? `<p class="msj-not gri" role="note">${esc(t("mesajIstekNot"))}</p>` : ""}<div id="msj-ipucu"></div>${foto}
+    <form class="msj-form" novalidate>${k.fotoIzni ? `<button type="button" class="ust-dug" data-e="mesaj-foto-sec" aria-label="${esc(t("mesajFotoEkle"))}">${ikon("foto", 22)}</button><input type="file" accept="image/*" id="msj-dosya" hidden>` : ""}
+      <textarea id="msj-metin" rows="1" maxlength="${MESAJ_EN_COK}" placeholder="${esc(t("mesajYaz"))}" aria-label="${esc(t("mesajYaz"))}" enterkeyhint="send" autocomplete="off"></textarea>
+      <button type="submit" class="dug kucuk msj-gonder" id="msj-gonder" aria-label="${esc(t("mesajGonderAria"))}" disabled>${ikon("ucak", 18)}</button></form>`;
+}
+function mesajYukseklik() {   // sabit mesaj kutusunun yüksekliği kadar içerik altı boşluk
+  const kutu = $("#msj-kutu"), ic = $(".msj-icerik"); if (!kutu || !ic) return;
+  ic.style.setProperty("--msj-kutu-h", kutu.offsetHeight + "px");
+}
+const mesajAltaMi = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 140;
+const mesajAltaKaydir = (yumusak) => scrollTo({ top: document.documentElement.scrollHeight, behavior: yumusak && !hareketAzalt() ? "smooth" : "auto" });
+function mesajBoyutla(m) { m.style.height = "auto"; m.style.height = Math.min(m.scrollHeight, 120) + "px"; }
+function mesajAltBagla() {
+  const m = $("#msj-metin"), k = DM.k; if (!m || !k) return;
+  m.value = k.taslak || ""; mesajBoyutla(m);
+  const dug = $("#msj-gonder"), guncelle = () => { dug.disabled = !(m.value.trim() || k.foto) || !!k.gonderiyor; };
+  guncelle();
+  let z = 0;
+  m.addEventListener("input", () => { k.taslak = m.value; mesajBoyutla(m); guncelle(); mesajYukseklik(); clearTimeout(z); z = setTimeout(mesajDenetle, 600); });
+  m.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !NATIF && genis()) { e.preventDefault(); mesajGonder(); } });
+  $("#msj-dosya")?.addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    if (!/^image\//.test(f.type)) return ipucuYazMesaj(t("anSadeceFoto"));
+    try { k.foto = await fotoKucult(f); mesajAltCiz(); } catch { ipucuYazMesaj(t("hata")); }
+  });
+}
+const ipucuYazMesaj = (m) => { const i = $("#msj-ipucu"); if (i) i.innerHTML = m ? `<div class="ipucu">${esc(m)}</div>` : ""; mesajYukseklik(); };
+async function mesajDenetle() {   // yazarken ipucu: yalnız saldırgan dil (sunucu asıl kapıdır)
+  const m = $("#msj-metin"); if (!m || !m.value.trim()) return ipucuYazMesaj("");
+  const v = await api("/api/denetle", { metin: m.value, mesaj: true }).catch(() => ({ ok: true }));
+  if (m.isConnected) ipucuYazMesaj(v.ok ? "" : v.mesaj);
+}
+function mesajAltCiz() {
+  const kutu = $("#msj-kutu"), k = DM.k; if (!kutu || !k) return;
+  const odak = document.activeElement?.id === "msj-metin";
+  kutu.innerHTML = mesajAltHtml(k); mesajAltBagla();
+  if (odak) $("#msj-metin")?.focus({ preventScroll: true });
+  mesajYukseklik();
+}
+function mesajKonusmaYaz(basaKaydir) {
+  const k = DM.k;
+  kok().innerHTML = mesajUstHtml(k.kisi) + `<div class="icerik sayfa msj-icerik"><div class="msj-akis" id="msj-akis" role="log" aria-live="polite" aria-label="${esc(t("mesajAriaAkis"))}">${mesajAkisHtml(k)}</div></div><div class="msj-kutu" id="msj-kutu">${mesajAltHtml(k)}</div>`;
+  mesajAltBagla(); mesajYukseklik();
+  if (basaKaydir) mesajAltaKaydir(false);
+}
+async function mesajOkunduIsaretle() {
+  const k = DM.k; if (!k || document.hidden || k.istekGelen || G.sayfa !== "mesaj-konusma") return;
+  const son = [...(k.mesajlar || [])].reverse().find(m => !m.benim && !m.silindi); if (!son || k.okunanSon === son.id) return;
+  k.okunanSon = son.id;
+  try { await api(`/api/mesaj/k/${encodeURIComponent(k.kisi.handle)}/oku`, {}); } catch { k.okunanSon = null; return; }
+  mesajSayiYokla();
+}
+async function mesajKonusmaCiz(my) {
+  const h = G.handle;
+  if (BULUT && !D.ben) return girisIste();
+  kok().innerHTML = `<header class="ust"><div class="ust-sira"><button class="ust-dug" data-e="geri" aria-label="${esc(t("geri"))}">${ikon("geri", 22)}</button><span></span><span></span></div></header><div class="icerik sayfa">${iskelet}</div>`;
+  let v; try { v = await api(`/api/mesaj/k/${encodeURIComponent(h)}`); }
+  catch (e) { if (my !== D.cizim) return; kok().innerHTML = `<header class="ust"><div class="ust-sira"><button class="ust-dug" data-e="geri" aria-label="${esc(t("geri"))}">${ikon("geri", 22)}</button><span></span><span></span></div></header><div class="icerik sayfa">${bosHtml(e.durum === 404 ? mesajNedenMetni("bulunamadi") : e.message || t("hata"))}</div>`; return; }
+  if (my !== D.cizim) return;
+  DM.k = { ...v, taslak: "", foto: null, gonderiyor: false, okunanSon: null };
+  mesajKonusmaYaz(true); mesajOkunduIsaretle();
+}
+async function mesajKonusmaYenile() {
+  const k0 = DM.k, h = G.handle; if (!k0 || G.sayfa !== "mesaj-konusma" || k0.kisi.handle !== h || k0.yenileniyor) return;
+  k0.yenileniyor = true;
+  let v; try { v = await api(`/api/mesaj/k/${encodeURIComponent(h)}`); } catch { k0.yenileniyor = false; return; }
+  k0.yenileniyor = false;
+  if (!DM.k || DM.k !== k0 || G.sayfa !== "mesaj-konusma" || G.handle !== h) return;
+  const alta = mesajAltaMi(), ilkYeni = v.mesajlar?.[0]?.zaman ? Date.parse(v.mesajlar[0].zaman) : Infinity;
+  const eski = (k0.mesajlar || []).filter(m => Date.parse(m.zaman) < ilkYeni && !v.mesajlar.some(x => x.id === m.id));   // "eski mesajları göster" ile yüklenmiş olanlar korunur
+  const durumDegisti = k0.istekGelen !== v.istekGelen || k0.istekGiden !== v.istekGiden || k0.yazabilir !== v.yazabilir || k0.fotoIzni !== v.fotoIzni || k0.neden !== v.neden;
+  const degisti = JSON.stringify(k0.mesajlar.slice(-v.mesajlar.length)) !== JSON.stringify(v.mesajlar) || k0.karsiOkundu !== v.karsiOkundu;
+  Object.assign(k0, v, { mesajlar: eski.concat(v.mesajlar || []), daha: eski.length ? k0.daha : v.daha });
+  if (degisti) { const a = $("#msj-akis"); if (a) a.innerHTML = mesajAkisHtml(k0); if (alta) mesajAltaKaydir(true); }
+  if (durumDegisti) mesajAltCiz();
+  mesajOkunduIsaretle();
+}
+async function mesajDahaYukle(dugme) {
+  const k = DM.k; if (!k || !k.mesajlar.length) return; dugme.disabled = true;
+  try {
+    const v = await api(`/api/mesaj/k/${encodeURIComponent(k.kisi.handle)}?once=${encodeURIComponent(k.mesajlar[0].zaman)}`);
+    const y = document.documentElement.scrollHeight;
+    k.mesajlar = (v.mesajlar || []).concat(k.mesajlar); k.daha = !!v.daha;
+    $("#msj-akis").innerHTML = mesajAkisHtml(k); scrollTo(0, scrollY + document.documentElement.scrollHeight - y);   // okuma konumu korunur
+  } catch (e) { dugme.disabled = false; hataGoster(e); }
+}
+async function mesajGonder() {
+  const k = DM.k, m = $("#msj-metin"); if (!k || !m || k.gonderiyor) return;
+  const metin = m.value.trim(), foto = k.foto; if (!metin && !foto) return;
+  if (metin.length > MESAJ_EN_COK) return ipucuYazMesaj(t("mesajCokUzun"));
+  k.gonderiyor = true; $("#msj-gonder").disabled = true; ipucuYazMesaj("");
+  try {
+    const v = await api(`/api/mesaj/k/${encodeURIComponent(k.kisi.handle)}`, { metin, ...(foto ? { foto } : {}) });
+    k.gonderiyor = false; k.taslak = ""; k.foto = null;
+    if (v?.mesaj && !k.mesajlar.some(x => x.id === v.mesaj.id)) k.mesajlar.push(v.mesaj);
+    if (v?.durum === "istek" && k.durum === "yok") tost(t("mesajIstekGittiTost"), 4200);
+    $("#msj-akis").innerHTML = mesajAkisHtml(k); mesajAltCiz(); mesajAltaKaydir(true);
+    mesajKonusmaYenile();   // durum/yetki (istek, fotoğraf izni) sunucudan tazelenir
+  } catch (e) {
+    k.gonderiyor = false; const d = $("#msj-gonder"); if (d) d.disabled = false;
+    if (e.durum === 401) return hataGoster(e);
+    ipucuYazMesaj(e.message || t("hata"));
+    if (e.durum === 403) mesajKonusmaYenile();
+  }
+}
+function mesajKonusmaMenu() {
+  const k = DM.k; if (!k) return;
+  sheet(sheetUst(t("mesajKisiMenu")) + `<button class="liste-satir" data-e="mesaj-konusma-sil-sor"><span class="ad">${esc(t("mesajKonusmaSil"))}</span></button>
+    <button class="liste-satir" data-e="mesaj-engelle-sor"><span class="ad">${esc(bt("engelle", k.kisi.handle))}</span></button>`);
+}
+function mesajMesajMenu(id, benim) {
+  sheet(sheetUst(t("mesajMenu")) + (benim
+    ? `<button class="liste-satir sil-satir" data-e="mesaj-sil-sor" data-id="${esc(id)}"><span class="ad">${esc(t("mesajHerkestenSil"))}</span></button>`
+    : `<button class="liste-satir" data-e="sikayet" data-t="mesaj" data-id="${esc(id)}"><span class="ad">${esc(bt("sikayetEt"))}</span></button>`));
+}
+const mesajSilSor = (id) => sheet(sheetUst(t("mesajHerkestenSil")) + `<p class="gri">${esc(t("mesajHerkestenSilSor"))}</p><button class="dug tam sil-dug" data-e="mesaj-sil-evet" data-id="${esc(id)}">${esc(t("mesajHerkestenSil"))}</button><button class="dug ikincil tam" data-e="sheet-kapat">${esc(bt("vazgec"))}</button>`);
+async function mesajSilEvet(id, dugme) {
+  dugme.disabled = true;
+  try { await api(`/api/mesaj/m/${encodeURIComponent(id)}`, null, "DELETE"); } catch (e) { dugme.disabled = false; return hataGoster(e); }
+  sheetKapat(); const k = DM.k, m = k?.mesajlar.find(x => x.id === id);
+  if (m) { for (const a of Object.keys(m)) if (!["id", "benim", "zaman"].includes(a)) delete m[a]; m.silindi = true; $("#msj-akis").innerHTML = mesajAkisHtml(k); }
+  tost(t("mesajSilindiTost"));
+}
+function mesajKonusmaSilSor() {
+  sheet(sheetUst(t("mesajKonusmaSil")) + `<p class="gri">${esc(t("mesajKonusmaSilSor"))}</p><button class="dug tam sil-dug" data-e="mesaj-konusma-sil-evet">${esc(t("mesajKonusmaSil"))}</button><button class="dug ikincil tam" data-e="sheet-kapat">${esc(bt("vazgec"))}</button>`);
+}
+async function mesajKonusmaSilEvet(dugme, handle) {
+  dugme.disabled = true; const h = handle || DM.k?.kisi.handle;
+  try { await api(`/api/mesaj/k/${encodeURIComponent(h)}`, null, "DELETE"); } catch (e) { dugme.disabled = false; return hataGoster(e); }
+  sheetKapat(); tost(t("mesajKonusmaSilindi")); DM.k = null; mesajSayiYokla();
+  return yigin.length ? history.back() : gotur({ sayfa: "mesaj" }, false);
+}
+async function mesajIstekYanit(islem, dugme) {
+  const k = DM.k; if (!k) return; if (dugme) dugme.disabled = true;
+  try { await api(`/api/mesaj/k/${encodeURIComponent(k.kisi.handle)}/istek`, { islem }); } catch (e) { if (dugme) dugme.disabled = false; return hataGoster(e); }
+  mesajSayiYokla();
+  if (islem === "sil") { DM.k = null; tost(t("mesajKonusmaSilindi")); return yigin.length ? history.back() : gotur({ sayfa: "mesaj" }, false); }
+  k.istekGelen = false; k.durum = "aktif"; k.okunanSon = null; await mesajKonusmaYenile(); mesajAltCiz(); mesajOkunduIsaretle();
+}
+async function mesajAyarKaydet(govde) {
+  try { const v = await api("/api/mesaj/ayar", govde); D.ben.mesajIzni = v.mesajIzni; D.ben.okunduBilgisi = v.okunduBilgisi; if (!BULUT) sakla.koy("op-ben", D.ben); }
+  catch (e) { return hataGoster(e); }
+  tost(t("mesajAyarTamam")); if (document.querySelector(".sheet")) ayarlarAc();
+}
+function mesajAyarHtml(grup) {   // Ayarlar > Gizlilik
+  if (!D.ben) return "";
+  const iz = D.ben.mesajIzni || "herkes", ok = D.ben.okunduBilgisi !== false;
+  return `<div class="alan msj-ayar"><label>${esc(t("mesajGizlilik"))} · ${esc(t("mesajKim"))}</label>${grup([["herkes", t("mesajKimHerkes")], ["takip", t("mesajKimTakip")], ["kimse", t("mesajKimKimse")]], iz, "mesaj-izin", "v")}<p class="gri oto-not">${esc(t("mesajKimNot"))}</p>
+    <label>${esc(t("mesajOkundu"))}</label>${grup([["1", t("otoAcik")], ["0", t("otoKapali")]], ok ? "1" : "0", "mesaj-okundu", "v")}<p class="gri oto-not">${esc(t("mesajOkunduNot"))}</p><p class="gri oto-not">${esc(t("mesajSifreNot"))}</p></div>`;
+}
+
+// ---- ANLAR: görüntüleyicide "Yanıt gönder…" (anı alıntılayan DM; anın sahibine gider)
+async function anMesajGonder(form) {
+  const an = anSimdi(), g = V.gruplar[V.g], gir = $(".an-mesaj-girdi", form), d = $(".an-gonder", form), ip = $(".an-mesaj-ipucu", V.el);
+  if (!an || !g || !gir) return; const metin = gir.value.trim(); if (!metin) return;
+  if (girisGerekli()) return;
+  d.disabled = true; if (ip) ip.textContent = "";
+  try {
+    const v = await api(`/api/mesaj/k/${encodeURIComponent(g.yazar.handle)}`, { metin, alintiAnId: an.id });
+    gir.value = ""; gir.blur();
+    tost(v?.durum === "istek" ? t("mesajIstekGittiTost") : t("mesajGitti"), v?.durum === "istek" ? 4200 : 2600);
+    mesajSayiYokla();
+  } catch (e) {
+    d.disabled = !gir.value.trim();
+    if (e.durum === 401) return hataGoster(e);
+    if (ip) ip.textContent = e.message || t("hata"); else tost(e.message || t("hata"));
+  }
+}
+document.addEventListener("submit", e => {
+  const f = e.target.closest?.(".msj-form, .an-mesaj"); if (!f) return;
+  e.preventDefault(); if (f.classList.contains("an-mesaj")) anMesajGonder(f); else mesajGonder();
+});
+
+// ---------- ARAMA ÖNERİLERİ (gecis-029; sahip 2026-10-17) ----------
+// Arama kutusuna yazarken (≥1 harf, 200 ms gecikme) açılır liste: son aramalar (YALNIZ cihazda) · kişiler (≤4) · #etiketler (≤3) · konular/kategoriler (≤3, istemcide) · seriler (≤3).
+// Klavye: ↓/↑ seçer, Enter seçileni açar (hiçbiri seçili değilse TAM arama sonuçlarına gider), Esc kapatır; dokunma/fare ile seçilir. Sunucu: rpc ara_oneri (ön ek, hız sınırlı); girişsizde yalnız yerel kısımlar.
+Object.assign(T.tr, { araOneriKisi: "Kişiler", araOneriEtiket: "Etiketler", araOneriKonu: "Konular", araOneriSeri: "Seriler", araOneriSon: "Son aramalar", araOneriAria: "Arama önerileri", araOneriGonderi: (n) => `${n} gönderi` });
+Object.assign(T.en, { araOneriKisi: "People", araOneriEtiket: "Hashtags", araOneriKonu: "Topics", araOneriSeri: "Series", araOneriSon: "Recent searches", araOneriAria: "Search suggestions", araOneriGonderi: (n) => `${n} posts` });
+const AO = { girdi: null, ogeler: [], sec: -1, no: 0, z: 0, kutu: null, onb: new Map() };
+const katlaIst = (s) => String(s || "").toLocaleLowerCase("tr").normalize("NFD").replace(/\p{M}/gu, "").replace(/ı/g, "i");
+function araOneriYerel(q) {   // anında: son aramalar + kategoriler (cihazda)
+  const k = katlaIst(q.replace(/^[#@]/, "")), etiket = q.startsWith("#"), o = [];
+  if (!etiket && k) {
+    for (const x of araSonlar().filter(x => katlaIst(x).includes(k) && katlaIst(x) !== katlaIst(q)).slice(0, 3)) o.push({ tur: "son", q: x, ad: x });
+  }
+  return o;
+}
+function araOneriKonular(q) {
+  const k = katlaIst(q.replace(/^[#@]/, "")); if (!k || q.startsWith("#")) return [];
+  return Object.entries(KATEGORI).filter(([, a]) => katlaIst(a[0]).split(" ").some(w => w.startsWith(k)) || katlaIst(a[1]).split(" ").some(w => w.startsWith(k)) || katlaIst(a[di()]).startsWith(k))
+    .slice(0, 3).map(([id, a]) => ({ tur: "konu", id, ad: a[di()] }));
+}
+function araOneriBirlestir(q, sunucu) {
+  const o = araOneriYerel(q);
+  const kisiler = (sunucu?.kisiler || []).slice(0, 4).map(u => ({ tur: "kisi", ...u })), etk = (sunucu?.etiketler || []).slice(0, 3).map(e => ({ tur: "etiket", ...e }));
+  const seri = (sunucu?.seriler || []).slice(0, 3).map(s => ({ tur: "seri", ...s }));
+  return [...o, ...kisiler, ...etk, ...araOneriKonular(q), ...seri];
+}
+const AO_BASLIK = { son: "araOneriSon", kisi: "araOneriKisi", etiket: "araOneriEtiket", konu: "araOneriKonu", seri: "araOneriSeri" };
+function araOneriHtml(ogeler) {
+  let h = "", onceki = "";
+  ogeler.forEach((x, i) => {
+    if (x.tur !== onceki) { h += `<div class="ao-baslik" role="presentation">${esc(t(AO_BASLIK[x.tur]))}</div>`; onceki = x.tur; }
+    const ic = x.tur === "kisi" ? `${avatarHtml(x, "kucuk")}<span class="ao-ad"><b>${esc(x.ad)}</b>${rozetHtml(x)}<span class="gri"> @${esc(x.handle)}</span></span>${x.takipEdiyorMu ? `<span class="gri ao-sag">${esc(t("takipte"))}</span>` : ""}`
+      : x.tur === "etiket" ? `<span class="ao-ik">#</span><span class="ao-ad"><b>#${esc(x.ad)}</b></span><span class="gri ao-sag">${esc(t("araOneriGonderi", x.sayi))}</span>`
+      : x.tur === "seri" ? `<span class="ao-ik">${ikon("seri", 18)}</span><span class="ao-ad"><b>${esc(x.ad)}</b></span><span class="gri ao-sag">${esc(t("gdSayi", x.sayi))}</span>`
+      : x.tur === "konu" ? `<span class="ao-ik">${ikon("k_" + x.id, 18)}</span><span class="ao-ad"><b>${esc(x.ad)}</b></span>`
+      : `<span class="ao-ik">${ikon("kesfet", 16)}</span><span class="ao-ad">${esc(x.ad)}</span>`;
+    h += `<div class="ao-oge${i === AO.sec ? " secili" : ""}" role="option" id="ao-o${i}" data-i="${i}" aria-selected="${i === AO.sec}">${ic}</div>`;
+  });
+  return h;
+}
+function araOneriCiz(ogeler) {
+  const g = AO.girdi; if (!g || !g.isConnected) return araOneriKapat();
+  AO.ogeler = ogeler; if (AO.sec >= ogeler.length) AO.sec = -1;
+  if (!ogeler.length) return araOneriKapat(true);
+  const form = g.closest("[data-ara-form]"); if (!form) return;
+  let k = AO.kutu;
+  if (!k || !k.isConnected) {
+    k = AO.kutu = document.createElement("div"); k.id = "ara-oneri"; k.className = "ara-oneri"; k.setAttribute("role", "listbox");
+    k.addEventListener("mousedown", e => e.preventDefault());   // kutunun odağı kaybolmasın
+    k.addEventListener("click", e => { const o = e.target.closest("[data-i]"); if (o) araOneriSec(+o.dataset.i); });
+    form.appendChild(k);
+  }
+  k.setAttribute("aria-label", t("araOneriAria")); k.hidden = false; k.innerHTML = araOneriHtml(ogeler);
+  g.setAttribute("role", "combobox"); g.setAttribute("aria-autocomplete", "list"); g.setAttribute("aria-expanded", "true"); g.setAttribute("aria-controls", "ara-oneri");
+  if (AO.sec >= 0) g.setAttribute("aria-activedescendant", "ao-o" + AO.sec); else g.removeAttribute("aria-activedescendant");
+}
+function araOneriKapat(sadeceGizle) {
+  clearTimeout(AO.z); AO.no++;
+  if (AO.kutu) { if (sadeceGizle) AO.kutu.hidden = true; else { AO.kutu.remove(); AO.kutu = null; } }
+  if (AO.girdi) { AO.girdi.setAttribute("aria-expanded", "false"); AO.girdi.removeAttribute("aria-activedescendant"); }
+  AO.ogeler = []; AO.sec = -1;
+}
+function araOneriSec(i) {
+  const x = AO.ogeler[i]; if (!x) return;
+  araOneriKapat();
+  if (x.tur === "kisi") return gotur({ sayfa: "profil", handle: x.handle }, true);
+  if (x.tur === "etiket") return araGit("#" + x.ad);
+  if (x.tur === "seri") return gotur({ sayfa: "seri", id: x.id }, true);
+  if (x.tur === "konu") return gotur({ sayfa: "akis", kategori: x.id }, true);
+  return araGit(x.q);
+}
+function araOneriSor(g) {
+  AO.girdi = g; const q = g.value.replace(/\s+/g, " ").trim();
+  clearTimeout(AO.z);
+  if (!q) return araOneriKapat();
+  araOneriCiz(araOneriBirlestir(q, D.ben ? AO.onb.get(katlaIst(q)) : null));   // yerel kısım hemen; sunucu kısmı 200 ms sonra
+  if (!D.ben) return;
+  if (AO.onb.has(katlaIst(q))) return;
+  const no = ++AO.no;
+  AO.z = setTimeout(async () => {
+    try {
+      const v = await api(`/api/ara-oneri?q=${encodeURIComponent(q)}`); if (no !== AO.no || document.activeElement !== g) return;
+      AO.onb.set(katlaIst(q), v); if (AO.onb.size > 40) AO.onb.delete(AO.onb.keys().next().value);
+      araOneriCiz(araOneriBirlestir(q, v));
+    } catch { /* 429/ağ: yalnız yerel öneriler kalır */ }
+  }, 200);
+}
+document.addEventListener("input", e => { if (e.target.matches?.(".ara-girdi")) araOneriSor(e.target); });
+document.addEventListener("focusin", e => { if (e.target.matches?.(".ara-girdi") && e.target.value.trim()) araOneriSor(e.target); });
+document.addEventListener("focusout", e => { if (e.target.matches?.(".ara-girdi")) setTimeout(() => { if (AO.girdi === e.target && document.activeElement !== e.target) araOneriKapat(); }, 160); });
+document.addEventListener("submit", e => { if (e.target.closest?.("[data-ara-form]")) araOneriKapat(); }, true);
+document.addEventListener("keydown", e => {   // yakalama aşaması: liste açıkken ok/Enter/Esc yalnız listeyi yönetir
+  if (!AO.kutu || AO.kutu.hidden || e.target !== AO.girdi || !AO.ogeler.length) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const n = AO.ogeler.length; AO.sec = e.key === "ArrowDown" ? (AO.sec + 1 >= n ? -1 : AO.sec + 1) : (AO.sec - 1 < -1 ? n - 1 : AO.sec - 1);
+    araOneriCiz(AO.ogeler); AO.kutu.querySelector(".secili")?.scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter" && AO.sec >= 0) { e.preventDefault(); e.stopImmediatePropagation(); araOneriSec(AO.sec); }   // seçili yoksa form gönderilir → tam arama
+  else if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); araOneriKapat(); }
+}, true);
+
 // ---------- başlangıç ----------
 async function bildirimYokla() {
+  mesajKontrol();   // gecis-028: giriş/çıkışa göre mesaj dinlemesini aç/kapat
   if (!D.ben) return;
   const v = await api("/api/bildirimler").catch(() => null);
   if (v && v.okunmamis !== D.okunmamis) {

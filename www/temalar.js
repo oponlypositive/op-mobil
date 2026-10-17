@@ -56,12 +56,12 @@
     return yon;
   };
   function sicak(t, koyu) {
-    const zemin = koyu ? karisim("#33200A", t.duz, 0.28) : karisim("#FFF4E5", t.duz, 0.16);
-    const yazi = ayarla(koyu ? "#FFF1DC" : "#2B1807", zemin, 7.5), yazi2 = ayarla(koyu ? "#E6B877" : "#8A4B0F", zemin, 4.8);
-    const vurgu = ayarla(koyu ? "#FBBF24" : "#EA580C", zemin, 4.8), iz = karisim(zemin, yazi, 0.12);
+    const zemin = koyu ? karisim("#5E4018", t.duz, 0.16) : karisim("#FFF6D2", t.duz, 0.06);   // 2026-10-17: açık = açık sarı/krem (#FFF8DB–#FFF3C4 aralığı), koyu = belirgin daha açık sıcak ton
+    const yazi = ayarla(koyu ? "#FFF1DC" : "#2B1807", zemin, 7.5), yazi2 = ayarla(koyu ? "#F0C98A" : "#8A4B0F", zemin, 4.8);
+    const vurgu = ayarla(koyu ? "#FCD34D" : "#D97706", zemin, 4.8), iz = karisim(zemin, yazi, 0.12);
     const bar = ayarla(vurgu, iz, 3.2), bar2 = ayarla(yazi2, iz, 3.2);
     return {
-      "--sicak-zemin": zemin, "--sicak-kenar": karisim(koyu ? "#B45309" : "#F59E0B", t.duz, koyu ? 0.3 : 0.3), "--sicak-yazi": yazi, "--sicak-yazi2": yazi2,
+      "--sicak-zemin": zemin, "--sicak-kenar": karisim(koyu ? "#D9951E" : "#F5A30B", t.duz, 0.12), "--sicak-yazi": yazi, "--sicak-yazi2": yazi2,
       "--sicak-vurgu": vurgu, "--sicak-vurgu-yazi": kontrast("#FFFFFF", vurgu) >= kontrast("#1A0E02", vurgu) ? "#FFFFFF" : "#1A0E02",
       "--sicak-iz": iz, "--sicak-bar": bar, "--sicak-bar2": bar2,
     };

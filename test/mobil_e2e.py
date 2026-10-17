@@ -273,6 +273,61 @@ def senaryo(tarayici, cihaz, ad, platform):
     b.close()
 
 
+def anlar_mesaj_senaryosu(tarayici, cihaz, platform):
+    """gecis-028: iPhone 14 Pro (393x852, Dynamic Island üst 59 px / alt 34 px güvenli alan) — Anlar tepki çubuğu HER ZAMAN görünür (Beğen + emoji + "Yanıt gönder…"), Mesajlar sekmesi, 5'li alt menü.
+    Güvenli alan değerleri :root --ust/--alt ile taklit edilir (env() masaüstü tarayıcıda 0). CANLIYA istek gitmez: Supabase HTTP + Realtime WebSocket taklit."""
+    ad = "iphone393"
+    b = tarayici.new_context(**{**cihaz, "viewport": {"width": 393, "height": 852}}, locale="tr-TR", service_workers="block")
+    b.add_init_script("localStorage.setItem('op-ilgi-sordu', '[\"*\"]');" f"window.__OP_PLATFORM_TEST = '{platform}';")
+    bulut = eb.Bulut()
+    uid = "99999999-9999-4999-8999-999999999993"
+    bulut._profil(uid, "tepki_kisi", "Tepki Kişi", "💬", "#CDE7EC", sehir="İzmir")
+    bulut.kullanicilar["tepki@example.com"] = {"id": uid, "sifre": "gizli-sifre-123", "onayli": True}
+    bulut.dm_ben = uid
+    bulut.takip.add(bulut.mehmet["id"])
+    bulut.an_ekle(bulut.mehmet, None, None, dakika_once=3)
+    bulut.an_ekle(bulut.mehmet, "Harika bir akşam", {"stil": "zarif", "serit": 0, "x": 50, "y": 72, "oran": "4:5"}, dakika_once=2)
+    bulut.dm_yaz(bulut.mehmet["id"], uid, "Merhaba! Anıma bakar mısın?", dakika_once=1)
+    kayit = []
+    b.route(re.compile(r"^https://yixyvsspetwjatixfaki\.supabase\.co/.*"), bulut.yonlendir)
+    b.route_web_socket(re.compile(r"^wss://yixyvsspetwjatixfaki\.supabase\.co/.*"), eb.realtime_taklit(kayit, True))
+    s = b.new_page()
+    s.on("pageerror", lambda e: hatalar.append(f"[{ad}] {e}"))
+    s.on("console", lambda m: m.type == "error" and "favicon" not in m.text and "Failed to load resource" not in m.text and hatalar.append(f"[{ad}] konsol: {m.text}"))
+    s.goto(URL); s.wait_for_selector(".karsila"); eb.beta_kapat(s)
+    eb._giris(s, "tepki@example.com", "gizli-sifre-123")
+    s.wait_for_selector(".satir", timeout=10000); s.wait_for_timeout(600)
+    s.add_style_tag(content=":root{--ust:59px;--alt:34px}")
+    adim(f"{ad}: alt menü 5 öğe (Mesajlar zarf simgesi + okunmamış rozeti)", s.locator(".alt > button").count() == 5 and s.locator(".alt [data-s='mesaj'] svg").count() == 1 and s.locator(".alt [data-s='mesaj'] .sayi-rozet").inner_text().strip() == "1")
+    adim(f"{ad}: alt menü: padding-bottom 34 px (güvenli alan); tüm düğmeler ≥44 px yüksek", s.evaluate("() => parseFloat(getComputedStyle(document.querySelector('.alt')).paddingBottom)") == 34
+         and all(h >= 43.5 for h in s.locator(".alt > button").evaluate_all("els => els.map(e => e.getBoundingClientRect().height)")))
+    # ---- Anlar görüntüleyici
+    s.wait_for_selector(".an-oge:not(.benim)", timeout=8000); s.locator(".an-oge:not(.benim)").first.click(); s.wait_for_selector(".an-gor .an-alt", timeout=6000); s.wait_for_timeout(500)
+    d = s.evaluate("""() => { const v = innerHeight, w = innerWidth, bar = document.querySelector('.an-gor .an-alt').getBoundingClientRect(), sah = document.querySelector('.an-gor .an-sahne').getBoundingClientRect(),
+        ust = document.querySelector('.an-gor .an-ust-sira').getBoundingClientRect();
+      const oge = [...document.querySelectorAll('.an-gor .an-alt button, .an-gor .an-alt input')].map(e => { const r = e.getBoundingClientRect(), st = getComputedStyle(e); return { ad: e.className.split(' ')[1] || e.tagName, ust: r.top, alt: r.bottom, sol: r.left, sag: r.right, w: r.width, h: r.height, gorunur: st.visibility !== 'hidden' && st.display !== 'none' && r.width > 0 }; });
+      return { v, w, barUst: bar.top, barAlt: bar.bottom, sahUst: sah.top, sahAlt: sah.bottom, ustAlt: ust.bottom, oge }; }""")
+    adim(f"{ad}: Anlar tepki çubuğu ekranın içinde (393x852), her denetim görünür ve alt güvenli alanın (34 px) ÜSTÜNDE", d["barAlt"] <= d["v"] + 0.5 and all(o["gorunur"] and o["alt"] <= d["v"] - 34 + 0.5 and o["ust"] >= 0 and o["sol"] >= 0 and o["sag"] <= d["w"] + 0.5 for o in d["oge"]), str(d["oge"]))
+    adim(f"{ad}: Beğen + 4 hızlı emoji + gönder düğmesi ≥44x44, 'Yanıt gönder…' kutusu ≥44 px yüksek", len(d["oge"]) == 7 and all(o["h"] >= 43.5 and o["w"] >= 43.5 for o in d["oge"]), str([(o["ad"], round(o["w"]), round(o["h"])) for o in d["oge"]]))
+    adim(f"{ad}: fotoğraf (sahne) tepki çubuğuyla ÇAKIŞMAZ; üst çubuk Dynamic Island'ın (59 px) altında", d["sahAlt"] <= d["barUst"] + 1 and d["ustAlt"] > 59 and d["barUst"] > 400, f"sahne alt {d['sahAlt']:.0f} · şerit üst {d['barUst']:.0f}")
+    adim(f"{ad}: çubuk yarı saydam koyu şerit (rgba(0,0,0,.78))", "0.78" in s.evaluate("() => getComputedStyle(document.querySelector('.an-gor .an-alt')).backgroundColor"))
+    s.screenshot(path=str(EKRAN / "anlar-tepki-cubugu.png"))
+    s.locator(".an-mesaj-girdi").click(); s.wait_for_timeout(250)
+    adim(f"{ad}: yanıt kutusuna dokununca an durur (klavye açıkken ilerleme yok)", s.locator(".an-gor.durdu").count() == 1)
+    s.fill(".an-mesaj-girdi", "Çok güzel bir kare!"); s.click(".an-gonder"); s.wait_for_selector(".tost", timeout=5000)
+    sm = bulut.son("fn", "mesaj-gonder")
+    adim(f"{ad}: yanıt anı alıntılayan DM olarak anın sahibine gitti (hedef, metin, alintiAnId)", sm and sm["hedef"] == "mehmet" and sm["metin"] == "Çok güzel bir kare!" and re.match(r"^[0-9a-f-]{36}$", sm.get("alintiAnId", "")), str(sm))
+    s.keyboard.press("Escape"); s.wait_for_timeout(200)
+    # ---- Mesajlar
+    s.click(".alt [data-s='mesaj']"); s.wait_for_selector(".msj-satir", timeout=8000); s.wait_for_timeout(400)
+    adim(f"{ad}: Mesajlar listesi + 'Yeni mesaj'; yatay taşma yok", s.locator(".msj-satir").count() == 1 and s.locator("[data-e='mesaj-yeni']").count() >= 1 and eb.taşma(s) <= 0)
+    s.locator(".msj-satir").first.click(); s.wait_for_selector(".msj-akis .msj-sira", timeout=6000); s.wait_for_timeout(400)
+    kb = s.evaluate("() => { const k = document.querySelector('#msj-kutu').getBoundingClientRect(); return { alt: k.bottom, v: innerHeight, ic: [...document.querySelectorAll('#msj-kutu button, #msj-kutu textarea')].map(e => { const r = e.getBoundingClientRect(); return [r.bottom, r.height, r.width]; }) }; }")
+    adim(f"{ad}: mesaj kutusu alt güvenli alanın üstünde, ≥44 px hedefler", kb["alt"] <= kb["v"] + 0.5 and all(x[0] <= kb["v"] - 34 + 0.5 and x[1] >= 43.5 and x[2] >= 43.5 for x in kb["ic"]), str(kb))
+    adim(f"{ad}: Supabase dışına/izinsiz çağrı yok (Realtime WebSocket taklit edildi)", not bulut.izinsiz and len(kayit) >= 1, str(bulut.izinsiz))
+    b.close()
+
+
 def main():
     if not (WWW / "index.html").exists():
         sys.exit("önce: node op/app/mobil/hazirla.mjs")
@@ -291,6 +346,8 @@ def main():
             for ad, cihaz_adi, platform in [("iphone", "iPhone 14 Pro Max", "ios"), ("android", "Pixel 7", "android")]:
                 cihaz = {**p.devices[cihaz_adi]}; cihaz.pop("default_browser_type", None)
                 senaryo(t, cihaz, ad, platform)
+            c14 = {**p.devices["iPhone 14 Pro"]}; c14.pop("default_browser_type", None)
+            anlar_mesaj_senaryosu(t, c14, "ios")   # gecis-028
             t.close()
     finally:
         sunucu.terminate()

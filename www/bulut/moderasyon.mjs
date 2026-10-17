@@ -77,4 +77,14 @@ function denetle(metin) {
   return { ok: true };
 }
 
-export { denetle };
+// gecis-028: DM (özel yazışma) için YALNIZ saldırgan/kaba dil süzgeci. Katı "yalnız olumlu" konu süzgeci (siyaset, din, etnik, savaş) bire bir yazışmada UYGULANMAZ;
+// hakaret/küfür (HASSAS.kaba) DM'de de engellenir. Sunucu (mesaj-gonder) bunu zorunlu çalıştırır; istemci yalnız ipucu içindir.
+function denetleSaldirgan(metin) {
+  const katli = kelimeler(metin, true), ham = kelimeler(metin, false);
+  for (const [tur, kurallar] of KURALLAR) {
+    if (tur !== "kaba") continue;
+    for (const k of kurallar) if (eslesir(k.ham ? ham : katli, k)) return { ok: false, tur, mesaj: MESAJ[tur] };
+  }
+  return { ok: true };
+}
+export { denetle, denetleSaldirgan };

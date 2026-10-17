@@ -4,7 +4,7 @@ window.OP_YAPI = {
   "supabaseUrl": "https://yixyvsspetwjatixfaki.supabase.co",
   "supabaseAnahtar": "sb_publishable_bCB8NUDn3O25K9SD6-UtwQ_yP9EVaP5",
   "site": "https://onlypositive.org",
-  "surum": "2026-10-16",
+  "surum": "2026-10-17",
   "beta": {
     "acik": false
   },
